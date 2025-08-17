@@ -1,0 +1,10 @@
+BasedOnStyle: Google
+
+# Indentation
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Line breaking
+ColumnLimit: 100    # Google uses 80, but 100 is friendlier for GPU code
+ContinuationIndentWidth: 4
