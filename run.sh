@@ -10,4 +10,4 @@ make
 cd ..
 
 # Run unit test
-./build/test/unit-test
+./build/tests/core-unit-test

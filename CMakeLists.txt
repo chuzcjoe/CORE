@@ -6,4 +6,4 @@ set(CMAKE_CXX_FLAGS "-std=c++20 -Wall -Wextra -Wpedantic -Wunused-variable -Wunu
 set(ANDROID_STL "c++_shared")
 
 add_subdirectory(gtest)
-add_subdirectory(test)
+add_subdirectory(tests)
