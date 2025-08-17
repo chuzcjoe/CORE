@@ -1,0 +1,1 @@
+# CORE: Compute and Open Rendering Engine
