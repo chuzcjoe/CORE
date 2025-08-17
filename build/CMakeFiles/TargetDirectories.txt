@@ -1,0 +1,8 @@
+/Users/zongchengchu/Documents/vulkan/CORE/build/CMakeFiles/edit_cache.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/CMakeFiles/rebuild_cache.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/gtest/CMakeFiles/gtest.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/gtest/CMakeFiles/edit_cache.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/gtest/CMakeFiles/rebuild_cache.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/test/CMakeFiles/unit-test.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/test/CMakeFiles/edit_cache.dir
+/Users/zongchengchu/Documents/vulkan/CORE/build/test/CMakeFiles/rebuild_cache.dir
