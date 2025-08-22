@@ -10,6 +10,8 @@
 namespace core {
 namespace vulkan {
 
+static constexpr const char* kValidationLayerName = "VK_LAYER_KHRONOS_validation";
+
 class VulkanEnv {
  public:
   VulkanEnv(const bool enable_validation_layers = false);

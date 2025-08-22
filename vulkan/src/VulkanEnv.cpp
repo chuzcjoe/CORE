@@ -17,8 +17,12 @@ void VulkanEnv::CreateInstance(const bool enable_validation_layers) {
   // Get required extensions
   std::vector<const char*> extensions;
   if (enable_validation_layers) {
-    extensions.push_back("VK_EXT_debug_utils");
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
+
+#ifdef __APPLE__
+  extensions.emplace_back("VK_KHR_portability_enumeration");
+#endif
 
   // Search for all support extensions
   uint32_t extensionCount = 0;
@@ -28,7 +32,6 @@ void VulkanEnv::CreateInstance(const bool enable_validation_layers) {
 
   // Check if required extensions are supported
   std::unordered_set<std::string> all_extensions;
-  ;
   for (const auto& extension : supportExtensions) {
     all_extensions.emplace(extension.extensionName);
   }
@@ -42,18 +45,21 @@ void VulkanEnv::CreateInstance(const bool enable_validation_layers) {
 
   VkApplicationInfo app{};
   app.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app.pApplicationName = "Minimal";
+  app.pApplicationName = "CORE";
   app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-  app.pEngineName = "none";
+  app.pEngineName = "CORE ENGINE";
   app.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  app.apiVersion = VK_API_VERSION_1_2;  // or 1_1, 1_0
+  app.apiVersion = VK_API_VERSION_1_2;
 
-  // Start with no layers/extensions.
   VkInstanceCreateInfo ci{};
   ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   ci.pApplicationInfo = &app;
-  ci.enabledLayerCount = 0;
-  ci.ppEnabledLayerNames = nullptr;
+  ci.enabledLayerCount = 1;
+  ci.ppEnabledLayerNames = &kValidationLayerName;
+#ifdef __APPLE__
+  ci.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
+#endif
+
   ci.enabledExtensionCount = extensions.size();
   ci.ppEnabledExtensionNames = extensions.data();
   ci.pNext = nullptr;
