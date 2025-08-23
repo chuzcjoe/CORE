@@ -21,8 +21,12 @@ class VulkanContext {
 
  private:
   bool enable_validation_layers_;
+  uint32_t queue_family_;
+  VkPhysicalDevice physical_device_;
 
   void CreateInstance(const bool enable_validation_layers);
+  void PickPhysicalDevice();
+  std::optional<uint32_t> FindQueueFamilies(VkPhysicalDevice device);
 };
 }  // namespace vulkan
 }  // namespace core
