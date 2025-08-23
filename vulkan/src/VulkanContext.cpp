@@ -1,4 +1,4 @@
-#include "VulkanEnv.h"
+#include "VulkanContext.h"
 
 #include <iostream>
 #include <string>
@@ -8,12 +8,12 @@
 namespace core {
 namespace vulkan {
 
-VulkanEnv::VulkanEnv(const bool enable_validation_layers)
+VulkanContext::VulkanContext(const bool enable_validation_layers)
     : enable_validation_layers_(enable_validation_layers) {
   CreateInstance(enable_validation_layers_);
 }
 
-void VulkanEnv::CreateInstance(const bool enable_validation_layers) {
+void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   // Get required extensions
   std::vector<const char*> extensions;
   if (enable_validation_layers) {

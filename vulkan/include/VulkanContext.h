@@ -12,10 +12,10 @@ namespace vulkan {
 
 static constexpr const char* kValidationLayerName = "VK_LAYER_KHRONOS_validation";
 
-class VulkanEnv {
+class VulkanContext {
  public:
-  VulkanEnv(const bool enable_validation_layers = false);
-  ~VulkanEnv() = default;
+  VulkanContext(const bool enable_validation_layers = false);
+  ~VulkanContext() = default;
 
   VkInstance instance = VK_NULL_HANDLE;
 

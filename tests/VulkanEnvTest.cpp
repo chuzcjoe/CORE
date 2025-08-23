@@ -1,11 +1,11 @@
 #include <gtest/gtest.h>
 
-#include "VulkanEnv.h"
+#include "VulkanContext.h"
 
 namespace core {
 
-TEST(VulkanEnvTest, test) {
-  core::vulkan::VulkanEnv env(true);
-  EXPECT_TRUE(env.instance != VK_NULL_HANDLE);
+TEST(VulkanTest, test) {
+  core::vulkan::VulkanContext context(true);
+  EXPECT_TRUE(context.instance != VK_NULL_HANDLE);
 }
 }  // namespace core
