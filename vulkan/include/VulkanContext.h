@@ -19,7 +19,16 @@ struct QueueFamilyIndices {
   bool is_complete = false;
 };
 
-// Vulkan context managing instance, physical device, logical device, and queues
+/*
+Vulkan context manages:
+1. instance
+2. physical device
+3. logical device
+4. queue families
+5. queues
+6. debug messenger
+*/
+
 class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false,
