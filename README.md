@@ -1,6 +1,8 @@
 # CORE: Compute and Open Rendering Engine
 
-![CORE Logo](logo/core.png)
+<p align="center">
+  <img src="assets/logo.png" alt="CORE Logo" style="width:50%;">
+</p>
 
 ## Run Unit Tests
 ```
