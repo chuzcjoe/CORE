@@ -24,7 +24,7 @@ class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false,
                 const QueueFamilyType queue_family_type = QueueFamilyType::All);
-  ~VulkanContext() = default;
+  ~VulkanContext();
 
   VkInstance instance = VK_NULL_HANDLE;
 

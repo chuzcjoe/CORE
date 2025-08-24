@@ -64,6 +64,24 @@ VulkanContext::VulkanContext(const bool enable_validation_layers, QueueFamilyTyp
   SetupDebugMessenger();
 }
 
+VulkanContext::~VulkanContext() {
+  if (debug_messenger_ != VK_NULL_HANDLE) {
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+        instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (func != nullptr) {
+      func(instance, debug_messenger_, nullptr);
+    }
+  }
+
+  if (device_ != VK_NULL_HANDLE) {
+    vkDestroyDevice(device_, nullptr);
+  }
+
+  if (instance != VK_NULL_HANDLE) {
+    vkDestroyInstance(instance, nullptr);
+  }
+}
+
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   // Get required extensions
   std::vector<const char*> extensions;
