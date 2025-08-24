@@ -12,5 +12,14 @@ namespace vulkan {
     }                                             \
   } while (0)
 
+enum class QueueFamilyType {
+  Compute,
+  Graphics,
+  Present,
+  ComputeAndGraphics,
+  GraphicsAndPresent,
+  All
+};
+
 }  // namespace vulkan
 }  // namespace core
