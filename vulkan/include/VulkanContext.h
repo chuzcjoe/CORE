@@ -10,8 +10,7 @@
 namespace core {
 namespace vulkan {
 
-static constexpr const char* kValidationLayerName = "VK_LAYER_KHRONOS_validation";
-
+// Vulkan context managing instance, physical device, logical device, and queues
 class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false);
@@ -24,12 +23,14 @@ class VulkanContext {
   uint32_t queue_family_;
   VkPhysicalDevice physical_device_;
   VkDevice device_;
+  VkDebugUtilsMessengerEXT debug_messenger_;
 
   void CreateInstance(const bool enable_validation_layers);
   void PickPhysicalDevice();
   std::optional<uint32_t> FindQueueFamilies(VkPhysicalDevice device);
   void CreateLogicalDevice(const float queuePriority = 1.0f);
   std::vector<const char*> GetRequiredDeviceExtensions() const;
+  void SetupDebugMessenger();
 };
 }  // namespace vulkan
 }  // namespace core

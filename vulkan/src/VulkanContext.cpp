@@ -8,11 +8,60 @@
 namespace core {
 namespace vulkan {
 
+static const std::vector<const char*> kValidationLayerName = {"VK_LAYER_KHRONOS_validation"};
+
+const char* toStringMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s) {
+  switch (s) {
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+      return "VERBOSE";
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+      return "ERROR";
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+      return "WARNING";
+    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+      return "INFO";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+const char* toStringMessageType(VkDebugUtilsMessageTypeFlagsEXT s) {
+  if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+    return "General | Validation | Performance";
+  if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+    return "Validation | Performance";
+  if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT))
+    return "General | Performance";
+  if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)) return "Performance";
+  if (s == (VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT))
+    return "General | Validation";
+  if (s == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT) return "Validation";
+  if (s == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT) return "General";
+  return "Unknown";
+}
+
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+              VkDebugUtilsMessageTypeFlagsEXT messageType,
+              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*) {
+  auto ms = toStringMessageSeverity(messageSeverity);
+  auto mt = toStringMessageType(messageType);
+  printf("[%s: %s]\n%s\n", ms, mt, pCallbackData->pMessage);
+
+  return VK_FALSE;
+}
+
 VulkanContext::VulkanContext(const bool enable_validation_layers)
     : enable_validation_layers_(enable_validation_layers) {
   CreateInstance(enable_validation_layers_);
   PickPhysicalDevice();
   CreateLogicalDevice();
+  SetupDebugMessenger();
 }
 
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
@@ -56,15 +105,20 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   VkInstanceCreateInfo ci{};
   ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
   ci.pApplicationInfo = &app;
-  ci.enabledLayerCount = 1;
-  ci.ppEnabledLayerNames = &kValidationLayerName;
+  ci.enabledExtensionCount = extensions.size();
+  ci.ppEnabledExtensionNames = extensions.data();
+  ci.pNext = nullptr;
+
 #ifdef __APPLE__
   ci.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-  ci.enabledExtensionCount = extensions.size();
-  ci.ppEnabledExtensionNames = extensions.data();
-  ci.pNext = nullptr;
+  if (enable_validation_layers) {
+    ci.enabledLayerCount = kValidationLayerName.size();
+    ci.ppEnabledLayerNames = kValidationLayerName.data();
+  } else {
+    ci.enabledLayerCount = 0;
+  }
 
   VK_CHECK(vkCreateInstance(&ci, nullptr, &instance));
 }
@@ -160,6 +214,26 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
   }
 
   return extensions;
+}
+
+void VulkanContext::SetupDebugMessenger() {
+  if (!enable_validation_layers_) return;
+
+  VkDebugUtilsMessengerCreateInfoEXT create_info{};
+  create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+  create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+  create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                            VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+  create_info.pfnUserCallback = debugCallback;
+
+  auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+      instance, "vkCreateDebugUtilsMessengerEXT");
+  if (func != nullptr) {
+    func(instance, &create_info, nullptr, &debug_messenger_);
+  }
 }
 
 }  // namespace vulkan
