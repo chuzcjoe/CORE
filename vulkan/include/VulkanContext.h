@@ -26,7 +26,10 @@ class VulkanContext {
                 const QueueFamilyType queue_family_type = QueueFamilyType::All);
   ~VulkanContext();
 
+  uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
+
   VkInstance instance = VK_NULL_HANDLE;
+  VkDevice logical_device;
 
  private:
   bool enable_validation_layers_;
@@ -34,7 +37,6 @@ class VulkanContext {
   VkQueue compute_queue_;
   VkQueue graphics_queue_;
   VkPhysicalDevice physical_device_;
-  VkDevice device_;
   VkDebugUtilsMessengerEXT debug_messenger_;
 
   void CreateInstance(const bool enable_validation_layers);

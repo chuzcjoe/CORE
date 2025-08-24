@@ -73,13 +73,29 @@ VulkanContext::~VulkanContext() {
     }
   }
 
-  if (device_ != VK_NULL_HANDLE) {
-    vkDestroyDevice(device_, nullptr);
+  if (logical_device != VK_NULL_HANDLE) {
+    vkDestroyDevice(logical_device, nullptr);
   }
 
   if (instance != VK_NULL_HANDLE) {
     vkDestroyInstance(instance, nullptr);
   }
+}
+
+uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
+                                       const VkMemoryPropertyFlags properties) const {
+  VkPhysicalDeviceMemoryProperties mem_properties;
+  vkGetPhysicalDeviceMemoryProperties(physical_device_, &mem_properties);
+
+  for (uint32_t i = 0; i < mem_properties.memoryTypeCount; ++i) {
+    if ((type_filter & (1 << i)) &&
+        (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
+      return i;
+    }
+  }
+
+  throw std::runtime_error("failed to find suitable memory type!");
+  return -1;
 }
 
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
@@ -249,13 +265,15 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   deviceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   deviceInfo.ppEnabledExtensionNames = extensions.data();
 
-  VK_CHECK(vkCreateDevice(physical_device_, &deviceInfo, nullptr, &device_));
+  VK_CHECK(vkCreateDevice(physical_device_, &deviceInfo, nullptr, &logical_device));
 
   if (queue_family_indices_.compute_family.has_value()) {
-    vkGetDeviceQueue(device_, queue_family_indices_.compute_family.value(), 0, &compute_queue_);
+    vkGetDeviceQueue(logical_device, queue_family_indices_.compute_family.value(), 0,
+                     &compute_queue_);
   }
   if (queue_family_indices_.graphics_family.has_value()) {
-    vkGetDeviceQueue(device_, queue_family_indices_.graphics_family.value(), 0, &graphics_queue_);
+    vkGetDeviceQueue(logical_device, queue_family_indices_.graphics_family.value(), 0,
+                     &graphics_queue_);
   }
 }
 
