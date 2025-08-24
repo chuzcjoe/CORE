@@ -23,10 +23,13 @@ class VulkanContext {
   bool enable_validation_layers_;
   uint32_t queue_family_;
   VkPhysicalDevice physical_device_;
+  VkDevice device_;
 
   void CreateInstance(const bool enable_validation_layers);
   void PickPhysicalDevice();
   std::optional<uint32_t> FindQueueFamilies(VkPhysicalDevice device);
+  void CreateLogicalDevice(const float queuePriority = 1.0f);
+  std::vector<const char*> GetRequiredDeviceExtensions() const;
 };
 }  // namespace vulkan
 }  // namespace core

@@ -11,7 +11,8 @@ namespace vulkan {
 VulkanContext::VulkanContext(const bool enable_validation_layers)
     : enable_validation_layers_(enable_validation_layers) {
   CreateInstance(enable_validation_layers_);
-  pickPhysicalDevice();
+  PickPhysicalDevice();
+  CreateLogicalDevice();
 }
 
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
@@ -28,12 +29,12 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   // Search for all support extensions
   uint32_t extensionCount = 0;
   vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-  std::vector<VkExtensionProperties> supportExtensions(extensionCount);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, supportExtensions.data());
+  std::vector<VkExtensionProperties> support_extensions(extensionCount);
+  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, support_extensions.data());
 
   // Check if required extensions are supported
   std::unordered_set<std::string> all_extensions;
-  for (const auto& extension : supportExtensions) {
+  for (const auto& extension : support_extensions) {
     all_extensions.emplace(extension.extensionName);
   }
 
@@ -69,13 +70,13 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
 }
 
 void VulkanContext::PickPhysicalDevice() {
-  uint32_t deviceCount = 0;
-  vkEnumeratePhysicalDevices(instance, &deviceCount, nullptr);
-  if (deviceCount == 0) {
+  uint32_t device_count = 0;
+  vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+  if (device_count == 0) {
     throw std::runtime_error("failed to find GPUs with Vulkan support!");
   }
-  std::vector<VkPhysicalDevice> devices(deviceCount);
-  vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
+  std::vector<VkPhysicalDevice> devices(device_count);
+  vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 
   for (const auto& device : devices) {
     const auto queue_family = FindQueueFamilies(device);
@@ -93,11 +94,11 @@ void VulkanContext::PickPhysicalDevice() {
 std::optional<uint32_t> VulkanContext::FindQueueFamilies(VkPhysicalDevice device) {
   const VkQueueFlags kTargetFlag = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT;
 
-  uint32_t queueFamilyCount = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+  uint32_t queue_family_count = 0;
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
 
-  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+  std::vector<VkQueueFamilyProperties> queueFamilies(queue_family_count);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queueFamilies.data());
 
   uint32_t i = 0;
   for (const auto& queueFamily : queueFamilies) {
@@ -108,6 +109,57 @@ std::optional<uint32_t> VulkanContext::FindQueueFamilies(VkPhysicalDevice device
     i++;
   }
   return {};
+}
+
+void VulkanContext::CreateLogicalDevice(const float queuePriority) {
+  VkDeviceQueueCreateInfo queue_info{};
+  queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+  queue_info.queueFamilyIndex = queue_family_;
+  queue_info.queueCount = 1;
+  queue_info.pQueuePriorities = &queuePriority;
+
+  // TODO: support more queue family types
+  VkDeviceCreateInfo deviceInfo{};
+  deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  deviceInfo.pQueueCreateInfos = &queue_info;
+  deviceInfo.queueCreateInfoCount = 1;
+
+  const auto extensions = GetRequiredDeviceExtensions();
+  deviceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  deviceInfo.ppEnabledExtensionNames = extensions.data();
+
+  VK_CHECK(vkCreateDevice(physical_device_, &deviceInfo, nullptr, &device_));
+}
+
+std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
+  std::vector<const char*> extensions;
+
+  // TODO: add more extensions if needed
+
+#ifdef __APPLE__
+  extensions.emplace_back("VK_KHR_portability_subset");
+#endif
+
+  // check if required extensions are supported
+  uint32_t extensionCount = 0;
+  vkEnumerateDeviceExtensionProperties(physical_device_, nullptr, &extensionCount, nullptr);
+  std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
+  vkEnumerateDeviceExtensionProperties(physical_device_, nullptr, &extensionCount,
+                                       supportedExtensions.data());
+
+  std::unordered_set<std::string> availableExtensions;
+  for (const auto& ext : supportedExtensions) {
+    availableExtensions.insert(ext.extensionName);
+  }
+
+  for (const auto& ext : extensions) {
+    if (availableExtensions.find(ext) == availableExtensions.end()) {
+      std::cerr << "Missing device extension: " << ext << std::endl;
+      throw std::runtime_error("Required device extension not supported");
+    }
+  }
+
+  return extensions;
 }
 
 }  // namespace vulkan
