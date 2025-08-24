@@ -8,7 +8,8 @@ namespace core {
 namespace test {
 
 TEST(VulkanTest, test) {
-  core::vulkan::VulkanContext context(true, core::vulkan::QueueFamilyType::Compute);
+  core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Compute;
+  core::vulkan::VulkanContext context(true, queue_family_type);
   core::vulkan::VulkanBuffer buffer(
       &context, 3, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
