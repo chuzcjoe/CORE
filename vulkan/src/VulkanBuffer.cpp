@@ -5,7 +5,7 @@ namespace vulkan {
 
 VulkanBuffer::VulkanBuffer(VulkanContext* context, const VkDeviceSize size,
                            const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties)
-    : context_(context), buffer_size_(size) {
+    : context_(context), buffer_size_(size), memory_properties_(properties) {
   VkBufferCreateInfo buffer_info{};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_info.size = buffer_size_;
@@ -35,6 +35,18 @@ VulkanBuffer::~VulkanBuffer() {
   if (buffer_memory_ != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, buffer_memory_, nullptr);
   }
+}
+
+void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
+  const auto staging_buffer_property =
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+  if ((memory_properties_ & staging_buffer_property) != staging_buffer_property) {
+    throw std::runtime_error("Buffer is not mappable");
+  }
+  void* data;
+  vkMapMemory(context_->logical_device, buffer_memory_, 0, buffer_size_, 0, &data);
+  func(data);
+  vkUnmapMemory(context_->logical_device, buffer_memory_);
 }
 
 }  // namespace vulkan

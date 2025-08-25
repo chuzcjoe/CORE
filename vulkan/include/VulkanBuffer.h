@@ -2,6 +2,8 @@
 
 #include <vulkan/vulkan.h>
 
+#include <functional>
+
 #include "VulkanContext.h"
 
 namespace core {
@@ -13,9 +15,12 @@ class VulkanBuffer {
                const VkMemoryPropertyFlags properties);
   ~VulkanBuffer();
 
+  void MapData(const std::function<void(void*)>& func);
+
  private:
   VulkanContext* context_;
   VkDeviceSize buffer_size_;
+  VkMemoryPropertyFlags memory_properties_;
 
   VkBuffer buffer_;
   VkDeviceMemory buffer_memory_;
