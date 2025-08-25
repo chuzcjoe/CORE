@@ -39,7 +39,7 @@ class Mat {
     return *this;
   }
 
-  T* data() { return data_; }
+  T* data() { return data_.data(); }
   int rows() const { return rows_; }
   int cols() const { return cols_; }
 
