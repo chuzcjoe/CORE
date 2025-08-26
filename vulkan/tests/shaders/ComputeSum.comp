@@ -1,0 +1,35 @@
+#version 450
+
+layout(binding = 0) uniform UniformBufferObject {
+    int width;
+    int height;
+}
+ubo;
+
+layout(std430, binding = 1) buffer src_in { float src[]; };
+layout(std430, binding = 2) buffer dst_out { uint dst; };
+
+layout(local_size_x = 16, local_size_y = 16, local_size_z = 1) in;
+
+shared uint wgCounter;
+
+void main() {
+    if (gl_LocalInvocationIndex == 0u) wgCounter = 0u;
+    barrier(); // synchronize shared memory initialization
+    
+    ivec2 gid = ivec2(gl_GlobalInvocationID.xy);
+    const int row = gid.y;
+    const int col = gid.x;
+    if (row >= ubo.height || col >= ubo.width) return;
+
+    if (src[row * ubo.width + col] == 1.0f) {
+        atomicAdd(wgCounter, 1u);
+    }
+
+    barrier(); // ensure all increments are done
+
+    // One lane publishes to global
+    if (gl_LocalInvocationIndex == 0u) {
+        atomicAdd(dst, wgCounter);
+    }
+}

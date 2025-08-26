@@ -44,9 +44,9 @@ std::vector<BindingInfo> ComputeSum::GetBindingInfo() const {
 const std::vector<uint32_t>& ComputeSum::LoadShaderCode() const {
   // Load and return the SPIR-V code for the compute shader
   // This is a placeholder; actual implementation will read from a file or embedded resource
-  static const std::vector<uint32_t> shader_code = {
-      // SPIR-V binary data goes here
-  };
+  static const std::vector<uint32_t> shader_code =
+#include "ComputeSum.comp.spv"
+      ;
   return shader_code;
 }
 

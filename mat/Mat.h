@@ -42,6 +42,7 @@ class Mat {
   T* data() { return data_.data(); }
   int rows() const { return rows_; }
   int cols() const { return cols_; }
+  int total() const { return rows_ * cols_ * C; }
 
   T* operator()(int r, int c) {
     assert(r >= 0 && r < rows_ && c >= 0 && c < cols_);
