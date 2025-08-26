@@ -8,4 +8,7 @@ target_include_directories(vulkan
 
 target_link_libraries(vulkan
     PUBLIC
-    Vulkan::Vulkan)
+    Vulkan::Vulkan
+    mat)
+
+add_subdirectory(tests)
