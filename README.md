@@ -6,5 +6,7 @@
 
 ## Run Unit Tests
 ```
-./run.sh
+./run.sh [target] [test]
+
+for example: ./run.sh macos vulkan
 ```

@@ -1,6 +1,11 @@
 #! /bin/bash
 set -x -e
 
+echo ".run.sh (arm64-v8a/macos) (test target)"
+
+target=$1
+test_target=$2
+
 mkdir -p build
 cd build
 
@@ -9,8 +14,8 @@ make
 
 cd ..
 
-# Run unit test
-# ./build/tests/core-unit-test
-
-# Run Vulkan tests
-./build/vulkan/tests/vulkan_tests
+if [ "$test_target" = "vulkan" ]; then
+    # Run Vulkan tests
+    echo "run vulkan tests"
+    ./build/vulkan/tests/vulkan_tests
+fi
