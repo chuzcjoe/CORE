@@ -13,16 +13,16 @@ namespace core {
 namespace test {
 
 TEST(ComputeSum, test) {
+  // Setup Vulkan
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Compute;
   core::vulkan::VulkanContext context(true, queue_family_type);
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
-
   core::Mat<int, 1> mat(1000, 1000);
   mat.Fill(3);
-
   const VkDeviceSize buffer_size = mat.rows() * mat.cols() * sizeof(int);
 
+  // Create buffers
   core::vulkan::VulkanBuffer input_buffer(
       &context, buffer_size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
@@ -30,12 +30,14 @@ TEST(ComputeSum, test) {
       &context, 1 * sizeof(int), VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
+  // Fill buffers
   input_buffer.MapData([&mat](void* data) { memcpy(data, mat.data(), mat.total() * sizeof(int)); });
   sum_buffer.MapData([](void* data) {
     int zero = 0;
     memcpy(data, &zero, sizeof(int));
   });
 
+  // Create and run compute sum pipeline
   std::unique_ptr<core::vulkan::ComputeSum> compute_sum =
       std::make_unique<core::vulkan::ComputeSum>(&context, input_buffer, sum_buffer, mat.cols(),
                                                  mat.rows());
