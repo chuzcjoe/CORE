@@ -18,14 +18,13 @@ class VulkanBuffer {
   void MapData(const std::function<void(void*)>& func);
 
   VkDeviceSize Size() const { return buffer_size_; }
-  VkBuffer Buffer() const { return buffer_; }
+
+  VkBuffer buffer;
 
  private:
   VulkanContext* context_;
   VkDeviceSize buffer_size_;
   VkMemoryPropertyFlags memory_properties_;
-
-  VkBuffer buffer_;
   VkDeviceMemory buffer_memory_;
 };
 

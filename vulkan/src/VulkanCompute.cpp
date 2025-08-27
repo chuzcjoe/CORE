@@ -18,10 +18,10 @@ void VulkanCompute::CreatePipeline() {
   VkComputePipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
   pipeline_info.stage = shader_stage_info;
-  pipeline_info.layout = pipeline_layout_;
+  pipeline_info.layout = pipeline_layout;
 
   VK_CHECK(vkCreateComputePipelines(context_->logical_device, VK_NULL_HANDLE, 1, &pipeline_info,
-                                    nullptr, &pipeline_));
+                                    nullptr, &pipeline));
 
   vkDestroyShaderModule(context_->logical_device, shader_module, nullptr);
 }

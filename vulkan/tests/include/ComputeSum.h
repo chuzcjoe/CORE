@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "Mat.h"
 #include "VulkanBuffer.h"
 #include "VulkanCompute.h"
@@ -9,12 +11,14 @@ namespace vulkan {
 
 class ComputeSum : public VulkanCompute {
  public:
-  ComputeSum(VulkanContext* context, VulkanBuffer& src, const int width, const int height);
+  ComputeSum(VulkanContext* context, VulkanBuffer& src, VulkanBuffer& dst, const int width,
+             const int height);
 
   void Init() override;
   void Run(const VkCommandBuffer command_buffer);
 
   VulkanBuffer& src_buffer;
+  VulkanBuffer& dst_buffer;
 
  protected:
   std::vector<BindingInfo> GetBindingInfo() const override;

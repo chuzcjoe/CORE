@@ -27,8 +27,8 @@ class VulkanPipeline {
 
   virtual void Init();
 
-  VkPipeline Pipeline() const { return pipeline_; }
-  VkPipelineLayout PipelineLayout() const { return pipeline_layout_; }
+  VkPipelineLayout pipeline_layout;
+  VkPipeline pipeline;
 
  protected:
   virtual std::vector<BindingInfo> GetBindingInfo() const = 0;
@@ -39,17 +39,27 @@ class VulkanPipeline {
   std::vector<DescriptorPoolInfo> CreateDescriptorPoolSizes() const;
   VkShaderModule CreateShaderModule(const std::vector<uint32_t>& shader_code) const;
 
-  VkWriteDescriptorSet CreateUniformBufferDescriptorSet(const uint32_t binding,
-                                                        const VulkanBuffer& buffer) const;
-  VkWriteDescriptorSet CreateStorageBufferDescriptorSet(const uint32_t binding,
-                                                        const VulkanBuffer& buffer) const;
+  void CreateUniformBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
+  void CreateStorageBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
 
   VulkanContext* context_;
   VkDescriptorSetLayout descriptor_set_layout_;
   VkDescriptorPool descriptor_pool_;
   VkDescriptorSet descriptor_set_;
-  VkPipelineLayout pipeline_layout_;
-  VkPipeline pipeline_;
+
+  std::vector<VkDescriptorBufferInfo> buffer_infos_;
+  std::vector<VkWriteDescriptorSet> writes_;
+
+ private:
+  void CheckBufferInfoSize() {
+    const auto size = GetBindingInfo().size();
+    if (buffer_infos_.size() == 0) {
+      buffer_infos_.resize(size);
+    }
+    if (writes_.size() == 0) {
+      writes_.resize(size);
+    }
+  }
 };
 
 }  // namespace vulkan

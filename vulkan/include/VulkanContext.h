@@ -37,6 +37,11 @@ class VulkanContext {
 
   uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
 
+  QueueFamilyIndices GetQueueFamilyIndices() const { return queue_family_indices_; }
+
+  VkQueue compute_queue() const { return compute_queue_; }
+  VkQueue graphics_queue() const { return graphics_queue_; }
+
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;
 

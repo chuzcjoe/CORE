@@ -8,8 +8,8 @@ namespace vulkan {
 VulkanPipeline::VulkanPipeline(VulkanContext* context) : context_(context) {}
 
 VulkanPipeline::~VulkanPipeline() {
-  vkDestroyPipeline(context_->logical_device, pipeline_, nullptr);
-  vkDestroyPipelineLayout(context_->logical_device, pipeline_layout_, nullptr);
+  vkDestroyPipeline(context_->logical_device, pipeline, nullptr);
+  vkDestroyPipelineLayout(context_->logical_device, pipeline_layout, nullptr);
   vkDestroyDescriptorPool(context_->logical_device, descriptor_pool_, nullptr);
   vkDestroyDescriptorSetLayout(context_->logical_device, descriptor_set_layout_, nullptr);
 }
@@ -56,7 +56,7 @@ void VulkanPipeline::Init() {
   pipeline_layout_info.pushConstantRangeCount = 0;
   pipeline_layout_info.pPushConstantRanges = nullptr;
   VK_CHECK(vkCreatePipelineLayout(context_->logical_device, &pipeline_layout_info, nullptr,
-                                  &pipeline_layout_));
+                                  &pipeline_layout));
 
   // 4. Create pipeline
   CreatePipeline();
@@ -102,46 +102,40 @@ VkShaderModule VulkanPipeline::CreateShaderModule(const std::vector<uint32_t>& s
   return shader_module;
 }
 
-VkWriteDescriptorSet VulkanPipeline::CreateUniformBufferDescriptorSet(
-    const uint32_t binding, const VulkanBuffer& buffer) const {
-  VkDescriptorBufferInfo buffer_info{};
-  buffer_info.buffer = buffer.Buffer();
-  buffer_info.offset = 0;
-  buffer_info.range = buffer.Size();
+void VulkanPipeline::CreateUniformBufferDescriptorSet(const uint32_t binding,
+                                                      const VulkanBuffer& buffer) {
+  CheckBufferInfoSize();
+  auto& bi = buffer_infos_[static_cast<int>(binding)];
+  bi.buffer = buffer.buffer;
+  bi.offset = 0;
+  bi.range = buffer.Size();
 
-  VkWriteDescriptorSet descriptor_write{};
-  descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptor_write.dstSet = descriptor_set_;
-  descriptor_write.dstBinding = binding;
-  descriptor_write.dstArrayElement = 0;
-  descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-  descriptor_write.descriptorCount = 1;
-  descriptor_write.pBufferInfo = &buffer_info;
-  descriptor_write.pImageInfo = nullptr;        // Optional
-  descriptor_write.pTexelBufferView = nullptr;  // Optional
-
-  return descriptor_write;
+  VkWriteDescriptorSet w{};
+  w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  w.dstSet = descriptor_set_;
+  w.dstBinding = binding;
+  w.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+  w.descriptorCount = 1;
+  w.pBufferInfo = &bi;
+  writes_[static_cast<int>(binding)] = w;
 }
 
-VkWriteDescriptorSet VulkanPipeline::CreateStorageBufferDescriptorSet(
-    const uint32_t binding, const VulkanBuffer& buffer) const {
-  VkDescriptorBufferInfo buffer_info{};
-  buffer_info.buffer = buffer.Buffer();
-  buffer_info.offset = 0;
-  buffer_info.range = buffer.Size();
+void VulkanPipeline::CreateStorageBufferDescriptorSet(const uint32_t binding,
+                                                      const VulkanBuffer& buffer) {
+  CheckBufferInfoSize();
+  auto& bi = buffer_infos_[static_cast<int>(binding)];
+  bi.buffer = buffer.buffer;
+  bi.offset = 0;
+  bi.range = buffer.Size();
 
-  VkWriteDescriptorSet descriptor_write{};
-  descriptor_write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-  descriptor_write.dstSet = descriptor_set_;
-  descriptor_write.dstBinding = binding;
-  descriptor_write.dstArrayElement = 0;
-  descriptor_write.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-  descriptor_write.descriptorCount = 1;
-  descriptor_write.pBufferInfo = &buffer_info;
-  descriptor_write.pImageInfo = nullptr;        // Optional
-  descriptor_write.pTexelBufferView = nullptr;  // Optional
-
-  return descriptor_write;
+  VkWriteDescriptorSet w{};
+  w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  w.dstSet = descriptor_set_;
+  w.dstBinding = binding;
+  w.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+  w.descriptorCount = 1;
+  w.pBufferInfo = &bi;
+  writes_[static_cast<int>(binding)] = w;
 }
 
 }  // namespace vulkan

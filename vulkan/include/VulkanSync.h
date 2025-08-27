@@ -11,11 +11,11 @@ class VulkanFence {
   ~VulkanFence();
 
   void Reset();
-  VkFence Fence() const { return fence_; }
+
+  VkFence fence;
 
  private:
   VulkanContext* context_;
-  VkFence fence_;
 };
 
 }  // namespace vulkan
