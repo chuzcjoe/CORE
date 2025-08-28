@@ -1,8 +1,8 @@
 set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
 
-file(GLOB_RECURSE shader_src "shaders/*.comp" 
-                                "shaders/*.vert" 
-                                "shaders/*.frag")
+file(GLOB_RECURSE shader_src "*/*.comp" 
+                                "*/*.vert" 
+                                "*/*.frag")
 
 foreach(shader ${shader_src})
     get_filename_component(shader_name ${shader} NAME)
@@ -21,12 +21,12 @@ endforeach(shader)
 add_custom_target(vulkan_shaders DEPENDS ${shader_spv_files})
 
                                 
-file(GLOB test_src "src/*.cpp" 
+file(GLOB test_src "ComputeSum/*.cpp" 
                     "*.cpp")
 
 add_executable(vulkan_tests ${test_src})
 
-target_include_directories(vulkan_tests PUBLIC include
+target_include_directories(vulkan_tests PUBLIC ComputeSum
                                     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 add_dependencies(vulkan_tests vulkan_shaders)
