@@ -9,6 +9,7 @@ target_include_directories(vulkan
 target_link_libraries(vulkan
     PUBLIC
     Vulkan::Vulkan
-    mat)
+    mat
+    timer)
 
 add_subdirectory(tests)

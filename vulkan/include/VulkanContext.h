@@ -44,6 +44,7 @@ class VulkanContext {
 
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;
+  float timestamp_period;
 
  private:
   bool enable_validation_layers_;

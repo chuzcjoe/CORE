@@ -177,6 +177,15 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
   if (physical_device_ == VK_NULL_HANDLE) {
     throw std::runtime_error("failed to find a suitable GPU!");
   }
+
+  // Get Timestamp period
+  VkPhysicalDeviceProperties properties;
+  vkGetPhysicalDeviceProperties(physical_device_, &properties);
+  const float period = properties.limits.timestampPeriod;
+  if (period == 0.0f) {
+    std::runtime_error("timestamp is 0");
+  }
+  timestamp_period = period;
 }
 
 void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,

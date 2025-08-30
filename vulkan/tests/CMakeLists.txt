@@ -31,4 +31,4 @@ target_include_directories(vulkan_tests PUBLIC ComputeSum
 
 add_dependencies(vulkan_tests vulkan_shaders)
 
-target_link_libraries(vulkan_tests PUBLIC gtest vulkan mat)
+target_link_libraries(vulkan_tests PUBLIC gtest vulkan mat timer)

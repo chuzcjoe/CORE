@@ -15,6 +15,8 @@ class VulkanQueryPool {
              VkPipelineStageFlagBits stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
   void GetQueryResults();
 
+  std::vector<uint64_t> GetTimeStamps() const { return timestamps_; }
+
  private:
   VulkanContext* context_;
   VkQueryType query_type_;
