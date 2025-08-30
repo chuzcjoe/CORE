@@ -1,20 +1,20 @@
-#include "VulkanPipeline.h"
+#include "VulkanBase.h"
 
 namespace core {
 namespace vulkan {
 
 // Descriptor visualization: https://chuzcjoe.github.io/CGV/cgv-vulkan-visualization/
 
-VulkanPipeline::VulkanPipeline(VulkanContext* context) : context_(context) {}
+VulkanBase::VulkanBase(VulkanContext* context) : context_(context) {}
 
-VulkanPipeline::~VulkanPipeline() {
+VulkanBase::~VulkanBase() {
   vkDestroyPipeline(context_->logical_device, pipeline, nullptr);
   vkDestroyPipelineLayout(context_->logical_device, pipeline_layout, nullptr);
   vkDestroyDescriptorPool(context_->logical_device, descriptor_pool_, nullptr);
   vkDestroyDescriptorSetLayout(context_->logical_device, descriptor_set_layout_, nullptr);
 }
 
-void VulkanPipeline::Init() {
+void VulkanBase::Init() {
   // 1. Create descriptor set layout
   VkDescriptorSetLayoutCreateInfo layout_info{};
   layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -62,7 +62,7 @@ void VulkanPipeline::Init() {
   CreatePipeline();
 }
 
-std::vector<VkDescriptorSetLayoutBinding> VulkanPipeline::CreateDescriptorLayoutBindings() const {
+std::vector<VkDescriptorSetLayoutBinding> VulkanBase::CreateDescriptorLayoutBindings() const {
   std::vector<VkDescriptorSetLayoutBinding> bindings;
   const auto binding_info = GetBindingInfo();
   for (const auto& info : binding_info) {
@@ -77,7 +77,7 @@ std::vector<VkDescriptorSetLayoutBinding> VulkanPipeline::CreateDescriptorLayout
   return bindings;
 }
 
-std::vector<DescriptorPoolInfo> VulkanPipeline::CreateDescriptorPoolSizes() const {
+std::vector<DescriptorPoolInfo> VulkanBase::CreateDescriptorPoolSizes() const {
   std::vector<DescriptorPoolInfo> pool_info;
   const auto binding_info = GetBindingInfo();
   std::unordered_map<VkDescriptorType, uint32_t> type_count;
@@ -91,7 +91,7 @@ std::vector<DescriptorPoolInfo> VulkanPipeline::CreateDescriptorPoolSizes() cons
   return pool_info;
 }
 
-VkShaderModule VulkanPipeline::CreateShaderModule(const std::vector<uint32_t>& shader_code) const {
+VkShaderModule VulkanBase::CreateShaderModule(const std::vector<uint32_t>& shader_code) const {
   VkShaderModuleCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   create_info.codeSize = shader_code.size() * sizeof(uint32_t);
@@ -102,8 +102,8 @@ VkShaderModule VulkanPipeline::CreateShaderModule(const std::vector<uint32_t>& s
   return shader_module;
 }
 
-void VulkanPipeline::CreateUniformBufferDescriptorSet(const uint32_t binding,
-                                                      const VulkanBuffer& buffer) {
+void VulkanBase::CreateUniformBufferDescriptorSet(const uint32_t binding,
+                                                  const VulkanBuffer& buffer) {
   CheckBufferInfoSize();
   auto& bi = buffer_infos_[static_cast<int>(binding)];
   bi.buffer = buffer.buffer;
@@ -120,8 +120,8 @@ void VulkanPipeline::CreateUniformBufferDescriptorSet(const uint32_t binding,
   writes_[static_cast<int>(binding)] = w;
 }
 
-void VulkanPipeline::CreateStorageBufferDescriptorSet(const uint32_t binding,
-                                                      const VulkanBuffer& buffer) {
+void VulkanBase::CreateStorageBufferDescriptorSet(const uint32_t binding,
+                                                  const VulkanBuffer& buffer) {
   CheckBufferInfoSize();
   auto& bi = buffer_infos_[static_cast<int>(binding)];
   bi.buffer = buffer.buffer;

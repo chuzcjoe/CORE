@@ -2,15 +2,15 @@
 
 #include <vector>
 
+#include "VulkanBase.h"
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
 #include "VulkanImage.h"
-#include "VulkanPipeline.h"
 
 namespace core {
 namespace vulkan {
 
-class VulkanCompute : public VulkanPipeline {
+class VulkanCompute : public VulkanBase {
  public:
   explicit VulkanCompute(VulkanContext* context);
 

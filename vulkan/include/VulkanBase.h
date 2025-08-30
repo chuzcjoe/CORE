@@ -20,10 +20,10 @@ struct DescriptorPoolInfo {
   uint32_t count;
 };
 
-class VulkanPipeline {
+class VulkanBase {
  public:
-  explicit VulkanPipeline(VulkanContext* context);
-  virtual ~VulkanPipeline();
+  explicit VulkanBase(VulkanContext* context);
+  virtual ~VulkanBase();
 
   virtual void Init();
 

@@ -3,7 +3,7 @@
 namespace core {
 namespace vulkan {
 
-VulkanCompute::VulkanCompute(VulkanContext* context) : VulkanPipeline(context) {}
+VulkanCompute::VulkanCompute(VulkanContext* context) : VulkanBase(context) {}
 
 void VulkanCompute::CreatePipeline() {
   const auto shader_code = LoadShaderCode();
