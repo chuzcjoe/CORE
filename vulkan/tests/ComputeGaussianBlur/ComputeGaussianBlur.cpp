@@ -11,7 +11,8 @@ ComputeGaussianBlur::ComputeGaussianBlur(VulkanContext* context, VulkanBuffer& s
       uniform_buffer_(context, sizeof(UniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
       uniform_data_{.width = width, .height = height},
-      gaussian_kernel_(context, sizeof(float) * 9, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      gaussian_kernel_(context, gaussian_kernel_data_.size() * sizeof(float),
+                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
 }
 

@@ -1,7 +1,7 @@
 #pragma once
 
+#include <array>
 #include <iostream>
-#include <vector>
 
 #include "Mat.h"
 #include "VulkanBuffer.h"
@@ -32,10 +32,10 @@ class ComputeGaussianBlur : public VulkanCompute {
     int height;
   } uniform_data_;
 
-  VulkanBuffer gaussian_kernel_;
+  std::array<float, 9> gaussian_kernel_data_ = {0.0625f, 0.125f,  0.0625f, 0.125f, 0.25f,
+                                                0.125f,  0.0625f, 0.125f,  0.0625f};
 
-  std::vector<float> gaussian_kernel_data_ = {0.0625f, 0.125f,  0.0625f, 0.125f, 0.25f,
-                                              0.125f,  0.0625f, 0.125f,  0.0625f};
+  VulkanBuffer gaussian_kernel_;
 };
 
 }  // namespace vulkan
