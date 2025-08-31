@@ -40,6 +40,7 @@ cmake_options=(-DCMAKE_BUILD_TYPE=Release)
 
 if [ "$target" = "arm64-v8a" ] ; then
     echo "arm64-v8a not supported"
+    exit 1
 fi
 
 cmake "${cmake_options[@]}" ../..
