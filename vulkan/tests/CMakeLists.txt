@@ -22,11 +22,12 @@ add_custom_target(vulkan_shaders DEPENDS ${shader_spv_files})
 
                                 
 file(GLOB test_src "ComputeSum/*.cpp" 
+                   "ComputeGaussianBlur/*.cpp"
                     "*.cpp")
 
 add_executable(vulkan_tests ${test_src})
 
-target_include_directories(vulkan_tests PUBLIC ComputeSum
+target_include_directories(vulkan_tests PUBLIC ComputeSum ComputeGaussianBlur
                                     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 add_dependencies(vulkan_tests vulkan_shaders)

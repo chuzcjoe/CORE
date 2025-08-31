@@ -11,6 +11,7 @@ namespace vulkan {
 
 class VulkanBuffer {
  public:
+  VulkanBuffer() = delete;  // Buffers must be explicitly initialized
   VulkanBuffer(VulkanContext* context, const VkDeviceSize size, const VkBufferUsageFlags usage,
                const VkMemoryPropertyFlags properties);
   ~VulkanBuffer();
