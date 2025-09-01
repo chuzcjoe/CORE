@@ -33,14 +33,16 @@ if [ "$target" != "macos" ] && [ "$target" != "arm64-v8a" ] ; then
     exit 1
 fi
 
+rm -rf build/$target
 mkdir -p build/$target
 cd build/$target
 
-cmake_options=(-DCMAKE_BUILD_TYPE=Release)
+cmake_options=(-DCMAKE_BUILD_TYPE=Debug)
 
 if [ "$target" = "arm64-v8a" ] ; then
-    echo "arm64-v8a not supported"
-    exit 1
+    cmake_options+=(-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
+                    -DANDROID_ABI=$target
+                    -DANDROID_PLATFORM=android-34)
 fi
 
 cmake "${cmake_options[@]}" ../..
@@ -48,13 +50,33 @@ make -j10
 
 cd ../..
 
-if [ "$test_module" = "vulkan" ]; then
-    echo "run vulkan tests"
-    if [ -z "$test_filter" ]; then
-        # test_filter is empty → run all tests
-        ./build/$target/vulkan/tests/vulkan_tests
-    else
-        # test_filter is not empty → apply filter
-        ./build/$target/vulkan/tests/vulkan_tests --gtest_filter="$test_filter"
+if [ "$target" = "macos" ] ; then
+    if [ "$test_module" = "vulkan" ]; then
+        echo "run vulkan tests"
+        if [ -z "$test_filter" ]; then
+            # test_filter is empty → run all tests
+            ./build/$target/vulkan/tests/vulkan_tests
+        else
+            # test_filter is not empty → apply filter
+            ./build/$target/vulkan/tests/vulkan_tests --gtest_filter="$test_filter"
+        fi
     fi
+    exit 1
+fi
+
+device_path="/data/local/tmp/core"
+if [ "$target" = "arm64-v8a" ]; then
+    adb push ./build/$target/vulkan/tests/vulkan_tests $device_path
+    adb shell chmod +X $device_path/vulkan_tests
+    if [ "$test_module" = "vulkan" ]; then
+      echo "run vulkan test"
+      if [ -z "$test_filter" ]; then
+        # test_filter is empty → run all tests
+        adb shell $device_path/vulkan_tests
+      else
+        # test_filter is not empty → apply filter
+        adb shell $device_path/vulkan_tests --gtest_filter="$test_filter"
+      fi
+    fi
+    exit 1
 fi

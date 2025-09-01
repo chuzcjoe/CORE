@@ -23,7 +23,7 @@ TEST(ComputeGaussianBlur, test) {
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanQueryPool query_pool(&context, VK_QUERY_TYPE_TIMESTAMP);
-  core::Mat<float, 1> mat(3000, 3000);
+  core::Mat<float, 1> mat(3000, 4000);
   mat.Fill(1);
   core::Timer t;
   const VkDeviceSize buffer_size = mat.rows() * mat.cols() * sizeof(float);
@@ -66,7 +66,7 @@ TEST(ComputeGaussianBlur, test) {
   const auto runtime_ms = (timestamps[1] - timestamps[0]) * (context.timestamp_period / 1000000.0);
   printf("GPU time: %fms\n", runtime_ms);
 
-  core::Mat<float, 1> mat_blur(3000, 3000);
+  core::Mat<float, 1> mat_blur(3000, 4000);
   std::vector<float> gaussian_kernel = {0.0625f, 0.125f,  0.0625f, 0.125f, 0.25f,
                                         0.125f,  0.0625f, 0.125f,  0.0625f};
   t.start();
@@ -91,7 +91,7 @@ TEST(ComputeGaussianBlur, test) {
   printf("CPU time: %fms\n", t.time());
 
   // check data
-  core::Mat<float, 1> blur_cpu(3000, 3000);
+  core::Mat<float, 1> blur_cpu(3000, 4000);
   dst_buffer.MapData(
       [&blur_cpu](void* data) { memcpy(blur_cpu.data(), data, sizeof(float) * blur_cpu.total()); });
 
