@@ -54,6 +54,7 @@ class VulkanContext {
   VkPhysicalDevice physical_device_;
   VkDebugUtilsMessengerEXT debug_messenger_;
 
+  bool CheckValidationLayerSupport();
   void CreateInstance(const bool enable_validation_layers);
   void PickPhysicalDevice(const QueueFamilyType queue_family_type);
   void FindQueueFamilies(VkPhysicalDevice device, const QueueFamilyType queue_family_type);

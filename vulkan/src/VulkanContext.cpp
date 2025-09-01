@@ -99,10 +99,11 @@ uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
 }
 
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
+  const bool is_validation_supported = CheckValidationLayerSupport();
   // Get required extensions
   std::vector<const char*> extensions;
   if (enable_validation_layers) {
-    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
 #ifdef __APPLE__
@@ -134,7 +135,7 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   app.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
   app.pEngineName = "CORE ENGINE";
   app.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-  app.apiVersion = VK_API_VERSION_1_2;
+  app.apiVersion = VK_API_VERSION_1_3;
 
   VkInstanceCreateInfo ci{};
   ci.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -147,11 +148,12 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   ci.flags = VK_INSTANCE_CREATE_ENUMERATE_PORTABILITY_BIT_KHR;
 #endif
 
-  if (enable_validation_layers) {
+  if (enable_validation_layers && is_validation_supported) {
     ci.enabledLayerCount = kValidationLayerName.size();
     ci.ppEnabledLayerNames = kValidationLayerName.data();
   } else {
     ci.enabledLayerCount = 0;
+    ci.ppEnabledLayerNames = nullptr;
   }
 
   VK_CHECK(vkCreateInstance(&ci, nullptr, &instance));
@@ -222,7 +224,7 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
     if (queueFamily.queueFlags & graphics_flag) {
       queue_family_indices_.graphics_family = i;
     }
-    i++;
+    ++i;
   }
 
   switch (queue_family_type) {
@@ -295,6 +297,13 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
   extensions.emplace_back("VK_KHR_portability_subset");
 #endif
 
+#if defined(__ANDROID__)
+  extensions.emplace_back("VK_KHR_external_memory_fd");
+#endif
+
+  // more extensions
+  extensions.emplace_back("VK_KHR_16bit_storage");
+
   // check if required extensions are supported
   uint32_t extensionCount = 0;
   vkEnumerateDeviceExtensionProperties(physical_device_, nullptr, &extensionCount, nullptr);
@@ -335,6 +344,21 @@ void VulkanContext::SetupDebugMessenger() {
   if (func != nullptr) {
     func(instance, &create_info, nullptr, &debug_messenger_);
   }
+}
+
+bool VulkanContext::CheckValidationLayerSupport() {
+  uint32_t layer_count;
+  vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+
+  std::vector<VkLayerProperties> available_layers(layer_count);
+  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+  for (const auto& layer : available_layers) {
+    if (strcmp(kValidationLayerName[0], layer.layerName) == 0) {
+      return true;
+    }
+  }
+  return false;
 }
 
 }  // namespace vulkan
