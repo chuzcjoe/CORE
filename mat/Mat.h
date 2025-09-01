@@ -8,7 +8,7 @@ namespace core {
 template <typename T, int C>
 class Mat {
  public:
-  Mat(int rows, int cols) : rows_(rows), cols_(cols) { data_.resize(rows * cols * C); }
+  Mat(int rows, int cols) : rows_(rows), cols_(cols), ch_(C) { data_.resize(rows * cols * C); }
   ~Mat() = default;
 
   Mat(const Mat& rhs) {
@@ -54,11 +54,22 @@ class Mat {
     return data_.data() + (r * cols_ + c) * C;
   }
 
+  T* operator()(int row, int col, int ch) {
+    assert(r >= 0 && r < rows_ && c >= 0 && c < cols_ && ch >= 0 && ch < ch_);
+    return data_.data() + (row * cols_ + col) * C + ch;
+  }
+
+  const T* operator()(int row, int col, int ch) const {
+    assert(r >= 0 && r < rows_ && c >= 0 && c < cols_ && ch >= 0 && ch < ch_);
+    return data_.data() + (row * cols_ + col) * C + ch;
+  }
+
   void Fill(const T value) { std::fill(data_.begin(), data_.end(), value); }
 
  private:
   int rows_;
   int cols_;
+  int ch_;
   std::vector<T> data_;
 };
 
