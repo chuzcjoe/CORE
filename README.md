@@ -7,7 +7,7 @@
 # Supporting OS
 
 - MacOS
-- Android amr64-v8a
+- Android arm64-v8a
 
 # Unit Tests
 ```
