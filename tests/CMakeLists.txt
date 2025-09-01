@@ -1,8 +1,8 @@
 file(GLOB test_src "*.cpp")
 
-add_executable(core-unit-test ${test_src})
+add_executable(core-tests ${test_src})
 
-target_include_directories(core-unit-test PUBLIC vulkan/include)
+target_include_directories(core-tests PUBLIC vulkan/include)
 
-target_link_libraries(core-unit-test PUBLIC gtest vulkan mat)
+target_link_libraries(core-tests PUBLIC gtest stb vulkan mat)
 

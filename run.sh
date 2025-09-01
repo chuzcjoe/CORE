@@ -33,6 +33,10 @@ if [ "$target" != "macos" ] && [ "$target" != "arm64-v8a" ] ; then
     exit 1
 fi
 
+# save tmp data
+rm -rf ./tmp
+mkdir -p ./tmp
+
 rm -rf build/$target
 mkdir -p build/$target
 cd build/$target
@@ -61,6 +65,17 @@ if [ "$target" = "macos" ] ; then
             ./build/$target/vulkan/tests/vulkan_tests --gtest_filter="$test_filter"
         fi
     fi
+
+    if [ "$test_module" = "tests" ]; then
+        echo "run tests"
+        if [ -z "$test_filter" ]; then
+            # test_filter is empty → run all tests
+            ./build/$target/tests/core-tests
+        else
+            # test_filter is not empty → apply filter
+            ./build/$target/tests/core-tests --gtest_filter="$test_filter"
+        fi
+    fi
     exit 1
 fi
 
@@ -68,6 +83,12 @@ device_path="/data/local/tmp/core"
 if [ "$target" = "arm64-v8a" ]; then
     adb push ./build/$target/vulkan/tests/vulkan_tests $device_path
     adb shell chmod +X $device_path/vulkan_tests
+
+    adb push ./build/$target/tests/core-tests $device_path
+    adb push ./tests/data $device_path
+    adb shell chmod +X $device_path/core-tests
+
+
     if [ "$test_module" = "vulkan" ]; then
       echo "run vulkan test"
       if [ -z "$test_filter" ]; then
@@ -77,6 +98,20 @@ if [ "$target" = "arm64-v8a" ]; then
         # test_filter is not empty → apply filter
         adb shell $device_path/vulkan_tests --gtest_filter="$test_filter"
       fi
+    fi
+
+    if [ "$test_module" = "tests" ]; then
+      echo "run tests"
+      if [ -z "$test_filter" ]; then
+        # test_filter is empty → run all tests
+        adb shell $device_path/core-tests
+      else
+        # test_filter is not empty → apply filter
+        adb shell $device_path/core-tests --gtest_filter="$test_filter"
+      fi
+
+      # pull results from device
+      adb pull $device_path/data ./tmp
     fi
     exit 1
 fi
