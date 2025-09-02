@@ -18,5 +18,16 @@ class VulkanFence {
   VulkanContext* context_;
 };
 
+class VulkanSemaphore {
+ public:
+  explicit VulkanSemaphore(VulkanContext* context);
+  ~VulkanSemaphore();
+
+  VkSemaphore semaphore;
+
+ private:
+  VulkanContext* context_;
+};
+
 }  // namespace vulkan
 }  // namespace core

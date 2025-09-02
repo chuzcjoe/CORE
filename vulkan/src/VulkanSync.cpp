@@ -15,5 +15,15 @@ VulkanFence::~VulkanFence() { vkDestroyFence(context_->logical_device, fence, nu
 
 void VulkanFence::Reset() { VK_CHECK(vkResetFences(context_->logical_device, 1, &fence)); }
 
+VulkanSemaphore::VulkanSemaphore(VulkanContext* context) : context_(context) {
+  VkSemaphoreCreateInfo semaphore_info{};
+  semaphore_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+  VK_CHECK(vkCreateSemaphore(context_->logical_device, &semaphore_info, nullptr, &semaphore));
+}
+
+VulkanSemaphore::~VulkanSemaphore() {
+  vkDestroySemaphore(context_->logical_device, semaphore, nullptr);
+}
+
 }  // namespace vulkan
 }  // namespace core
