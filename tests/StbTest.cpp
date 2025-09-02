@@ -41,13 +41,12 @@ TEST(StbTest, test) {
     mat_ptr[i] = static_cast<uint8_t>(std::clamp(val * 1.2f, 0.0f, 255.0f));
   }
 
-  if (!stbi_write_png(kOutputPath.c_str(), width, height, channels, mat.data(), width * channels)) {
-    std::cerr << "Failed to write image: " << kOutputPath << std::endl;
-  } else {
-    std::cout << "Write to file successfully\n";
-  }
+  const bool write_status =
+      stbi_write_png(kOutputPath.c_str(), width, height, channels, mat.data(), width * channels);
 
   stbi_image_free(img);
+
+  EXPECT_EQ(write_status, true);
 }
 
 }  // namespace test

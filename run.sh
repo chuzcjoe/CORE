@@ -81,16 +81,10 @@ fi
 
 device_path="/data/local/tmp/core"
 if [ "$target" = "arm64-v8a" ]; then
-    adb push ./build/$target/vulkan/tests/vulkan_tests $device_path
-    adb shell chmod +X $device_path/vulkan_tests
-
-    adb push ./build/$target/tests/core-tests $device_path
-    adb push ./tests/data $device_path
-    adb shell chmod +X $device_path/core-tests
-
-
     if [ "$test_module" = "vulkan" ]; then
       echo "run vulkan test"
+      adb push ./build/$target/vulkan/tests/vulkan_tests $device_path
+      adb shell chmod +X $device_path/vulkan_tests
       if [ -z "$test_filter" ]; then
         # test_filter is empty → run all tests
         adb shell $device_path/vulkan_tests
@@ -102,6 +96,9 @@ if [ "$target" = "arm64-v8a" ]; then
 
     if [ "$test_module" = "tests" ]; then
       echo "run tests"
+      adb push ./build/$target/tests/core-tests $device_path
+      adb push ./tests/data $device_path
+      adb shell chmod +X $device_path/core-tests
       if [ -z "$test_filter" ]; then
         # test_filter is empty → run all tests
         adb shell $device_path/core-tests
