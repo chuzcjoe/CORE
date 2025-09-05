@@ -10,6 +10,7 @@ target_link_libraries(vulkan
     PUBLIC
     Vulkan::Vulkan
     mat
-    timer)
+    timer
+    glm)
 
 add_subdirectory(tests)
