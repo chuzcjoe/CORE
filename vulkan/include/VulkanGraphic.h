@@ -12,11 +12,6 @@
 namespace core {
 namespace vulkan {
 
-// struct Vertex {
-//   glm::vec2 pos;
-//   glm::vec3 color;
-// };
-
 class VulkanGraphic : public VulkanBase {
  public:
   VulkanGraphic(VulkanContext* context, VulkanRenderPass& render_pass);
@@ -31,7 +26,7 @@ class VulkanGraphic : public VulkanBase {
   virtual std::vector<VkVertexInputBindingDescription> GetVertexBindingDescriptions() const = 0;
   virtual std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const = 0;
 
-  const VulkanRenderPass& render_pass_;
+  VulkanRenderPass& render_pass_;
 };
 
 }  // namespace vulkan

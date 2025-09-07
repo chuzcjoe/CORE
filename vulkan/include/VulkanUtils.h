@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include <glm/glm.hpp>
 #include <string>
 
 namespace core {
@@ -25,6 +26,11 @@ enum class QueueFamilyType {
   ComputeAndGraphics,
   GraphicsAndPresent,
   All
+};
+
+struct Vertex {
+  glm::vec2 pos;
+  glm::vec3 color;
 };
 
 }  // namespace vulkan
