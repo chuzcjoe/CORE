@@ -1,3 +1,4 @@
+# Compile shaders
 set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
 
 file(GLOB_RECURSE shader_src "*/*.comp" 
@@ -20,7 +21,7 @@ endforeach(shader)
 
 add_custom_target(vulkan_example_shaders DEPENDS ${shader_spv_files})
 
-# only add glfw for macos
+# only add glfw/draw triangle for macos
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # glfw demo
     add_executable(glfw_demo ./GLFWWindowDemo/glfw.cpp)

@@ -85,7 +85,7 @@ VulkanContext::~VulkanContext() {
 uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
                                        const VkMemoryPropertyFlags properties) const {
   VkPhysicalDeviceMemoryProperties mem_properties;
-  vkGetPhysicalDeviceMemoryProperties(physical_device_, &mem_properties);
+  vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_properties);
 
   for (uint32_t i = 0; i < mem_properties.memoryTypeCount; ++i) {
     if ((type_filter & (1 << i)) &&
@@ -171,18 +171,18 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
   for (const auto& device : devices) {
     FindQueueFamilies(device, queue_family_type);
     if (queue_family_indices_.is_complete) {
-      physical_device_ = device;
+      physical_device = device;
       break;
     }
   }
 
-  if (physical_device_ == VK_NULL_HANDLE) {
+  if (physical_device == VK_NULL_HANDLE) {
     throw std::runtime_error("failed to find a suitable GPU!");
   }
 
   // Get Timestamp period
   VkPhysicalDeviceProperties properties;
-  vkGetPhysicalDeviceProperties(physical_device_, &properties);
+  vkGetPhysicalDeviceProperties(physical_device, &properties);
   const float period = properties.limits.timestampPeriod;
   if (period == 0.0f) {
     std::runtime_error("timestamp is 0");
@@ -276,7 +276,7 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   deviceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   deviceInfo.ppEnabledExtensionNames = extensions.data();
 
-  VK_CHECK(vkCreateDevice(physical_device_, &deviceInfo, nullptr, &logical_device));
+  VK_CHECK(vkCreateDevice(physical_device, &deviceInfo, nullptr, &logical_device));
 
   if (queue_family_indices_.compute_family.has_value()) {
     vkGetDeviceQueue(logical_device, queue_family_indices_.compute_family.value(), 0,
@@ -306,9 +306,9 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
 
   // check if required extensions are supported
   uint32_t extensionCount = 0;
-  vkEnumerateDeviceExtensionProperties(physical_device_, nullptr, &extensionCount, nullptr);
+  vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, nullptr);
   std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
-  vkEnumerateDeviceExtensionProperties(physical_device_, nullptr, &extensionCount,
+  vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount,
                                        supportedExtensions.data());
 
   std::unordered_set<std::string> availableExtensions;

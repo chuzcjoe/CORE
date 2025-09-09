@@ -44,6 +44,7 @@ class VulkanContext {
 
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;
+  VkPhysicalDevice physical_device;
   float timestamp_period;
 
  private:
@@ -51,7 +52,7 @@ class VulkanContext {
   QueueFamilyIndices queue_family_indices_;
   VkQueue compute_queue_;
   VkQueue graphics_queue_;
-  VkPhysicalDevice physical_device_;
+
   VkDebugUtilsMessengerEXT debug_messenger_;
 
   bool CheckValidationLayerSupport();
