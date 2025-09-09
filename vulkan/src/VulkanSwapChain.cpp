@@ -3,8 +3,9 @@
 namespace core {
 namespace vulkan {
 
-VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
-    : context_(context), surface_(surface) {
+VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
+                                 VkRenderPass render_pass)
+    : context_(context), surface_(surface), render_pass_(render_pass) {
   swapchain_support_details_ = QuerySwapChainSupport(context_->physical_device);
   surface_format_ = ChooseSwapSurfaceFormat(swapchain_support_details_.formats);
   present_mode_ = ChooseSwapPresentMode(swapchain_support_details_.present_modes);
@@ -117,6 +118,50 @@ VkExtent2D VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 
     return actual_extent;
 #endif
+  }
+}
+
+void VulkanSwapChain::CreateImageViews() {
+  swapchain_image_views_.resize(swapchain_images_.size());
+
+  for (size_t i = 0; i < swapchain_images_.size(); ++i) {
+    VkImageViewCreateInfo create_info{};
+    create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    create_info.image = swapchain_images_[i];
+    create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    create_info.format = swapchain_image_format_;
+    create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+    create_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    create_info.subresourceRange.baseMipLevel = 0;
+    create_info.subresourceRange.levelCount = 1;
+    create_info.subresourceRange.baseArrayLayer = 0;
+    create_info.subresourceRange.layerCount = 1;
+
+    VK_CHECK(vkCreateImageView(context_->logical_device, &create_info, nullptr,
+                               &swapchain_image_views_[i]));
+  }
+}
+
+void VulkanSwapChain::CreateFrameBuffers() {
+  swapchain_framebuffers_.resize(swapchain_image_views_.size());
+
+  for (size_t i = 0; i < swapchain_image_views_.size(); ++i) {
+    VkImageView attachments[] = {swapchain_image_views_[i]};
+
+    VkFramebufferCreateInfo framebuffer_info{};
+    framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    framebuffer_info.renderPass = render_pass_;
+    framebuffer_info.attachmentCount = 1;
+    framebuffer_info.pAttachments = attachments;
+    framebuffer_info.width = swapchain_extent_.width;
+    framebuffer_info.height = swapchain_extent_.height;
+    framebuffer_info.layers = 1;
+
+    VK_CHECK(vkCreateFramebuffer(context_->logical_device, &framebuffer_info, nullptr,
+                                 &swapchain_framebuffers_[i]));
   }
 }
 
