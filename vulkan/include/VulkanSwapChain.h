@@ -31,8 +31,10 @@ class VulkanSwapChain {
   VkSurfaceKHR surface_;
   VkSurfaceFormatKHR surface_format_;
   VkPresentModeKHR present_mode_;
-  VkExtent2D extent_;
+  VkExtent2D swapchain_extent_;
   VkSwapchainKHR swapchain_;
+  VkFormat swapchain_image_format_;
+  std::vector<VkImage> swapchain_images_;
 
 #if defined(__APPLE__)
   GLFWwindow* window_;

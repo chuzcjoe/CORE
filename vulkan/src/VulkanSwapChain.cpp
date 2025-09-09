@@ -8,7 +8,7 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
   swapchain_support_details_ = QuerySwapChainSupport(context_->physical_device);
   surface_format_ = ChooseSwapSurfaceFormat(swapchain_support_details_.formats);
   present_mode_ = ChooseSwapPresentMode(swapchain_support_details_.present_modes);
-  extent_ = ChooseSwapExtent(swapchain_support_details_.capabilities);
+  swapchain_extent_ = ChooseSwapExtent(swapchain_support_details_.capabilities);
 
   uint32_t image_count = swapchain_support_details_.capabilities.minImageCount + 1;
   if (swapchain_support_details_.capabilities.maxImageCount > 0 &&
@@ -23,14 +23,35 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
   create_info.minImageCount = image_count;
   create_info.imageFormat = surface_format_.format;
   create_info.imageColorSpace = surface_format_.colorSpace;
-  create_info.imageExtent = extent_;
+  create_info.imageExtent = swapchain_extent_;
   create_info.imageArrayLayers = 1;
   create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+  QueueFamilyIndices indices = context_->GetQueueFamilyIndices();
+  uint32_t queue_family_indices[] = {indices.graphics_family.value(),
+                                     indices.present_family.value()};
+
+  if (indices.graphics_family != indices.present_family) {
+    create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+    create_info.queueFamilyIndexCount = 2;
+    create_info.pQueueFamilyIndices = queue_family_indices;
+  } else {
+    create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  }
 
   create_info.preTransform = swapchain_support_details_.capabilities.currentTransform;
   create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   create_info.presentMode = present_mode_;
   create_info.clipped = VK_TRUE;
+
+  VK_CHECK(vkCreateSwapchainKHR(context_->logical_device, &create_info, nullptr, &swapchain_));
+
+  vkGetSwapchainImagesKHR(context_->logical_device, swapchain_, &image_count, nullptr);
+  swapchain_images_.resize(image_count);
+  vkGetSwapchainImagesKHR(context_->logical_device, swapchain_, &image_count,
+                          swapchain_images_.data());
+
+  swapchain_image_format_ = surface_format_.format;
 }
 
 VulkanSwapChain::~VulkanSwapChain() {
