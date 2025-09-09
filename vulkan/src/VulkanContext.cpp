@@ -56,8 +56,9 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 
-VulkanContext::VulkanContext(const bool enable_validation_layers, QueueFamilyType queue_family_type)
-    : enable_validation_layers_(enable_validation_layers) {
+VulkanContext::VulkanContext(const bool enable_validation_layers, const VkSurfaceKHR surface,
+                             QueueFamilyType queue_family_type)
+    : enable_validation_layers_(enable_validation_layers), surface_(surface) {
   CreateInstance(enable_validation_layers_);
   PickPhysicalDevice(queue_family_type);
   CreateLogicalDevice();
@@ -170,7 +171,7 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
 
   for (const auto& device : devices) {
     FindQueueFamilies(device, queue_family_type);
-    if (queue_family_indices_.is_complete) {
+    if (queue_family_indices_.is_complete()) {
       physical_device = device;
       break;
     }
@@ -202,12 +203,8 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
     case QueueFamilyType::Graphics:
       graphics_flag = VK_QUEUE_GRAPHICS_BIT;
       break;
-    case QueueFamilyType::ComputeAndGraphics:
-      compute_flag = VK_QUEUE_COMPUTE_BIT;
-      graphics_flag = VK_QUEUE_GRAPHICS_BIT;
-      break;
     default:
-      break;
+      throw std::runtime_error("Currently only support compute and graphics");
   }
 
   uint32_t queue_family_count = 0;
@@ -223,27 +220,16 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
     }
     if (queueFamily.queueFlags & graphics_flag) {
       queue_family_indices_.graphics_family = i;
+      VkBool32 present_support = false;
+      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &present_support);
+      if (present_support) {
+        queue_family_indices_.present_family = i;
+      }
+    }
+    if (queue_family_indices_.is_complete()) {
+      break;
     }
     ++i;
-  }
-
-  switch (queue_family_type) {
-    case QueueFamilyType::Compute:
-      queue_family_indices_.compute_family.has_value() ? queue_family_indices_.is_complete = true
-                                                       : false;
-      break;
-    case QueueFamilyType::Graphics:
-      queue_family_indices_.graphics_family.has_value() ? queue_family_indices_.is_complete = true
-                                                        : false;
-      break;
-    case QueueFamilyType::ComputeAndGraphics:
-      queue_family_indices_.compute_family.has_value() &&
-              queue_family_indices_.graphics_family.has_value()
-          ? queue_family_indices_.is_complete = true
-          : false;
-      break;
-    default:
-      break;
   }
 }
 

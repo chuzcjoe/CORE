@@ -21,11 +21,11 @@ std::string VkErrorMessages(const VkResult result);
 
 enum class QueueFamilyType {
   Compute,
-  Graphics,
-  Present,
-  ComputeAndGraphics,
-  GraphicsAndPresent,
-  All
+  Graphics
+  // Present,
+  // ComputeAndGraphics,
+  // GraphicsAndPresent,
+  // All
 };
 
 struct Vertex {

@@ -16,7 +16,10 @@ struct QueueFamilyIndices {
   std::optional<uint32_t> graphics_family;
   std::optional<uint32_t> present_family;
 
-  bool is_complete = false;
+  bool is_complete() {
+    return compute_family.has_value() ||
+           (graphics_family.has_value() && present_family.has_value());
+  }
 };
 
 /*
@@ -32,7 +35,8 @@ Vulkan context manages:
 class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false,
-                const QueueFamilyType queue_family_type = QueueFamilyType::All);
+                const VkSurfaceKHR surface = VK_NULL_HANDLE,
+                const QueueFamilyType queue_family_type = QueueFamilyType::Compute);
   ~VulkanContext();
 
   uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
@@ -52,6 +56,7 @@ class VulkanContext {
   QueueFamilyIndices queue_family_indices_;
   VkQueue compute_queue_;
   VkQueue graphics_queue_;
+  VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
   VkDebugUtilsMessengerEXT debug_messenger_;
 
