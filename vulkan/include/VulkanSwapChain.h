@@ -20,6 +20,9 @@ class VulkanSwapChain {
   explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface, VkRenderPass render_pass);
   ~VulkanSwapChain();
 
+  VkExtent2D swapchain_extent;
+  std::vector<VkFramebuffer> swapchain_framebuffers;
+
  private:
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
@@ -35,13 +38,11 @@ class VulkanSwapChain {
   VkRenderPass render_pass_;
   VkSurfaceFormatKHR surface_format_;
   VkPresentModeKHR present_mode_;
-  VkExtent2D swapchain_extent_;
   VkSwapchainKHR swapchain_;
   VkFormat swapchain_image_format_;
   std::vector<VkImage> swapchain_images_;
 
   std::vector<VkImageView> swapchain_image_views_;
-  std::vector<VkFramebuffer> swapchain_framebuffers_;
 
 #if defined(__APPLE__)
   GLFWwindow* window_;

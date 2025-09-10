@@ -9,7 +9,7 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   swapchain_support_details_ = QuerySwapChainSupport(context_->physical_device);
   surface_format_ = ChooseSwapSurfaceFormat(swapchain_support_details_.formats);
   present_mode_ = ChooseSwapPresentMode(swapchain_support_details_.present_modes);
-  swapchain_extent_ = ChooseSwapExtent(swapchain_support_details_.capabilities);
+  swapchain_extent = ChooseSwapExtent(swapchain_support_details_.capabilities);
 
   uint32_t image_count = swapchain_support_details_.capabilities.minImageCount + 1;
   if (swapchain_support_details_.capabilities.maxImageCount > 0 &&
@@ -24,7 +24,7 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   create_info.minImageCount = image_count;
   create_info.imageFormat = surface_format_.format;
   create_info.imageColorSpace = surface_format_.colorSpace;
-  create_info.imageExtent = swapchain_extent_;
+  create_info.imageExtent = swapchain_extent;
   create_info.imageArrayLayers = 1;
   create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
@@ -146,7 +146,7 @@ void VulkanSwapChain::CreateImageViews() {
 }
 
 void VulkanSwapChain::CreateFrameBuffers() {
-  swapchain_framebuffers_.resize(swapchain_image_views_.size());
+  swapchain_framebuffers.resize(swapchain_image_views_.size());
 
   for (size_t i = 0; i < swapchain_image_views_.size(); ++i) {
     VkImageView attachments[] = {swapchain_image_views_[i]};
@@ -156,12 +156,12 @@ void VulkanSwapChain::CreateFrameBuffers() {
     framebuffer_info.renderPass = render_pass_;
     framebuffer_info.attachmentCount = 1;
     framebuffer_info.pAttachments = attachments;
-    framebuffer_info.width = swapchain_extent_.width;
-    framebuffer_info.height = swapchain_extent_.height;
+    framebuffer_info.width = swapchain_extent.width;
+    framebuffer_info.height = swapchain_extent.height;
     framebuffer_info.layers = 1;
 
     VK_CHECK(vkCreateFramebuffer(context_->logical_device, &framebuffer_info, nullptr,
-                                 &swapchain_framebuffers_[i]));
+                                 &swapchain_framebuffers[i]));
   }
 }
 
