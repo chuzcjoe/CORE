@@ -7,8 +7,8 @@ VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context) : context_(cont
   // Create command pool
   VkCommandPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  pool_info.queueFamilyIndex =
-      context_->GetQueueFamilyIndices().compute_family.value();  // Use compute queue family
+  pool_info.queueFamilyIndex = context_->GetQueueFamilyIndices()
+                                   .graphics_family.value();  // TODO: fix for different pipelines
   pool_info.flags =
       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // Allow resetting individual buffers
 
@@ -38,6 +38,8 @@ void VulkanCommandBuffer::Submit(const VkFence fence) const {
 
   VK_CHECK(vkQueueSubmit(context_->compute_queue(), 1, &submit_info, fence));
 }
+
+void VulkanCommandBuffer::Reset() { VK_CHECK(vkResetCommandBuffer(command_buffer_, 0)); }
 
 }  // namespace vulkan
 }  // namespace core

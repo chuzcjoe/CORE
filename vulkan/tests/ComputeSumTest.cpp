@@ -17,7 +17,8 @@ namespace test {
 TEST(ComputeSum, test) {
   // Setup Vulkan
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Compute;
-  core::vulkan::VulkanContext context(true, nullptr, queue_family_type);
+  core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
+  context.Init();
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanQueryPool query_pool(&context, VK_QUERY_TYPE_TIMESTAMP);

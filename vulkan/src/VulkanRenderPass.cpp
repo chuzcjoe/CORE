@@ -43,7 +43,13 @@ VulkanRenderPass::VulkanRenderPass(VulkanContext* context, VkFormat attachment_f
   render_pass_info.dependencyCount = 1;
   render_pass_info.pDependencies = &dependency;
 
-  VK_CHECK(vkCreateRenderPass(context_->logical_device, &render_pass_info, nullptr, &render_pass_));
+  VkResult result =
+      vkCreateRenderPass(context_->logical_device, &render_pass_info, nullptr, &render_pass_);
+  if (result != VK_SUCCESS) {
+    std::cerr << "vkCreateRenderPass failed with result: " << result << std::endl;
+    throw std::runtime_error("Failed to create render pass");
+  }
+  std::cout << "Render pass created successfully, handle: " << render_pass_ << std::endl;
 }
 
 VulkanRenderPass::~VulkanRenderPass() {

@@ -5,6 +5,7 @@
 #endif
 
 #include "VulkanContext.h"
+#include "VulkanRenderPass.h"
 
 namespace core {
 namespace vulkan {
@@ -17,11 +18,17 @@ struct SwapChainSupportDetails {
 
 class VulkanSwapChain {
  public:
-  explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface, VkRenderPass render_pass);
+  VulkanSwapChain() = delete;
+  explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface);
   ~VulkanSwapChain();
+
+  void CreateImageViews();
+  void CreateFrameBuffers(VulkanRenderPass& render_pass);
 
   VkExtent2D swapchain_extent;
   std::vector<VkFramebuffer> swapchain_framebuffers;
+  VkSwapchainKHR swapchain;
+  VkFormat swapchain_image_format;
 
  private:
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
@@ -29,17 +36,11 @@ class VulkanSwapChain {
   VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& present_modes);
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-  void CreateImageViews();
-  void CreateFrameBuffers();
-
   VulkanContext* context_;
   SwapChainSupportDetails swapchain_support_details_;
   VkSurfaceKHR surface_;
-  VkRenderPass render_pass_;
   VkSurfaceFormatKHR surface_format_;
   VkPresentModeKHR present_mode_;
-  VkSwapchainKHR swapchain_;
-  VkFormat swapchain_image_format_;
   std::vector<VkImage> swapchain_images_;
 
   std::vector<VkImageView> swapchain_image_views_;

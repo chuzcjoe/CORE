@@ -1,5 +1,7 @@
 #pragma once
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
 #include <set>
@@ -35,9 +37,11 @@ Vulkan context manages:
 class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false,
-                const VkSurfaceKHR surface = VK_NULL_HANDLE,
-                const QueueFamilyType queue_family_type = QueueFamilyType::Compute);
+                const QueueFamilyType queue_family_type = QueueFamilyType::Compute,
+                const VkSurfaceKHR surface = VK_NULL_HANDLE);
   ~VulkanContext();
+
+  void Init(VkSurfaceKHR surface = VK_NULL_HANDLE);
 
   uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
 
@@ -45,6 +49,7 @@ class VulkanContext {
 
   VkQueue compute_queue() const { return compute_queue_; }
   VkQueue graphics_queue() const { return graphics_queue_; }
+  VkQueue present_queue() const { return present_queue_; }
 
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;
@@ -53,9 +58,11 @@ class VulkanContext {
 
  private:
   bool enable_validation_layers_;
+  QueueFamilyType queue_family_type_;
   QueueFamilyIndices queue_family_indices_;
   VkQueue compute_queue_;
   VkQueue graphics_queue_;
+  VkQueue present_queue_;
   VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
   VkDebugUtilsMessengerEXT debug_messenger_;

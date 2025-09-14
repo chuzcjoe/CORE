@@ -56,31 +56,37 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 
-VulkanContext::VulkanContext(const bool enable_validation_layers, const VkSurfaceKHR surface,
-                             QueueFamilyType queue_family_type)
-    : enable_validation_layers_(enable_validation_layers), surface_(surface) {
+VulkanContext::VulkanContext(const bool enable_validation_layers, QueueFamilyType queue_family_type,
+                             const VkSurfaceKHR surface)
+    : enable_validation_layers_(enable_validation_layers),
+      queue_family_type_(queue_family_type),
+      surface_(surface) {
   CreateInstance(enable_validation_layers_);
-  PickPhysicalDevice(queue_family_type);
+}
+
+void VulkanContext::Init(VkSurfaceKHR surface) {
+  surface_ = surface;
+  PickPhysicalDevice(queue_family_type_);
   CreateLogicalDevice();
   SetupDebugMessenger();
 }
 
 VulkanContext::~VulkanContext() {
-  if (debug_messenger_ != VK_NULL_HANDLE) {
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-        instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (func != nullptr) {
-      func(instance, debug_messenger_, nullptr);
-    }
-  }
+  // if (debug_messenger_ != VK_NULL_HANDLE) {
+  //   auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
+  //       instance, "vkDestroyDebugUtilsMessengerEXT");
+  //   if (func != nullptr) {
+  //     func(instance, debug_messenger_, nullptr);
+  //   }
+  // }
 
-  if (logical_device != VK_NULL_HANDLE) {
-    vkDestroyDevice(logical_device, nullptr);
-  }
+  // if (logical_device != VK_NULL_HANDLE) {
+  //   vkDestroyDevice(logical_device, nullptr);
+  // }
 
-  if (instance != VK_NULL_HANDLE) {
-    vkDestroyInstance(instance, nullptr);
-  }
+  // if (instance != VK_NULL_HANDLE) {
+  //   vkDestroyInstance(instance, nullptr);
+  // }
 }
 
 uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
@@ -107,8 +113,20 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
     extensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
   }
 
+  extensions.emplace_back("VK_KHR_surface");
+
 #ifdef __APPLE__
   extensions.emplace_back("VK_KHR_portability_enumeration");
+  uint32_t glfw_extension_count = 0;
+  const char** glfw_required_extensions;
+  glfw_required_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+  printf("glfw extensions count: %d\n", glfw_extension_count);
+  std::vector<const char*> glfw_extensions(glfw_required_extensions,
+                                           glfw_required_extensions + glfw_extension_count);
+  for (uint32_t i = 0; i < glfw_extension_count; ++i) {
+    printf("glfw extensions: %s\n", glfw_extensions[i]);
+    extensions.emplace_back(glfw_extensions[i]);
+  }
 #endif
 
   // Search for all support extensions
@@ -235,10 +253,14 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
 
 void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   std::vector<VkDeviceQueueCreateInfo> queue_infos;
-  ;
   // TODO: support present queue
-  std::set<std::optional<uint32_t>> unique_queue_families = {queue_family_indices_.compute_family,
-                                                             queue_family_indices_.graphics_family};
+  std::set<std::optional<uint32_t>> unique_queue_families;
+  if (queue_family_indices_.compute_family.has_value())
+    unique_queue_families.insert(queue_family_indices_.compute_family);
+  if (queue_family_indices_.graphics_family.has_value())
+    unique_queue_families.insert(queue_family_indices_.graphics_family);
+  if (queue_family_indices_.present_family.has_value())
+    unique_queue_families.insert(queue_family_indices_.present_family);
 
   for (auto family : unique_queue_families) {
     if (!family.has_value()) {
@@ -269,8 +291,14 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
                      &compute_queue_);
   }
   if (queue_family_indices_.graphics_family.has_value()) {
+    printf("Found graphics_family\n");
     vkGetDeviceQueue(logical_device, queue_family_indices_.graphics_family.value(), 0,
                      &graphics_queue_);
+  }
+  if (queue_family_indices_.present_family.has_value()) {
+    printf("Found present_family\n");
+    vkGetDeviceQueue(logical_device, queue_family_indices_.present_family.value(), 0,
+                     &present_queue_);
   }
 }
 
@@ -288,6 +316,7 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
 #endif
 
   // more extensions
+  extensions.emplace_back("VK_KHR_swapchain");
   extensions.emplace_back("VK_KHR_16bit_storage");
 
   // check if required extensions are supported

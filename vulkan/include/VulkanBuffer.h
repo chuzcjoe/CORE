@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include <functional>
+#include <iostream>
 
 #include "VulkanContext.h"
 
@@ -16,6 +17,8 @@ class VulkanBuffer {
   VulkanBuffer(VulkanContext* context, const VkDeviceSize size, const VkBufferUsageFlags usage,
                const VkMemoryPropertyFlags properties);
   ~VulkanBuffer();
+
+  VulkanBuffer& operator=(VulkanBuffer&&);
 
   void MapData(const std::function<void(void*)>& func);
 

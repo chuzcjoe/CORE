@@ -14,6 +14,8 @@ class VulkanCommandBuffer {
 
   void Submit(const VkFence fence) const;
 
+  void Reset();
+
   VkCommandBuffer buffer() const { return command_buffer_; }
 
  private:

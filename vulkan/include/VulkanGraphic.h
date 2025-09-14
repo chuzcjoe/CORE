@@ -23,8 +23,9 @@ class VulkanGraphic : public VulkanBase {
   // Derived class needs to configure these explicitly
   virtual const std::vector<uint32_t> LoadVertexShader() const = 0;
   virtual const std::vector<uint32_t> LoadFragmentShader() const = 0;
-  virtual std::vector<VkVertexInputBindingDescription> GetVertexBindingDescriptions() const = 0;
-  virtual std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const = 0;
+  virtual std::array<VkVertexInputBindingDescription, 1> GetVertexBindingDescriptions() const = 0;
+  virtual std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions()
+      const = 0;
 
   VulkanRenderPass& render_pass_;
 };
