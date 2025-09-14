@@ -39,13 +39,12 @@ int main() {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
 
-  core::vulkan::VulkanCommandBuffer command_buffer(&context);
+  core::vulkan::VulkanCommandBuffer command_buffer(&context, queue_family_type);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
-  std::cout << "format: " << swap_chain->swapchain_image_format << std::endl;
   std::unique_ptr<core::GraphicTriangle> triangle =
       std::make_unique<core::GraphicTriangle>(&context, render_pass);
   triangle->Init();
@@ -64,8 +63,7 @@ int main() {
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
 
-    // ======================================= Command buffer begin
-    // =======================================
+    // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -90,8 +88,7 @@ int main() {
     if (vkEndCommandBuffer(command_buffer.buffer()) != VK_SUCCESS) {
       throw std::runtime_error("failed to record command buffer!");
     }
-    // ======================================= Command buffer end
-    // =======================================
+    // ========== Command buffer begin ==========
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;

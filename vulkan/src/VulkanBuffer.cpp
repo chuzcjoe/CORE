@@ -6,14 +6,6 @@ namespace vulkan {
 VulkanBuffer::VulkanBuffer(VulkanContext* context, const VkDeviceSize size,
                            const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties)
     : context_(context), buffer_size_(size), memory_properties_(properties) {
-  // debug
-  // std::cout << "=== Creating VulkanBuffer ===" << std::endl;
-  // std::cout << "Size: " << size << std::endl;
-  // std::cout << "Usage: " << usage << std::endl;
-  // std::cout << "Properties: " << properties << std::endl;
-  // std::cout << "Context valid: " << (context_ != nullptr) << std::endl;
-  // std::cout << "Logical device: " << (context_->logical_device != VK_NULL_HANDLE) << std::endl;
-
   VkBufferCreateInfo buffer_info{};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_info.size = buffer_size_;
@@ -34,9 +26,6 @@ VulkanBuffer::VulkanBuffer(VulkanContext* context, const VkDeviceSize size,
   VK_CHECK(vkAllocateMemory(context_->logical_device, &alloc_info, nullptr, &buffer_memory_));
 
   VK_CHECK(vkBindBufferMemory(context_->logical_device, buffer, buffer_memory_, 0));
-
-  std::cout << "buffer created successfully, handle: " << buffer << std::endl;
-  std::cout << "buffer memory created successfully, handle: " << buffer_memory_ << std::endl;
 }
 
 VulkanBuffer::~VulkanBuffer() {
@@ -49,7 +38,6 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
-  std::cout << "copying VulkanBuffer\n";
   if (buffer != VK_NULL_HANDLE) {
     vkDestroyBuffer(context_->logical_device, buffer, nullptr);
   }
@@ -77,9 +65,6 @@ void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
     throw std::runtime_error("Buffer is not mappable");
   }
   void* data;
-  if (!context_->logical_device) {
-    throw std::runtime_error("logical deivice is not init");
-  }
   vkMapMemory(context_->logical_device, buffer_memory_, 0, buffer_size_, 0, &data);
   func(data);
   vkUnmapMemory(context_->logical_device, buffer_memory_);

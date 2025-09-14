@@ -5,12 +5,11 @@ namespace core {
 GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
                                  core::vulkan::VulkanRenderPass& render_pass)
     : core::vulkan::VulkanGraphic(context, render_pass) {
-  // CreateVertexBuffer();
+  CreateVertexBuffer();
 }
 
 void GraphicTriangle::Init() {
   core::vulkan::VulkanGraphic::Init();
-  CreateVertexBuffer();
   vertex_buffer_.MapData([this](void* data) {
     memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
   });
@@ -36,8 +35,6 @@ void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) 
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-  // vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
-  //                         &descriptor_set_, 0, nullptr);
   vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices_.size()), 1, 0, 0);
 }
 

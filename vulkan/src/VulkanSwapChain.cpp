@@ -48,21 +48,15 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
       vkCreateSwapchainKHR(context_->logical_device, &create_info, nullptr, &swapchain);
   if (result != VK_SUCCESS) {
     throw std::runtime_error("create swap chain failed");
-  } else {
-    std::cout << "create swap chain success" << std::endl;
   }
 
   vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count, nullptr);
   swapchain_images_.resize(image_count);
-  std::cout << "swap chain image count: " << image_count << std::endl;
   result = vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count,
                                    swapchain_images_.data());
   if (result != VK_SUCCESS) {
     throw std::runtime_error("get swap chain images failed");
-  } else {
-    std::cout << "get swap chain images success" << std::endl;
   }
-
   swapchain_image_format = surface_format_.format;
 }
 
@@ -135,9 +129,7 @@ VkExtent2D VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 }
 
 void VulkanSwapChain::CreateImageViews() {
-  std::cout << "swapchain size: " << swapchain_images_.size() << std::endl;
   swapchain_image_views_.resize(swapchain_images_.size());
-
   for (size_t i = 0; i < swapchain_images_.size(); ++i) {
     VkImageViewCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;

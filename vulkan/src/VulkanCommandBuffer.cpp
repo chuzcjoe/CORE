@@ -3,12 +3,15 @@
 namespace core {
 namespace vulkan {
 
-VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context) : context_(context) {
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context,
+                                         core::vulkan::QueueFamilyType queue_family_type)
+    : context_(context) {
   // Create command pool
   VkCommandPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  pool_info.queueFamilyIndex = context_->GetQueueFamilyIndices()
-                                   .graphics_family.value();  // TODO: fix for different pipelines
+  pool_info.queueFamilyIndex = queue_family_type == core::vulkan::QueueFamilyType::Compute
+                                   ? context_->GetQueueFamilyIndices().compute_family.value()
+                                   : context_->GetQueueFamilyIndices().graphics_family.value();
   pool_info.flags =
       VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;  // Allow resetting individual buffers
 
