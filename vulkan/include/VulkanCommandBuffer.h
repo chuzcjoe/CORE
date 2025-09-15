@@ -10,12 +10,11 @@ namespace vulkan {
 
 class VulkanCommandBuffer {
  public:
-  explicit VulkanCommandBuffer(
-      VulkanContext* context,
-      core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Compute);
+  explicit VulkanCommandBuffer(VulkanContext* context,
+                               QueueFamilyType queue_family_type = QueueFamilyType::Compute);
   ~VulkanCommandBuffer();
 
-  void Submit(const VkFence fence) const;
+  void Submit(const VkFence fence, VkSubmitInfo& submit_info) const;
 
   void Reset();
 
@@ -23,6 +22,7 @@ class VulkanCommandBuffer {
 
  private:
   VulkanContext* context_;
+  QueueFamilyType queue_family_type_;
   VkCommandPool command_pool_;
   VkCommandBuffer command_buffer_;
 };

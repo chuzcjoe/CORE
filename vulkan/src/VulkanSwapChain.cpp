@@ -58,9 +58,19 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
     throw std::runtime_error("get swap chain images failed");
   }
   swapchain_image_format = surface_format_.format;
+
+  CreateImageViews();
 }
 
-VulkanSwapChain::~VulkanSwapChain() {
+VulkanSwapChain::~VulkanSwapChain() {}
+
+void VulkanSwapChain::UnInit() {
+  for (auto framebuffer : swapchain_framebuffers) {
+    vkDestroyFramebuffer(context_->logical_device, framebuffer, nullptr);
+  }
+  for (auto imageview : swapchain_image_views_) {
+    vkDestroyImageView(context_->logical_device, imageview, nullptr);
+  }
   if (swapchain) {
     vkDestroySwapchainKHR(context_->logical_device, swapchain, nullptr);
   }

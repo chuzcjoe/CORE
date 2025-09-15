@@ -59,7 +59,8 @@ TEST(ComputeSum, test) {
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
   compute_sum->Run(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-  command_buffer.Submit(fence.fence);
+  VkSubmitInfo submit_info{};
+  command_buffer.Submit(fence.fence, submit_info);
 
   vkWaitForFences(context.logical_device, 1, &fence.fence, VK_TRUE, UINT64_MAX);
 

@@ -3,13 +3,12 @@
 namespace core {
 namespace vulkan {
 
-VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context,
-                                         core::vulkan::QueueFamilyType queue_family_type)
-    : context_(context) {
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context, QueueFamilyType queue_family_type)
+    : context_(context), queue_family_type_(queue_family_type) {
   // Create command pool
   VkCommandPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-  pool_info.queueFamilyIndex = queue_family_type == core::vulkan::QueueFamilyType::Compute
+  pool_info.queueFamilyIndex = queue_family_type_ == QueueFamilyType::Compute
                                    ? context_->GetQueueFamilyIndices().compute_family.value()
                                    : context_->GetQueueFamilyIndices().graphics_family.value();
   pool_info.flags =
@@ -32,14 +31,17 @@ VulkanCommandBuffer::~VulkanCommandBuffer() {
   vkDestroyCommandPool(context_->logical_device, command_pool_, nullptr);
 }
 
-void VulkanCommandBuffer::Submit(const VkFence fence) const {
+void VulkanCommandBuffer::Submit(const VkFence fence, VkSubmitInfo& submit_info) const {
   vkEndCommandBuffer(command_buffer_);
-  VkSubmitInfo submit_info{};
+
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer_;
 
-  VK_CHECK(vkQueueSubmit(context_->compute_queue(), 1, &submit_info, fence));
+  VK_CHECK(vkQueueSubmit(queue_family_type_ == QueueFamilyType::Compute
+                             ? context_->compute_queue()
+                             : context_->graphics_queue(),
+                         1, &submit_info, fence));
 }
 
 void VulkanCommandBuffer::Reset() { VK_CHECK(vkResetCommandBuffer(command_buffer_, 0)); }

@@ -22,7 +22,8 @@ class VulkanSwapChain {
   explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface);
   ~VulkanSwapChain();
 
-  void CreateImageViews();
+  void UnInit();
+
   void CreateFrameBuffers(VulkanRenderPass& render_pass);
 
   VkExtent2D swapchain_extent;
@@ -35,6 +36,8 @@ class VulkanSwapChain {
   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
   VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& present_modes);
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
+
+  void CreateImageViews();
 
   VulkanContext* context_;
   SwapChainSupportDetails swapchain_support_details_;

@@ -48,8 +48,6 @@ int main() {
   std::unique_ptr<core::GraphicTriangle> triangle =
       std::make_unique<core::GraphicTriangle>(&context, render_pass);
   triangle->Init();
-
-  swap_chain->CreateImageViews();
   swap_chain->CreateFrameBuffers(render_pass);
 
   while (!glfwWindowShouldClose(window)) {
@@ -85,9 +83,6 @@ int main() {
     triangle->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRenderPass(command_buffer.buffer());
 
-    if (vkEndCommandBuffer(command_buffer.buffer()) != VK_SUCCESS) {
-      throw std::runtime_error("failed to record command buffer!");
-    }
     // ========== Command buffer begin ==========
 
     VkSubmitInfo submit_info{};
@@ -99,18 +94,11 @@ int main() {
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
 
-    VkCommandBuffer cmd_buffer = command_buffer.buffer();
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &cmd_buffer;
-
     VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
-    if (vkQueueSubmit(context.graphics_queue(), 1, &submit_info, in_flight_fence.fence) !=
-        VK_SUCCESS) {
-      throw std::runtime_error("failed to submit draw command buffer!");
-    }
+    command_buffer.Submit(in_flight_fence.fence, submit_info);
 
     // present
     VkPresentInfoKHR present_info{};
@@ -129,6 +117,10 @@ int main() {
   }
 
   vkDeviceWaitIdle(context.logical_device);
+  // ImageViews and FrameBuffers need to be released before context release
+  swap_chain->UnInit();
+  // Surface needs to be released before context release
+  vkDestroySurfaceKHR(context.instance, window_surface, nullptr);
 
   glfwDestroyWindow(window);
   glfwTerminate();
