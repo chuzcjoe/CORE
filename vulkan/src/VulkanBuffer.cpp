@@ -37,6 +37,27 @@ VulkanBuffer::~VulkanBuffer() {
   }
 }
 
+VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
+  if (buffer != VK_NULL_HANDLE) {
+    vkDestroyBuffer(context_->logical_device, buffer, nullptr);
+  }
+  if (buffer_memory_ != VK_NULL_HANDLE) {
+    vkFreeMemory(context_->logical_device, buffer_memory_, nullptr);
+  }
+
+  context_ = rhs.context_;
+  buffer = rhs.buffer;
+  rhs.buffer = VK_NULL_HANDLE;
+
+  buffer_memory_ = rhs.buffer_memory_;
+  rhs.buffer_memory_ = VK_NULL_HANDLE;
+
+  buffer_size_ = rhs.buffer_size_;
+  memory_properties_ = rhs.memory_properties_;
+
+  return *this;
+}
+
 void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
   const auto staging_buffer_property =
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;

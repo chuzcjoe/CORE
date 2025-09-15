@@ -1,5 +1,7 @@
 #pragma once
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
 #include <set>
@@ -16,7 +18,10 @@ struct QueueFamilyIndices {
   std::optional<uint32_t> graphics_family;
   std::optional<uint32_t> present_family;
 
-  bool is_complete = false;
+  bool is_complete() {
+    return compute_family.has_value() ||
+           (graphics_family.has_value() && present_family.has_value());
+  }
 };
 
 /*
@@ -32,8 +37,11 @@ Vulkan context manages:
 class VulkanContext {
  public:
   VulkanContext(const bool enable_validation_layers = false,
-                const QueueFamilyType queue_family_type = QueueFamilyType::All);
+                const QueueFamilyType queue_family_type = QueueFamilyType::Compute,
+                const VkSurfaceKHR surface = VK_NULL_HANDLE);
   ~VulkanContext();
+
+  void Init(VkSurfaceKHR surface = VK_NULL_HANDLE);
 
   uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
 
@@ -41,17 +49,22 @@ class VulkanContext {
 
   VkQueue compute_queue() const { return compute_queue_; }
   VkQueue graphics_queue() const { return graphics_queue_; }
+  VkQueue present_queue() const { return present_queue_; }
 
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;
+  VkPhysicalDevice physical_device;
   float timestamp_period;
 
  private:
   bool enable_validation_layers_;
+  QueueFamilyType queue_family_type_;
   QueueFamilyIndices queue_family_indices_;
   VkQueue compute_queue_;
   VkQueue graphics_queue_;
-  VkPhysicalDevice physical_device_;
+  VkQueue present_queue_;
+  VkSurfaceKHR surface_ = VK_NULL_HANDLE;
+
   VkDebugUtilsMessengerEXT debug_messenger_;
 
   bool CheckValidationLayerSupport();

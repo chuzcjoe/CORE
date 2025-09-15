@@ -16,7 +16,8 @@ struct UniformBufferObject {
 
 TEST(VulkanTest, test) {
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Compute;
-  core::vulkan::VulkanContext context(true, queue_family_type);
+  core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
+  context.Init();
 
   const VkDeviceSize buffer_size = 3 * sizeof(float);
   core::vulkan::VulkanBuffer buffer(

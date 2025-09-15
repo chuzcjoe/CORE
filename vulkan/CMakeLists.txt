@@ -6,10 +6,21 @@ target_include_directories(vulkan
     PUBLIC
     include)
 
-target_link_libraries(vulkan
-    PUBLIC
-    Vulkan::Vulkan
-    mat
-    timer)
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(vulkan
+        PUBLIC
+        Vulkan::Vulkan
+        mat
+        timer
+        glm
+        glfw)
+else()
+    target_link_libraries(vulkan
+        PUBLIC
+        Vulkan::Vulkan
+        mat
+        timer
+        glm)
+endif()
 
 add_subdirectory(tests)
