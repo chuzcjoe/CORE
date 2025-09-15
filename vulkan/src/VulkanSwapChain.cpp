@@ -58,6 +58,8 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
     throw std::runtime_error("get swap chain images failed");
   }
   swapchain_image_format = surface_format_.format;
+
+  CreateImageViews();
 }
 
 VulkanSwapChain::~VulkanSwapChain() {
