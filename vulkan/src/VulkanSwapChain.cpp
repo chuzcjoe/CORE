@@ -62,7 +62,15 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
   CreateImageViews();
 }
 
-VulkanSwapChain::~VulkanSwapChain() {
+VulkanSwapChain::~VulkanSwapChain() {}
+
+void VulkanSwapChain::UnInit() {
+  for (auto framebuffer : swapchain_framebuffers) {
+    vkDestroyFramebuffer(context_->logical_device, framebuffer, nullptr);
+  }
+  for (auto imageview : swapchain_image_views_) {
+    vkDestroyImageView(context_->logical_device, imageview, nullptr);
+  }
   if (swapchain) {
     vkDestroySwapchainKHR(context_->logical_device, swapchain, nullptr);
   }

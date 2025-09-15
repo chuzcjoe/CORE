@@ -117,6 +117,10 @@ int main() {
   }
 
   vkDeviceWaitIdle(context.logical_device);
+  // ImageViews and FrameBuffers need to be released before context release
+  swap_chain->UnInit();
+  // Surface needs to be released before context release
+  vkDestroySurfaceKHR(context.instance, window_surface, nullptr);
 
   glfwDestroyWindow(window);
   glfwTerminate();

@@ -22,6 +22,8 @@ class VulkanSwapChain {
   explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface);
   ~VulkanSwapChain();
 
+  void UnInit();
+
   void CreateFrameBuffers(VulkanRenderPass& render_pass);
 
   VkExtent2D swapchain_extent;
