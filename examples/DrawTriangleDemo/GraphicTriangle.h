@@ -24,12 +24,17 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions() const override;
 
  private:
+  struct Vertex {
+    glm::vec2 pos;
+    glm::vec3 color;
+  };
+
   void CreateVertexBuffer();
 
   // pos, color
-  const std::vector<core::vulkan::Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                                       {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                                       {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+  const std::vector<Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                                         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
   core::vulkan::VulkanBuffer vertex_buffer_;
 };
 
