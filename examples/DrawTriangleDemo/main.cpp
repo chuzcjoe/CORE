@@ -71,7 +71,6 @@ int main() {
     vkCmdBeginRenderPass(command_buffer.buffer(), &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
     triangle->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRenderPass(command_buffer.buffer());
-    // ========== Command buffer begin ==========
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -84,6 +83,7 @@ int main() {
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
     command_buffer.Submit(in_flight_fence.fence, submit_info);
+    // ========== Command buffer end ==========
 
     // present
     VkPresentInfoKHR present_info{};
