@@ -25,6 +25,13 @@
 
 Draw a triangle with 100 lines of code in Vulkan. See example in `examples/DrawTriangleDemo/main.cpp`
 
+How to run this demo?
+```
+./run.sh -target macos
+./build/macos/examples/vk_triangle_demo
+
+```
+
 ```cpp
 // This demo draws a triangle in a glfw window using vulkan graphic pipeline
 const uint32_t kWidth = 800;
