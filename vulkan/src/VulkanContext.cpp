@@ -232,12 +232,10 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
   uint32_t i = 0;
   for (const auto& queueFamily : queueFamilies) {
     if (queueFamily.queueFlags & compute_flag) {
-      printf("found compute family\n");
       queue_family_indices_.compute_family = i;
       break;
     }
     if (queueFamily.queueFlags & graphics_flag) {
-      printf("found graphics family\n");
       queue_family_indices_.graphics_family = i;
       VkBool32 present_support = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &present_support);
@@ -257,20 +255,13 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   // TODO: support present queue
   std::set<std::optional<uint32_t>> unique_queue_families;
   if (queue_family_indices_.compute_family.has_value()) {
-    printf("compute\n");
     unique_queue_families.insert(queue_family_indices_.compute_family);
   }
   if (queue_family_indices_.graphics_family.has_value()) {
-    printf("graphics\n");
     unique_queue_families.insert(queue_family_indices_.graphics_family);
-  } else {
-    printf("no graphics\n");
   }
   if (queue_family_indices_.present_family.has_value()) {
-    printf("present\n");
     unique_queue_families.insert(queue_family_indices_.present_family);
-  } else {
-    printf("no present\n");
   }
 
   for (auto family : unique_queue_families) {
