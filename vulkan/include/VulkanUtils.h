@@ -5,28 +5,21 @@
 #include <glm/glm.hpp>
 #include <string>
 
+#define VK_CHECK(x)                                                 \
+  do {                                                              \
+    VkResult err = x;                                               \
+    if (err != VK_SUCCESS) {                                        \
+      printf("Detected Vulkan error: %d\n", err);                   \
+      throw std::runtime_error(core::vulkan::VkErrorMessages(err)); \
+    }                                                               \
+  } while (0)
+
 namespace core {
 namespace vulkan {
 
-#define VK_CHECK(x)                                   \
-  do {                                                \
-    VkResult err = x;                                 \
-    if (err != VK_SUCCESS) {                          \
-      printf("Detected Vulkan error: %d\n", err);     \
-      throw std::runtime_error(VkErrorMessages(err)); \
-    }                                                 \
-  } while (0)
-
 std::string VkErrorMessages(const VkResult result);
 
-enum class QueueFamilyType {
-  Compute,
-  Graphics
-  // Present,
-  // ComputeAndGraphics,
-  // GraphicsAndPresent,
-  // All
-};
+enum class QueueFamilyType { Compute, Graphics };
 
 struct Vertex {
   glm::vec2 pos;
