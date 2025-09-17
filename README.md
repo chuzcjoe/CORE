@@ -61,7 +61,7 @@ int main() {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
 
-  core::vulkan::VulkanCommandBuffer command_buffer(&context, queue_family_type);
+  core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
