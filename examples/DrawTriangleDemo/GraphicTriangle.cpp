@@ -10,13 +10,14 @@ GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
 
 void GraphicTriangle::Init() {
   core::vulkan::VulkanGraphic::Init();
-  vertex_buffer_.MapData([this](void* data) {
+  vertex_buffer_staging_.MapData([this](void* data) {
     memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
   });
+  vertex_buffer_staging_.CopyBuffer(vertex_buffer_local_);
 }
 
 void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
-  const VkBuffer vertex_buffers[] = {vertex_buffer_.buffer};
+  const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
   const VkDeviceSize offsets[] = {0};
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -85,9 +86,13 @@ std::array<VkVertexInputAttributeDescription, 2> GraphicTriangle::GetVertexAttri
 void GraphicTriangle::CreateVertexBuffer() {
   const VkDeviceSize size = sizeof(vertices_[0]) * vertices_.size();
 
-  vertex_buffer_ = core::vulkan::VulkanBuffer(
-      context_, size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
+      context_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
+      context_, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 }  // namespace core

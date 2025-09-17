@@ -35,7 +35,8 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   const std::vector<Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
                                          {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                          {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
-  core::vulkan::VulkanBuffer vertex_buffer_;
+  core::vulkan::VulkanBuffer vertex_buffer_staging_;
+  core::vulkan::VulkanBuffer vertex_buffer_local_;
 };
 
 }  // namespace core

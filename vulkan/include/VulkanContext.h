@@ -50,6 +50,7 @@ class VulkanContext {
   VkQueue compute_queue() const { return compute_queue_; }
   VkQueue graphics_queue() const { return graphics_queue_; }
   VkQueue present_queue() const { return present_queue_; }
+  QueueFamilyType queue_family_type() const { return queue_family_type_; }
 
   VkInstance instance = VK_NULL_HANDLE;
   VkDevice logical_device;

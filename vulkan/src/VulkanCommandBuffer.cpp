@@ -3,8 +3,8 @@
 namespace core {
 namespace vulkan {
 
-VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context, QueueFamilyType queue_family_type)
-    : context_(context), queue_family_type_(queue_family_type) {
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context)
+    : context_(context), queue_family_type_(context_->queue_family_type()) {
   // Create command pool
   VkCommandPoolCreateInfo pool_info{};
   pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

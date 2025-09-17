@@ -5,7 +5,9 @@
 #include <functional>
 #include <iostream>
 
+#include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
+#include "VulkanSync.h"
 
 namespace core {
 namespace vulkan {
@@ -19,6 +21,8 @@ class VulkanBuffer {
   ~VulkanBuffer();
 
   VulkanBuffer& operator=(VulkanBuffer&&);
+
+  void CopyBuffer(VulkanBuffer& dst_buffer);
 
   void MapData(const std::function<void(void*)>& func);
 
