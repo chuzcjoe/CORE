@@ -60,6 +60,9 @@ VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
 
 // TODO: abstract the copy commands
 void VulkanBuffer::CopyBuffer(VulkanBuffer& dst_buffer) {
+  if (buffer_size_ != dst_buffer.Size()) {
+    throw std::runtime_error("Buffer sizes do not match for copy");
+  }
   VulkanCommandBuffer command_buffer(context_);
   VkCommandBufferBeginInfo begin_info{};
   begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
