@@ -32,11 +32,17 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   void CreateVertexBuffer();
 
   // pos, color
-  const std::vector<Vertex> vertices_ = {{{0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                         {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                         {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+  // index buffer
+  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0};
   core::vulkan::VulkanBuffer vertex_buffer_staging_;
   core::vulkan::VulkanBuffer vertex_buffer_local_;
+
+  core::vulkan::VulkanBuffer index_buffer_staging_;
+  core::vulkan::VulkanBuffer index_buffer_local_;
 };
 
 }  // namespace core

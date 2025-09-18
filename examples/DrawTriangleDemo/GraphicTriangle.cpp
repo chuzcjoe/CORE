@@ -13,7 +13,11 @@ void GraphicTriangle::Init() {
   vertex_buffer_staging_.MapData([this](void* data) {
     memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
   });
+  index_buffer_staging_.MapData(
+      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
+
   vertex_buffer_staging_.CopyBuffer(vertex_buffer_local_);
+  index_buffer_staging_.CopyBuffer(index_buffer_local_);
 }
 
 void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -36,7 +40,8 @@ void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) 
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
 
   vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
-  vkCmdDraw(command_buffer, static_cast<uint32_t>(vertices_.size()), 1, 0, 0);
+  vkCmdBindIndexBuffer(command_buffer, index_buffer_local_.buffer, 0, VK_INDEX_TYPE_UINT16);
+  vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
 std::vector<core::vulkan::BindingInfo> GraphicTriangle::GetBindingInfo() const {
@@ -84,14 +89,25 @@ std::array<VkVertexInputAttributeDescription, 2> GraphicTriangle::GetVertexAttri
 }
 
 void GraphicTriangle::CreateVertexBuffer() {
-  const VkDeviceSize size = sizeof(vertices_[0]) * vertices_.size();
+  const VkDeviceSize vertex_buffer_size = sizeof(vertices_[0]) * vertices_.size();
+  const VkDeviceSize index_buffer_size = sizeof(indices_[0]) * indices_.size();
 
   vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      context_, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
   vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      context_, vertex_buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  index_buffer_staging_ = core::vulkan::VulkanBuffer(
+      context_, index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  index_buffer_local_ = core::vulkan::VulkanBuffer(
+      context_, index_buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
