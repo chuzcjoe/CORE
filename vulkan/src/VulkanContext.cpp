@@ -106,6 +106,9 @@ uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
 }
 
 void VulkanContext::CreateInstance(const bool enable_validation_layers) {
+  if (!VulkanLoader::Instance().Init()) {
+    throw std::runtime_error("failed to initialize volk");
+  }
   const bool is_validation_supported = CheckValidationLayerSupport();
   // Get required extensions
   std::vector<const char*> extensions;
@@ -174,6 +177,7 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
   }
 
   VK_CHECK(vkCreateInstance(&ci, nullptr, &instance));
+  VulkanLoader::Instance().LoadInstance(instance);
 }
 
 void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) {

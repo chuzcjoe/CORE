@@ -1,5 +1,10 @@
 #pragma once
 
+#include <volk.h>
+#ifndef VK_NO_PROTOTYPES
+#define VK_NO_PROTOTYPES 1
+#endif
+
 #include <vulkan/vulkan_core.h>
 
 #include <glm/glm.hpp>
