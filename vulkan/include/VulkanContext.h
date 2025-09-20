@@ -1,7 +1,10 @@
 #pragma once
 
+#ifdef __APPLE__
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#endif
+
 #include <vulkan/vulkan.h>
 
 #include <set>
