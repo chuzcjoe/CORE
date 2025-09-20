@@ -1,10 +1,14 @@
 #pragma once
 
+#define GLM_FORCE_RADIANS
+#include <chrono>
 #include <vector>
 
 #include "VulkanGraphic.h"
 #include "VulkanRenderPass.h"
 #include "VulkanUtils.h"
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
 namespace core {
 
@@ -15,6 +19,8 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
 
   void Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
+
+  void UpdateUniformBuffer();
 
  protected:
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
@@ -28,6 +34,10 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
     glm::vec2 pos;
     glm::vec3 color;
   };
+
+  struct UniformBufferObject {
+    alignas(16) glm::mat4 mat;
+  } uniform_data_;
 
   void CreateVertexBuffer();
 
@@ -43,6 +53,13 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
 
   core::vulkan::VulkanBuffer index_buffer_staging_;
   core::vulkan::VulkanBuffer index_buffer_local_;
+
+  // uniform buffer
+  core::vulkan::VulkanBuffer uniform_buffer_;
+
+  // start time, we need it to calculate the rotation angle
+  inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =
+      std::chrono::high_resolution_clock::now();
 };
 
 }  // namespace core
