@@ -7,7 +7,6 @@
 #include "VulkanContext.h"
 #include "VulkanImage.h"
 #include "VulkanRenderPass.h"
-#include "glm/glm.hpp"
 
 namespace core {
 namespace vulkan {

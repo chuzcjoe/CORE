@@ -10,11 +10,20 @@ GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
 
 void GraphicTriangle::Init() {
   core::vulkan::VulkanGraphic::Init();
+
+  CreateUniformBufferDescriptorSet(0, uniform_buffer_);
+  vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
+
   vertex_buffer_staging_.MapData([this](void* data) {
     memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
   });
   index_buffer_staging_.MapData(
       [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
+
+  uniform_buffer_.MapData([this](void* data) {
+    uniform_data_.mat = glm::mat4(1.0f);
+    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+  });
 
   vertex_buffer_staging_.CopyBuffer(vertex_buffer_local_);
   index_buffer_staging_.CopyBuffer(index_buffer_local_);
@@ -41,12 +50,13 @@ void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) 
 
   vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
   vkCmdBindIndexBuffer(command_buffer, index_buffer_local_.buffer, 0, VK_INDEX_TYPE_UINT16);
+  vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
+                          &descriptor_set_, 0, nullptr);
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
 std::vector<core::vulkan::BindingInfo> GraphicTriangle::GetBindingInfo() const {
-  // Drawing a triangle does not need to bind resources
-  return {};
+  return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT}};
 }
 
 const std::vector<uint32_t> GraphicTriangle::LoadVertexShader() const {
@@ -109,6 +119,24 @@ void GraphicTriangle::CreateVertexBuffer() {
       context_, index_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  uniform_buffer_ = core::vulkan::VulkanBuffer(
+      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+}
+
+void GraphicTriangle::UpdateUniformBuffer() {
+  auto current_time = std::chrono::high_resolution_clock::now();
+  float time =
+      std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time_)
+          .count();
+
+  // TODO: maintain a persistent mapping pointer to avoid mapping every time
+  uniform_buffer_.MapData([this, time](void* data) {
+    uniform_data_.mat =
+        glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+  });
 }
 
 }  // namespace core
