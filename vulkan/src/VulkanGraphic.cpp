@@ -55,8 +55,8 @@ void VulkanGraphic::CreatePipeline() {
   rasterize_state.polygonMode = VK_POLYGON_MODE_FILL;
   rasterize_state.lineWidth = 1.0f;
 
-  rasterize_state.cullMode = VK_CULL_MODE_BACK_BIT;
-  rasterize_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
+  rasterize_state.cullMode = SetCullMode();
+  rasterize_state.frontFace = SetFrontFace();
 
   rasterize_state.depthBiasEnable = VK_FALSE;
   rasterize_state.depthBiasConstantFactor = 0.0f;
