@@ -1,5 +1,6 @@
 # Compile shaders
-set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
+# set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
+set(GLSLC /usr/local/bin/glslc)
 
 file(GLOB_RECURSE shader_src "*/*.comp" 
                                 "*/*.vert" 

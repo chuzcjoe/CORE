@@ -12,6 +12,8 @@
 **
 */
 
+#define VK_NO_PROTOTYPES
+
 #ifdef __cplusplus
 extern "C" {
 #endif

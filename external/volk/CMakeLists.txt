@@ -1,11 +1,6 @@
-set(volk_src volk.c)
-
-add_library(volk ${volk_src})
+add_library(volk INTERFACE)
 
 target_include_directories(volk
-    SYSTEM PUBLIC
-    .)
-
-target_link_libraries(volk
-    PUBLIC
-    vulkan-headers)
+    SYSTEM INTERFACE
+    .
+    )

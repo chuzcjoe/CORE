@@ -9,8 +9,8 @@ target_include_directories(vulkan
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(vulkan
         PUBLIC
-        vulkan-headers
         volk
+        vulkan-headers
         # Vulkan::Vulkan
         mat
         timer
@@ -19,8 +19,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 else()
     target_link_libraries(vulkan
         PUBLIC
-        vulkan-headers
         volk
+        vulkan-headers
         # Vulkan::Vulkan
         mat
         timer
