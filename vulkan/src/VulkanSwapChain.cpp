@@ -136,6 +136,7 @@ VkExtent2D VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
     return actual_extent;
 #endif
   }
+  return capabilities.currentExtent;
 }
 
 void VulkanSwapChain::CreateImageViews() {
