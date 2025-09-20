@@ -19,6 +19,10 @@ class VulkanGraphic : public VulkanBase {
   void CreatePipeline() override;
 
  private:
+  // Derived class can customize these settings
+  virtual VkCullModeFlags SetCullMode() const { return VK_CULL_MODE_BACK_BIT; }
+  virtual VkFrontFace SetFrontFace() const { return VK_FRONT_FACE_CLOCKWISE; }
+
   // Derived class needs to configure these explicitly
   virtual const std::vector<uint32_t> LoadVertexShader() const = 0;
   virtual const std::vector<uint32_t> LoadFragmentShader() const = 0;

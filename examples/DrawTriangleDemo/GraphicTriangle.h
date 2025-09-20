@@ -20,9 +20,12 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   void Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer();
+  void UpdateUniformBuffer(const int width, const int height);
 
  protected:
+  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
+  VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
   const std::vector<uint32_t> LoadFragmentShader() const override;
@@ -36,7 +39,9 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   };
 
   struct UniformBufferObject {
-    alignas(16) glm::mat4 mat;
+    glm::mat4 model;
+    glm::mat4 view;
+    glm::mat4 project;
   } uniform_data_;
 
   void CreateVertexBuffer();

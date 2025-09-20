@@ -54,7 +54,8 @@ int main() {
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
-    triangle->UpdateUniformBuffer();
+    triangle->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
+                                  swap_chain->swapchain_extent.height);
     // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};

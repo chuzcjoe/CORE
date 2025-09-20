@@ -21,7 +21,9 @@ void GraphicTriangle::Init() {
       [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
 
   uniform_buffer_.MapData([this](void* data) {
-    uniform_data_.mat = glm::mat4(1.0f);
+    uniform_data_.model = glm::mat4(1.0f);
+    uniform_data_.view = glm::mat4(1.0f);
+    uniform_data_.project = glm::mat4(1.0f);
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
   });
 
@@ -125,16 +127,23 @@ void GraphicTriangle::CreateVertexBuffer() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicTriangle::UpdateUniformBuffer() {
+void GraphicTriangle::UpdateUniformBuffer(const int width, const int height) {
+  // printf("width: %d, height: %d\n", width, height);
   auto current_time = std::chrono::high_resolution_clock::now();
   float time =
       std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time_)
           .count();
 
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
-  uniform_buffer_.MapData([this, time](void* data) {
-    uniform_data_.mat =
+  uniform_buffer_.MapData([this, time, width, height](void* data) {
+    uniform_data_.model =
         glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    uniform_data_.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                                     glm::vec3(0.0f, 0.0f, 1.0f));
+    uniform_data_.project =
+        glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 10.0f);
+    uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
+
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
   });
 }
