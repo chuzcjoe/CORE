@@ -31,7 +31,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer() {
   vkDestroyCommandPool(context_->logical_device, command_pool_, nullptr);
 }
 
-void VulkanCommandBuffer::Submit(const VkFence fence, VkSubmitInfo& submit_info) const {
+void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo& submit_info) const {
   vkEndCommandBuffer(command_buffer_);
 
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
