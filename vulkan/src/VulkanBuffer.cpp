@@ -58,28 +58,16 @@ VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
   return *this;
 }
 
-// TODO: abstract the copy commands
 void VulkanBuffer::CopyBuffer(VulkanBuffer& dst_buffer) {
   if (buffer_size_ != dst_buffer.Size()) {
     throw std::runtime_error("Buffer sizes do not match for copy");
   }
-  VulkanCommandBuffer command_buffer(context_);
-  VkCommandBufferBeginInfo begin_info{};
-  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-  vkBeginCommandBuffer(command_buffer.buffer(), &begin_info);
+  const auto command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
   VkBufferCopy copy_region{};
   copy_region.size = buffer_size_;
   vkCmdCopyBuffer(command_buffer.buffer(), buffer, dst_buffer.buffer, 1, &copy_region);
-  VkSubmitInfo submit_info{};
-  VulkanFence fence(context_);
-  fence.Reset();
-  command_buffer.Submit(fence.fence, submit_info);
-  // Or use vkWaitForFences here
-  vkQueueWaitIdle(context_->queue_family_type() == QueueFamilyType::Compute
-                      ? context_->compute_queue()
-                      : context_->graphics_queue());
+  command_buffer.EndOneTimeCommands();
 }
 
 void VulkanBuffer::MapData(const std::function<void(void*)>& func) {

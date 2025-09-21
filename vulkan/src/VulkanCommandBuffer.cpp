@@ -44,7 +44,39 @@ void VulkanCommandBuffer::Submit(const VkFence fence, VkSubmitInfo& submit_info)
                          1, &submit_info, fence));
 }
 
+void VulkanCommandBuffer::Submit(const VkFence& fence) const {
+  vkEndCommandBuffer(command_buffer_);
+
+  VkSubmitInfo submit_info{};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &command_buffer_;
+
+  VK_CHECK(vkQueueSubmit(queue_family_type_ == QueueFamilyType::Compute
+                             ? context_->compute_queue()
+                             : context_->graphics_queue(),
+                         1, &submit_info, fence));
+}
+
 void VulkanCommandBuffer::Reset() { VK_CHECK(vkResetCommandBuffer(command_buffer_, 0)); }
+
+VulkanCommandBuffer VulkanCommandBuffer::BeginOneTimeCommands(VulkanContext* context) {
+  VulkanCommandBuffer command_buffer(context);
+
+  VkCommandBufferBeginInfo begin_info{};
+  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  VK_CHECK(vkBeginCommandBuffer(command_buffer.buffer(), &begin_info));
+  return command_buffer;
+}
+
+void VulkanCommandBuffer::EndOneTimeCommands() const {
+  VulkanFence fence(context_);
+  fence.Reset();
+  Submit(fence.fence);
+  vkWaitForFences(context_->logical_device, 1, &fence.fence, VK_TRUE, UINT64_MAX);
+}
 
 }  // namespace vulkan
 }  // namespace core

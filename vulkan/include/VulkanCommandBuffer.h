@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "VulkanContext.h"
+#include "VulkanSync.h"
 #include "VulkanUtils.h"
 
 namespace core {
@@ -14,8 +15,11 @@ class VulkanCommandBuffer {
   ~VulkanCommandBuffer();
 
   void Submit(const VkFence fence, VkSubmitInfo& submit_info) const;
+  void Submit(const VkFence& fence) const;
 
   void Reset();
+  static VulkanCommandBuffer BeginOneTimeCommands(VulkanContext* context);
+  void EndOneTimeCommands() const;
 
   VkCommandBuffer buffer() const { return command_buffer_; }
 

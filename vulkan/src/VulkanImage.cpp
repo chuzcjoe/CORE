@@ -12,12 +12,13 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.imageType = VK_IMAGE_TYPE_2D;
   image_info.extent.width = image_width_;
   image_info.extent.height = image_height_;
-  image_info.extent.depth = 1;
+  image_info.extent.depth = 1;  // 2D image has depth 1
   image_info.mipLevels = 1;
   image_info.arrayLayers = 1;
   image_info.format = format;
   image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
-  image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  image_info.initialLayout =
+      VK_IMAGE_LAYOUT_UNDEFINED;  // only two states: UNDEFINED and PREINITIALIZED
   image_info.usage = usage;
   image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   image_info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -67,6 +68,33 @@ VulkanImage::~VulkanImage() {
   if (image_memory_ != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, image_memory_, nullptr);
   }
+}
+
+VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
+  if (image_view_ != VK_NULL_HANDLE) {
+    vkDestroyImageView(context_->logical_device, image_view_, nullptr);
+  }
+  if (image_ != VK_NULL_HANDLE) {
+    vkDestroyImage(context_->logical_device, image_, nullptr);
+  }
+  if (image_memory_ != VK_NULL_HANDLE) {
+    vkFreeMemory(context_->logical_device, image_memory_, nullptr);
+  }
+
+  context_ = rhs.context_;
+  image_ = rhs.image_;
+  rhs.image_ = VK_NULL_HANDLE;
+
+  image_view_ = rhs.image_view_;
+  rhs.image_view_ = VK_NULL_HANDLE;
+
+  image_memory_ = rhs.image_memory_;
+  rhs.image_memory_ = VK_NULL_HANDLE;
+
+  image_width_ = rhs.image_width_;
+  image_height_ = rhs.image_height_;
+
+  return *this;
 }
 
 }  // namespace vulkan
