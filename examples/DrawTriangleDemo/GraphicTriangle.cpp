@@ -27,8 +27,8 @@ void GraphicTriangle::Init() {
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
   });
 
-  vertex_buffer_staging_.CopyBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyBuffer(index_buffer_local_);
+  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
 void GraphicTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {

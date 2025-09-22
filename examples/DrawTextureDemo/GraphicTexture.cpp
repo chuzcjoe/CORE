@@ -27,8 +27,8 @@ void GraphicTexture::Init() {
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
   });
 
-  vertex_buffer_staging_.CopyBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyBuffer(index_buffer_local_);
+  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
 void GraphicTexture::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -172,13 +172,13 @@ void GraphicTexture::CreateTextureImage(const std::string& image_path) {
                                 VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   // Transition image layout and copy buffer to image
-  context_->TransitionImageLayout(image_, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
-                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-  staging_buffer.CopyBufferToImage(image_, static_cast<uint32_t>(texture_width),
-                                   static_cast<uint32_t>(texture_height));
-  context_->TransitionImageLayout(image_, VK_FORMAT_R8G8B8A8_SRGB,
-                                  VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+  texture_image_.TransitionImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
+  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
+                             static_cast<uint32_t>(texture_height));
+  texture_image_->TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                        VK_FORMAT_R8G8B8A8_SRGB);
 }
 
 }  // namespace core

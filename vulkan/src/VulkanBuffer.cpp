@@ -58,7 +58,7 @@ VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
   return *this;
 }
 
-void VulkanBuffer::CopyBuffer(VulkanBuffer& dst_buffer) {
+void VulkanBuffer::CopyToBuffer(VulkanBuffer& dst_buffer) {
   if (buffer_size_ != dst_buffer.Size()) {
     throw std::runtime_error("Buffer sizes do not match for copy");
   }
@@ -67,6 +67,29 @@ void VulkanBuffer::CopyBuffer(VulkanBuffer& dst_buffer) {
   VkBufferCopy copy_region{};
   copy_region.size = buffer_size_;
   vkCmdCopyBuffer(command_buffer.buffer(), buffer, dst_buffer.buffer, 1, &copy_region);
+  command_buffer.EndOneTimeCommands();
+}
+
+void VulkanBuffer::CopyToImage(VulkanImage& dst_image, const uint32_t width,
+                               const uint32_t height) {
+  const auto command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {width, height, 1};
+
+  vkCmdCopyBufferToImage(command_buffer.buffer(), buffer, dst_image.image,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
   command_buffer.EndOneTimeCommands();
 }
 

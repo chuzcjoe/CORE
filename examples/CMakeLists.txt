@@ -36,10 +36,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(vk_triangle_demo PRIVATE glfw vulkan)
 
     # draw texture demo using vulkan
-    # file(GLOB vk_texture_src "DrawTextureDemo/*.cpp")
-    # add_executable(vk_texture_demo ${vk_triangle_src})
-    # target_include_directories(vk_texture_demo PUBLIC ./DrawTextureDemo
-    #                                             PRIVATE PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    # add_dependencies(vk_texture_demo vulkan_example_shaders)
-    # target_link_libraries(vk_texture_demo PRIVATE glfw vulkan)
+    file(GLOB vk_texture_src "DrawTextureDemo/*.cpp")
+    add_executable(vk_texture_demo ${vk_triangle_src})
+    target_include_directories(vk_texture_demo PUBLIC ./DrawTextureDemo
+                                                PRIVATE PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+    add_dependencies(vk_texture_demo vulkan_example_shaders)
+    target_link_libraries(vk_texture_demo PRIVATE glfw vulkan)
 endif()

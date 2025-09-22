@@ -7,10 +7,13 @@
 
 #include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
+#include "VulkanImage.h"
 #include "VulkanSync.h"
 
 namespace core {
 namespace vulkan {
+
+class VulkanImage;
 
 class VulkanBuffer {
  public:
@@ -22,7 +25,9 @@ class VulkanBuffer {
 
   VulkanBuffer& operator=(VulkanBuffer&&);
 
-  void CopyBuffer(VulkanBuffer& dst_buffer);
+  void CopyToBuffer(VulkanBuffer& dst_buffer);
+
+  void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height);
 
   void MapData(const std::function<void(void*)>& func);
 
@@ -30,6 +35,7 @@ class VulkanBuffer {
 
   VkBuffer buffer;
 
+  // TODO: keep them public
  private:
   VulkanContext* context_;
   VkDeviceSize buffer_size_;

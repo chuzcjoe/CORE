@@ -44,6 +44,7 @@ int main() {
   std::unique_ptr<core::GraphicTexture> texture =
       std::make_unique<core::GraphicTexture>(&context, render_pass);
   texture->Init();
+  texture->CreateTextureImage("examples/DrawTextureDemo/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 
   while (!glfwWindowShouldClose(window)) {
