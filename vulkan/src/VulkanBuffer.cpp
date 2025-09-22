@@ -1,5 +1,7 @@
 #include "VulkanBuffer.h"
 
+#include "VulkanImage.h"
+
 namespace core {
 namespace vulkan {
 

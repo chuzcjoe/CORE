@@ -2,7 +2,6 @@
 
 #include <vulkan/vulkan.h>
 
-#include "VulkanBuffer.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
 

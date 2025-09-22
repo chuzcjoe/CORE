@@ -7,7 +7,6 @@
 
 #include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
-#include "VulkanImage.h"
 #include "VulkanSync.h"
 
 namespace core {
