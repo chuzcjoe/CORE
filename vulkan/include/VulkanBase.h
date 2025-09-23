@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <vector>
 
 #include "VulkanBuffer.h"
@@ -41,6 +42,9 @@ class VulkanBase {
 
   void CreateUniformBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
   void CreateStorageBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
+  void CreateCombinedImageSamplerDescriptorSet(const uint32_t binding,
+                                               const VkImageView& image_view,
+                                               const VkSampler& sampler);
 
   VulkanContext* context_;
   VkDescriptorSetLayout descriptor_set_layout_;
@@ -48,16 +52,58 @@ class VulkanBase {
   VkDescriptorSet descriptor_set_;
 
   std::vector<VkDescriptorBufferInfo> buffer_infos_;
+  std::vector<VkDescriptorImageInfo> image_infos_;
   std::vector<VkWriteDescriptorSet> writes_;
 
  private:
+  std::mutex write_mutex_;
+
+  int GetBufferSize(const std::vector<BindingInfo>&& bindings) const {
+    int size = 0;
+    // TODO: consider other types of buffer
+    for (const auto& info : bindings) {
+      if (info.descriptor_type == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
+          info.descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER) {
+        size++;
+      }
+    }
+    return size;
+  }
+
+  int GetImageSize(const std::vector<BindingInfo>&& bindings) const {
+    int size = 0;
+    // TODO: consider other types of image
+    for (const auto& info : bindings) {
+      if (info.descriptor_type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER ||
+          info.descriptor_type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+          info.descriptor_type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE) {
+        size++;
+      }
+    }
+    return size;
+  }
+
   void CheckBufferInfoSize() {
-    const auto size = GetBindingInfo().size();
+    const auto size = GetBufferSize(GetBindingInfo());
+    const auto total_size = GetBindingInfo().size();
     if (buffer_infos_.size() == 0) {
       buffer_infos_.resize(size);
     }
+    std::lock_guard<std::mutex> lock(write_mutex_);
     if (writes_.size() == 0) {
-      writes_.resize(size);
+      writes_.resize(total_size);
+    }
+  }
+
+  void CheckImageInfoSize() {
+    const auto size = GetImageSize(GetBindingInfo());
+    const auto total_size = GetBindingInfo().size();
+    if (image_infos_.size() == 0) {
+      image_infos_.resize(size);
+    }
+    std::lock_guard<std::mutex> lock(write_mutex_);
+    if (writes_.size() == 0) {
+      writes_.resize(total_size);
     }
   }
 };

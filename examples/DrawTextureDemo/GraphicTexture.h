@@ -1,23 +1,26 @@
 #pragma once
 
-#define GLM_FORCE_RADIANS
 #include <chrono>
 #include <vector>
 
 #include "VulkanGraphic.h"
+#include "VulkanImage.h"
 #include "VulkanRenderPass.h"
+#include "VulkanSampler.h"
 #include "VulkanUtils.h"
+
+#define GLM_FORCE_RADIANS
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace core {
 
-class GraphicTriangle : public core::vulkan::VulkanGraphic {
+class GraphicTexture : public core::vulkan::VulkanGraphic {
  public:
-  GraphicTriangle(core::vulkan::VulkanContext* context,
-                  core::vulkan::VulkanRenderPass& render_pass);
+  GraphicTexture(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass& render_pass);
 
   void Init() override;
+  void Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height);
@@ -33,9 +36,12 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
+  void CreateTextureImage(const std::string& image_path);
+
   struct Vertex {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 tex_coord;
   };
 
   struct UniformBufferObject {
@@ -46,11 +52,11 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
 
   void CreateVertexBuffer();
 
-  // pos, color
-  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
+  // pos, color, text_coord
+  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
   // index buffer
   const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0};
   core::vulkan::VulkanBuffer vertex_buffer_staging_;
@@ -61,6 +67,10 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
 
   // uniform buffer
   core::vulkan::VulkanBuffer uniform_buffer_;
+
+  // texture image
+  core::vulkan::VulkanImage texture_image_;
+  core::vulkan::VulkanSampler sampler_;
 
   // start time, we need it to calculate the rotation angle
   inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =

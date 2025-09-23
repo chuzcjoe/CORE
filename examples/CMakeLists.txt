@@ -23,15 +23,23 @@ add_custom_target(vulkan_example_shaders DEPENDS ${shader_spv_files})
 
 # only add glfw/draw triangle for macos
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    # glfw demo
+    # 1. glfw demo
     add_executable(glfw_demo ./GLFWWindowDemo/glfw.cpp)
     target_link_libraries(glfw_demo PRIVATE glfw)
 
-    # draw triangle demo using vulkan
+    # 2. draw triangle demo using vulkan
     file(GLOB vk_triangle_src "DrawTriangleDemo/*.cpp")
     add_executable(vk_triangle_demo ${vk_triangle_src})
     target_include_directories(vk_triangle_demo PUBLIC ./DrawTriangleDemo
                                                 PRIVATE PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
     add_dependencies(vk_triangle_demo vulkan_example_shaders)
     target_link_libraries(vk_triangle_demo PRIVATE glfw vulkan)
+
+    # 3. draw texture demo using vulkan
+    file(GLOB vk_texture_src "DrawTextureDemo/*.cpp")
+    add_executable(vk_texture_demo ${vk_texture_src})
+    target_include_directories(vk_texture_demo PUBLIC ./DrawTextureDemo
+                                                PRIVATE PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+    add_dependencies(vk_texture_demo vulkan_example_shaders)
+    target_link_libraries(vk_texture_demo PRIVATE glfw vulkan stb)
 endif()

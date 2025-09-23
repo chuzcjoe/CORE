@@ -1,39 +1,13 @@
-# CORE: Compute and Open Rendering Engine
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 
-**CORE** is a cross-platform C++ framework that abstracts away the boilerplate of modern GPU setup, letting developers focus on what matters. It combines high-performance GPU computing with powerful real-time rendering capabilities, offering a clean, unified interface for both compute workloads and graphics pipelines.
+#include "GraphicTexture.h"
+#include "VulkanCommandBuffer.h"
+#include "VulkanSwapChain.h"
+#include "VulkanSync.h"
+#include "VulkanUtils.h"
 
-<p align="center">
-  <img src="./logo/core.gif" alt="CORE" width="60%"/>
-</p>
-
-# 1. Supporting OS
-
-- MacOS
-- Android arm64-v8a
-
-# 2. Compute
-```
-./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
-```
-
-## Vulkan:
-1. ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
-2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
-
-
-# 3. Graphics
-
-Draw a triangle with 100 lines of code in Vulkan. See example in `examples/DrawTriangleDemo/main.cpp`
-
-How to run this demo?
-```
-./run.sh -target macos
-./build/macos/examples/vk_triangle_demo
-
-```
-
-```cpp
-// This demo draws a triangle in a glfw window using vulkan graphic pipeline
+// This demo draws a texture in a glfw window using vulkan graphic pipeline
 const uint32_t kWidth = 800;
 const uint32_t kHeight = 600;
 
@@ -67,9 +41,9 @@ int main() {
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
-  std::unique_ptr<core::GraphicTriangle> triangle =
-      std::make_unique<core::GraphicTriangle>(&context, render_pass);
-  triangle->Init();
+  std::unique_ptr<core::GraphicTexture> texture =
+      std::make_unique<core::GraphicTexture>(&context, render_pass);
+  texture->Init("examples/DrawTextureDemo/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 
   while (!glfwWindowShouldClose(window)) {
@@ -80,6 +54,8 @@ int main() {
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
+    texture->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
+                                 swap_chain->swapchain_extent.height);
     // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
@@ -95,7 +71,7 @@ int main() {
     renderpass_info.clearValueCount = 1;
     renderpass_info.pClearValues = &clear_color;
     vkCmdBeginRenderPass(command_buffer.buffer(), &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-    triangle->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    texture->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRenderPass(command_buffer.buffer());
 
     VkSubmitInfo submit_info{};
@@ -131,5 +107,3 @@ int main() {
 
   return EXIT_SUCCESS;
 }
-```
-

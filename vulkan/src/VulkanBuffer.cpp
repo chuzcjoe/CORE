@@ -1,5 +1,7 @@
 #include "VulkanBuffer.h"
 
+#include "VulkanImage.h"
+
 namespace core {
 namespace vulkan {
 
@@ -58,28 +60,39 @@ VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
   return *this;
 }
 
-// TODO: abstract the copy commands
-void VulkanBuffer::CopyBuffer(VulkanBuffer& dst_buffer) {
+void VulkanBuffer::CopyToBuffer(VulkanBuffer& dst_buffer) {
   if (buffer_size_ != dst_buffer.Size()) {
     throw std::runtime_error("Buffer sizes do not match for copy");
   }
-  VulkanCommandBuffer command_buffer(context_);
-  VkCommandBufferBeginInfo begin_info{};
-  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-  vkBeginCommandBuffer(command_buffer.buffer(), &begin_info);
+  const auto command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
   VkBufferCopy copy_region{};
   copy_region.size = buffer_size_;
   vkCmdCopyBuffer(command_buffer.buffer(), buffer, dst_buffer.buffer, 1, &copy_region);
-  VkSubmitInfo submit_info{};
-  VulkanFence fence(context_);
-  fence.Reset();
-  command_buffer.Submit(fence.fence, submit_info);
-  // Or use vkWaitForFences here
-  vkQueueWaitIdle(context_->queue_family_type() == QueueFamilyType::Compute
-                      ? context_->compute_queue()
-                      : context_->graphics_queue());
+  command_buffer.EndOneTimeCommands();
+}
+
+void VulkanBuffer::CopyToImage(VulkanImage& dst_image, const uint32_t width,
+                               const uint32_t height) {
+  const auto command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+
+  VkBufferImageCopy region{};
+  region.bufferOffset = 0;
+  region.bufferRowLength = 0;
+  region.bufferImageHeight = 0;
+
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageSubresource.layerCount = 1;
+
+  region.imageOffset = {0, 0, 0};
+  region.imageExtent = {width, height, 1};
+
+  vkCmdCopyBufferToImage(command_buffer.buffer(), buffer, dst_image.image,
+                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+  command_buffer.EndOneTimeCommands();
 }
 
 void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
