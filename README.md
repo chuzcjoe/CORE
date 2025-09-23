@@ -3,7 +3,7 @@
 **CORE** is a cross-platform C++ framework that abstracts away the boilerplate of modern GPU setup, letting developers focus on what matters. It combines high-performance GPU computing with powerful real-time rendering capabilities, offering a clean, unified interface for both compute workloads and graphics pipelines.
 
 <p align="center">
-  <img src="./logo/core.gif" alt="CORE" width="60"/>
+  <img src="./logo/core.gif" alt="CORE" width="60%"/>
 </p>
 
 # 1. Supporting OS
