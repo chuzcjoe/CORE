@@ -29,8 +29,8 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
   const std::vector<uint32_t> LoadFragmentShader() const override;
-  std::array<VkVertexInputBindingDescription, 1> GetVertexBindingDescriptions() const override;
-  std::array<VkVertexInputAttributeDescription, 2> GetVertexAttributeDescriptions() const override;
+  std::vector<VkVertexInputBindingDescription> GetVertexBindingDescriptions() const override;
+  std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
   struct Vertex {

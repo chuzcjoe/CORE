@@ -75,8 +75,7 @@ const std::vector<uint32_t> GraphicTriangle::LoadFragmentShader() const {
   return shader_code;
 }
 
-std::array<VkVertexInputBindingDescription, 1> GraphicTriangle::GetVertexBindingDescriptions()
-    const {
+std::vector<VkVertexInputBindingDescription> GraphicTriangle::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription binding_description{};
   binding_description.binding = 0;
   binding_description.stride = sizeof(Vertex);
@@ -85,9 +84,9 @@ std::array<VkVertexInputBindingDescription, 1> GraphicTriangle::GetVertexBinding
   return {binding_description};
 }
 
-std::array<VkVertexInputAttributeDescription, 2> GraphicTriangle::GetVertexAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> GraphicTriangle::GetVertexAttributeDescriptions()
     const {
-  std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{};
+  std::vector<VkVertexInputAttributeDescription> attribute_descriptions(2);
   attribute_descriptions[0].binding = 0;
   attribute_descriptions[0].location = 0;
   attribute_descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;

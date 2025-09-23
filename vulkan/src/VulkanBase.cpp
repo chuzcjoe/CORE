@@ -138,5 +138,24 @@ void VulkanBase::CreateStorageBufferDescriptorSet(const uint32_t binding,
   writes_[static_cast<int>(binding)] = w;
 }
 
+void VulkanBase::CreateCombinedImageSamplerDescriptorSet(const uint32_t binding,
+                                                         const VkImageView& image_view,
+                                                         const VkSampler& sampler) {
+  CheckImageInfoSize();
+  auto& ii = image_infos_[static_cast<int>(binding)];
+  ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  ii.imageView = image_view;
+  ii.sampler = sampler;
+
+  VkWriteDescriptorSet w{};
+  w.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  w.dstSet = descriptor_set_;
+  w.dstBinding = binding;
+  w.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  w.descriptorCount = 1;
+  w.pImageInfo = &ii;
+  writes_[static_cast<int>(binding)] = w;
+}
+
 }  // namespace vulkan
 }  // namespace core
