@@ -48,4 +48,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     add_executable(gl_triangle_demo ${gl_triangle_src})
     target_include_directories(gl_triangle_demo PUBLIC ./opengl/GLTriangleDemo)
     target_link_libraries(gl_triangle_demo PRIVATE glfw gl_glad opengl)
+    target_compile_definitions(gl_triangle_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+
 endif()

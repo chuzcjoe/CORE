@@ -11,16 +11,25 @@
 const unsigned int kWidth = 800;
 const unsigned int kHeight = 600;
 
-const char* vertex_shader_source =
-    OPENGL_VERTEX_SHADER(layout(location = 0) in vec3 aPos; layout(location = 1) in vec3 aColor;
-                         out vec3 outColor; void main() {
-                           gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
-                           ;
-                           outColor = aColor;
-                         });
+// clang-format off
+const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
+    layout(location = 0) in vec3 aPos; 
+    layout(location = 1) in vec3 aColor;
+    out vec3 outColor; 
+    void main() {
+        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+        outColor = aColor;
+    }
+);
 
 const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
-    out vec4 FragColor; in vec3 outColor; void main() { FragColor = vec4(outColor, 1.0f); });
+    out vec4 FragColor; 
+    in vec3 outColor; 
+    void main() { 
+        FragColor = vec4(outColor, 1.0f); 
+    }
+);
+// clang-format on
 
 int main() {
   glfwInit();
