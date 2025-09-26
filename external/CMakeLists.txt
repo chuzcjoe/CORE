@@ -12,6 +12,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     add_subdirectory(glfw)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(gl_glad)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
+    add_subdirectory(gles_glad)
+endif()
+
 add_subdirectory(gtest)
 add_subdirectory(stb)
 add_subdirectory(glm)
