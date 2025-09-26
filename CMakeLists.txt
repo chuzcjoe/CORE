@@ -9,6 +9,7 @@ find_package(Vulkan REQUIRED)
 
 add_subdirectory(external)
 add_subdirectory(vulkan)
+add_subdirectory(opengl)
 add_subdirectory(mat)
 add_subdirectory(timer)
 add_subdirectory(threadpool)

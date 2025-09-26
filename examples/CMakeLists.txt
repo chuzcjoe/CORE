@@ -42,4 +42,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
                                                 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
     add_dependencies(vk_texture_demo vulkan_example_shaders)
     target_link_libraries(vk_texture_demo PRIVATE glfw vulkan stb)
+
+    # 4. draw triangle demo using opengl
+    file(GLOB gl_triangle_src "./opengl/GLTriangleDemo/*.cpp")
+    add_executable(gl_triangle_demo ${gl_triangle_src})
+    target_include_directories(gl_triangle_demo PUBLIC ./opengl/GLTriangleDemo)
+    target_link_libraries(gl_triangle_demo PRIVATE glfw gl_glad opengl)
 endif()
