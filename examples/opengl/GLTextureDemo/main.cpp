@@ -1,6 +1,11 @@
-#include <GLFW/glfw3.h>
+// clang-format off
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
+// clang-format on
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
 
 #include "GLProgram.h"
@@ -16,9 +21,10 @@ const unsigned int kHeight = 600;
 const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
     layout(location = 0) in vec3 aPos; 
     layout(location = 1) in vec2 aTexCoord;
+    uniform mat4 transform;
     out vec2 TexCoord; 
     void main() {
-        gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
+        gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
         TexCoord = aTexCoord;
     }
 );
@@ -82,6 +88,11 @@ int main() {
                              (void*)(3 * sizeof(float)));
   vao.Unbind();
 
+  glm::mat4 trans = glm::mat4(1.0f);
+  trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
+  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -94,6 +105,7 @@ int main() {
 
     // draw our first triangle
     program.Use();
+    program.SetUniformMat4f("transform", trans);
 
     vao.Bind();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
