@@ -14,7 +14,7 @@
 #include "GLVertexArray.h"
 
 // settings
-const unsigned int kWidth = 800;
+const unsigned int kWidth = 600;
 const unsigned int kHeight = 600;
 
 // clang-format off
@@ -89,9 +89,6 @@ int main() {
   vao.Unbind();
 
   glm::mat4 trans = glm::mat4(1.0f);
-  trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
-  trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-  trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
 
   // render loop
   // -----------
@@ -102,6 +99,11 @@ int main() {
 
     // texture
     texture.Bind(GL_TEXTURE_2D);
+
+    trans = glm::mat4(1.0f);  // reset to identity matrix each frame
+    trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
+    trans = glm::rotate(trans, static_cast<float>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
+    trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
 
     // draw our first triangle
     program.Use();
