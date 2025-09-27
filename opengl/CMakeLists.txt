@@ -12,7 +12,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
         mat
         glm
         glfw
-        gl_glad)
+        gl_glad
+        stb)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     target_link_libraries(opengl
         PUBLIC

@@ -16,6 +16,10 @@ class GLProgram {
 
   unsigned int GetProgramID() const { return program_id_; };
 
+  void SetUniform1f(const std::string& name, float value) const {
+    glUniform1f(glGetUniformLocation(program_id_, name.c_str()), value);
+  }
+
  private:
   unsigned int program_id_;
 };
