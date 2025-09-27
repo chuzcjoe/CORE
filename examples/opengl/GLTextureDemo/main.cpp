@@ -21,10 +21,12 @@ const unsigned int kHeight = 600;
 const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
     layout(location = 0) in vec3 aPos; 
     layout(location = 1) in vec2 aTexCoord;
-    uniform mat4 transform;
+    uniform mat4 model;
+    uniform mat4 view;
+    uniform mat4 projection;
     out vec2 TexCoord; 
     void main() {
-        gl_Position = transform * vec4(aPos.x, aPos.y, aPos.z, 1.0);
+        gl_Position = projection * view * model * vec4(aPos, 1.0);
         TexCoord = aTexCoord;
     }
 );
@@ -88,7 +90,9 @@ int main() {
                              (void*)(3 * sizeof(float)));
   vao.Unbind();
 
-  glm::mat4 trans = glm::mat4(1.0f);
+  glm::mat4 model = glm::mat4(1.0f);
+  glm::mat4 view = glm::mat4(1.0f);
+  glm::mat4 projection = glm::mat4(1.0f);
 
   // render loop
   // -----------
@@ -100,14 +104,21 @@ int main() {
     // texture
     texture.Bind(GL_TEXTURE_2D);
 
-    trans = glm::mat4(1.0f);  // reset to identity matrix each frame
-    trans = glm::translate(trans, glm::vec3(0.5f, 0.0f, 0.0f));
-    trans = glm::rotate(trans, static_cast<float>(glfwGetTime()), glm::vec3(0.0f, 0.0f, 1.0f));
-    trans = glm::scale(trans, glm::vec3(0.5f, 0.5f, 0.5f));
+    // reset to identity matrix each frame
+    model = glm::mat4(1.0f);
+    view = glm::mat4(1.0f);
+    projection = glm::mat4(1.0f);
+
+    model = glm::rotate(model, glm::radians(-50.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+    projection =
+        glm::perspective(glm::radians(45.0f), (float)kWidth / (float)kHeight, 0.1f, 100.0f);
 
     // draw our first triangle
     program.Use();
-    program.SetUniformMat4f("transform", trans);
+    program.SetUniformMat4f("model", model);
+    program.SetUniformMat4f("view", view);
+    program.SetUniformMat4f("projection", projection);
 
     vao.Bind();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
