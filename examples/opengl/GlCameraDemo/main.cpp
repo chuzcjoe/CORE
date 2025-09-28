@@ -151,6 +151,7 @@ int main() {
     program.Use();
     auto view = camera.GetViewMatrix();
     program.SetUniformMat4f("view", view);
+
     vao.Bind();
     for (int i = 0; i < 3; i++) {
       model = glm::mat4(1.0f);
