@@ -24,7 +24,7 @@ const unsigned int kHeight = 1000;
 const glm::vec3 kCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-const float kCameraSpeed = 0.1f;
+const float kCameraSpeed = 0.03f;
 
 // clang-format off
 const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
@@ -170,7 +170,6 @@ int main() {
 
 void process_inputs(GLFWwindow* window, core::opengl::GLCamera* camera) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
-
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera->ProcessKeyboard(core::opengl::CameraMovement::FORWARD);
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
