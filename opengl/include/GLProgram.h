@@ -20,6 +20,10 @@ class GLProgram {
     glUniform1f(glGetUniformLocation(program_id_, name.c_str()), value);
   }
 
+  void SetUniformMat4f(const std::string& name, const float* matrix) const {
+    glUniformMatrix4fv(glGetUniformLocation(program_id_, name.c_str()), 1, GL_FALSE, matrix);
+  }
+
  private:
   unsigned int program_id_;
 };

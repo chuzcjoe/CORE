@@ -59,8 +59,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     # 5. camera movement demo using opengl
     file(GLOB gl_camera_src "./opengl/GLCameraDemo/*.cpp")
-    add_executable(gl_camera_src ${gl_texture_src})
-    target_include_directories(gl_camera_src PUBLIC ./opengl/GLCameraDemo)
-    target_link_libraries(gl_camera_src PRIVATE glfw gl_glad opengl stb)
-    target_compile_definitions(gl_camera_src PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+    add_executable(gl_camera_demo ${gl_camera_src})
+    target_include_directories(gl_camera_demo PUBLIC ./opengl/GLCameraDemo)
+    target_link_libraries(gl_camera_demo PRIVATE glfw gl_glad opengl stb)
+    target_compile_definitions(gl_camera_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
 endif()
