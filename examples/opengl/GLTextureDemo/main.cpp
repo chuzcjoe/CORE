@@ -92,7 +92,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // texture
-    texture.Bind(GL_TEXTURE_2D);
+    texture.ActivateBind(GL_TEXTURE_2D, 0);
 
     // draw our first triangle
     program.Use();
