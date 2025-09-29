@@ -1,7 +1,5 @@
 #pragma once
 
-#include <glad/glad.h>
-
 #include <iostream>
 
 #include "glm/glm.hpp"
@@ -21,11 +19,14 @@ class GLCamera {
   void ProcessKeyboard(CameraMovement direction);
   glm::mat4 GetViewMatrix() const { return view_matrix_; }
 
- private:
-  glm::vec3 camera_position_;
-  glm::vec3 camera_front_;
-  glm::vec3 camera_up_;
+  glm::vec3 camera_position;
+  glm::vec3 camera_front;
+  glm::vec3 camera_up;
 
+  float yaw = -90.0f;
+  float pitch = 0.0f;
+
+ private:
   glm::mat4 view_matrix_;
 
   float move_speed_ = 2.5f;

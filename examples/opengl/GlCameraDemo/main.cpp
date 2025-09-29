@@ -14,17 +14,23 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
 
-void process_inputs(GLFWwindow* window, core::opengl::GLCamera* camera);
+void process_inputs(GLFWwindow* window);
+void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos);
 
 // settings
 const unsigned int kWidth = 1000;
 const unsigned int kHeight = 1000;
-// const float kRadius = 10.0f;
-
 const glm::vec3 kCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 const float kCameraSpeed = 0.03f;
+const float kMouseSensitivity = 0.1f;
+float laxt_x = kWidth / 2.0f;
+float last_y = kHeight / 2.0f;
+bool first_mouse = true;
+
+std::unique_ptr<core::opengl::GLCamera> camera =
+    std::make_unique<core::opengl::GLCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
 
 // clang-format off
 const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
@@ -62,13 +68,15 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-  GLFWwindow* window = glfwCreateWindow(kWidth, kHeight, "OpenGLTriangle", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(kWidth, kHeight, "OpenGLCamera", NULL, NULL);
   if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
     return -1;
   }
   glfwMakeContextCurrent(window);
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
 
   // glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
@@ -79,7 +87,6 @@ int main() {
   core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
   core::opengl::GLVertexArray vao;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
-  core::opengl::GLCamera camera(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
   texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/core.png", GL_RGB, 0, true);
   texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/wall.jpg", GL_RGB, 1, true);
 
@@ -139,7 +146,7 @@ int main() {
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
-    process_inputs(window, &camera);
+    process_inputs(window);
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -149,7 +156,7 @@ int main() {
     texture.ActivateBind(GL_TEXTURE_2D, 1);
 
     program.Use();
-    auto view = camera.GetViewMatrix();
+    auto view = camera->GetViewMatrix();
     program.SetUniformMat4f("view", view);
 
     vao.Bind();
@@ -169,7 +176,7 @@ int main() {
   return 0;
 }
 
-void process_inputs(GLFWwindow* window, core::opengl::GLCamera* camera) {
+void process_inputs(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera->ProcessKeyboard(core::opengl::CameraMovement::FORWARD);
@@ -179,4 +186,31 @@ void process_inputs(GLFWwindow* window, core::opengl::GLCamera* camera) {
     camera->ProcessKeyboard(core::opengl::CameraMovement::LEFT);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera->ProcessKeyboard(core::opengl::CameraMovement::RIGHT);
+}
+
+void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
+  if (first_mouse) {
+    laxt_x = xpos;
+    last_y = ypos;
+    first_mouse = false;
+  }
+  float xoffset = xpos - laxt_x;
+  float yoffset = last_y - ypos;  // reversed since y-coordinates go from bottom to top
+  laxt_x = xpos;
+  last_y = ypos;
+
+  xoffset *= kMouseSensitivity;
+  yoffset *= kMouseSensitivity;
+
+  camera->yaw += xoffset;
+  camera->pitch += yoffset;
+
+  if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+  if (camera->pitch < -89.0f) camera->pitch = -89.0f;
+
+  glm::vec3 front;
+  front.x = std::cos(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
+  front.y = std::sin(glm::radians(camera->pitch));
+  front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
+  camera->camera_front = glm::normalize(front);
 }
