@@ -63,4 +63,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_include_directories(gl_camera_demo PUBLIC ./opengl/GLCameraDemo)
     target_link_libraries(gl_camera_demo PRIVATE glfw gl_glad opengl stb)
     target_compile_definitions(gl_camera_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+
+    # 6. draw texture demo using vulkan
+    file(GLOB vk_depth_src "./vulkan/DepthTestingDemo/*.cpp")
+    add_executable(vk_depth_demo ${vk_depth_src})
+    target_include_directories(vk_depth_demo PUBLIC ./vulkan/DepthTestingDemo
+                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+    add_dependencies(vk_depth_demo vulkan_example_shaders)
+    target_link_libraries(vk_depth_demo PRIVATE glfw vulkan stb)
 endif()
