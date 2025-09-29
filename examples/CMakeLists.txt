@@ -50,11 +50,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(gl_triangle_demo PRIVATE glfw gl_glad opengl)
     target_compile_definitions(gl_triangle_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
 
-    # 4. draw triangle demo using opengl
+    # 4. draw texture demo using opengl
     file(GLOB gl_texture_src "./opengl/GLTextureDemo/*.cpp")
     add_executable(gl_texture_demo ${gl_texture_src})
     target_include_directories(gl_texture_demo PUBLIC ./opengl/GLTextureDemo)
     target_link_libraries(gl_texture_demo PRIVATE glfw gl_glad opengl stb)
     target_compile_definitions(gl_texture_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
 
+    # 5. camera movement demo using opengl
+    file(GLOB gl_camera_src "./opengl/GLCameraDemo/*.cpp")
+    add_executable(gl_camera_demo ${gl_camera_src})
+    target_include_directories(gl_camera_demo PUBLIC ./opengl/GLCameraDemo)
+    target_link_libraries(gl_camera_demo PRIVATE glfw gl_glad opengl stb)
+    target_compile_definitions(gl_camera_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
 endif()

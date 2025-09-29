@@ -1,5 +1,7 @@
-#include <GLFW/glfw3.h>
+// clang-format off
 #include <glad/glad.h>
+#include <GLFW/glfw3.h>
+// clang-format on
 
 #include <iostream>
 
@@ -90,7 +92,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
 
     // texture
-    texture.Bind(GL_TEXTURE_2D);
+    texture.ActivateBind(GL_TEXTURE_2D, 0);
 
     // draw our first triangle
     program.Use();
