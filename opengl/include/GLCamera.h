@@ -17,7 +17,11 @@ class GLCamera {
   ~GLCamera();
 
   void ProcessKeyboard(CameraMovement direction);
-  glm::mat4 GetViewMatrix() const { return view_matrix_; }
+
+  glm::mat4 GetViewMatrix() {
+    view_matrix_ = glm::lookAt(camera_position, camera_position + camera_front, camera_up);
+    return view_matrix_;
+  }
 
   glm::vec3 camera_position;
   glm::vec3 camera_front;
