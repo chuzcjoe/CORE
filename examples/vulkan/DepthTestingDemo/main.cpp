@@ -7,9 +7,9 @@
 #include "VulkanSync.h"
 #include "VulkanUtils.h"
 
-// This demo draws a texture in a glfw window using vulkan graphic pipeline
 const uint32_t kWidth = 1000;
 const uint32_t kHeight = 1000;
+const bool kEnableDepthBuffer = true;
 
 int main() {
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
@@ -32,7 +32,8 @@ int main() {
   }
 
   if (window_surface != VK_NULL_HANDLE) {
-    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
+    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface,
+                                                                 kEnableDepthBuffer);
   }
 
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
@@ -40,7 +41,8 @@ int main() {
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
-  core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
+  core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format,
+                                             kEnableDepthBuffer);  // enable depth buffer
   std::unique_ptr<core::GraphicDepth> texture =
       std::make_unique<core::GraphicDepth>(&context, render_pass);
   texture->Init("examples/vulkan/DepthTestingDemo/core.png");
@@ -67,9 +69,11 @@ int main() {
     renderpass_info.framebuffer = swap_chain->swapchain_framebuffers[image_index];
     renderpass_info.renderArea.offset = {0, 0};
     renderpass_info.renderArea.extent = swap_chain->swapchain_extent;
-    VkClearValue clear_color = {{{1.0f, 1.0f, 1.0f, 1.0f}}};
-    renderpass_info.clearValueCount = 1;
-    renderpass_info.pClearValues = &clear_color;
+    std::array<VkClearValue, 2> clear_values{};
+    clear_values[0].color = {{0.0f, 0.0f, 0.0f, 1.0f}};
+    clear_values[1].depthStencil = {1.0f, 0};
+    renderpass_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
+    renderpass_info.pClearValues = clear_values.data();
     vkCmdBeginRenderPass(command_buffer.buffer(), &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
     texture->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRenderPass(command_buffer.buffer());

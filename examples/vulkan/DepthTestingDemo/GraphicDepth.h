@@ -21,7 +21,7 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
   GraphicDepth(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass& render_pass);
 
   void Init() override;
-  void Init(const std::string& image_path, VkExtent2D extent);
+  void Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height);
@@ -29,6 +29,8 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
   VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+  VkBool32 SetDepthTesting() const override { return VK_TRUE; }
+  VkBool32 SetDepthWriting() const override { return VK_TRUE; }
 
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
@@ -38,10 +40,6 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
 
  private:
   void CreateTextureImage(const std::string& image_path);
-  void CreateDepthImage();
-
-  VkFormat GetDepthFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-                          VkFormatFeatureFlags features) const;
 
   struct Vertex {
     glm::vec3 pos;
@@ -81,9 +79,6 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
   // texture image
   core::vulkan::VulkanImage texture_image_;
   core::vulkan::VulkanSampler sampler_;
-
-  // depth image
-  core::vulkan::VulkanImage depth_image_;
 };
 
 }  // namespace core

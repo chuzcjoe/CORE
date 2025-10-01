@@ -35,9 +35,8 @@ void GraphicDepth::Init() {
   index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
-void GraphicDepth::Init(const std::string& image_path, VkExtent2D extent) {
+void GraphicDepth::Init(const std::string& image_path) {
   CreateTextureImage(image_path);
-  CreateDepthImage(extent);
   Init();
 }
 
@@ -191,36 +190,6 @@ void GraphicDepth::CreateTextureImage(const std::string& image_path) {
   texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                        VK_FORMAT_R8G8B8A8_SRGB);
-}
-
-VkFormat GraphicDepth::GetDepthFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-                                      VkFormatFeatureFlags features) const {
-  for (VkFormat format : candidates) {
-    VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties(context_->physical_device, format, &props);
-
-    if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-      return format;
-    } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-               (props.optimalTilingFeatures & features) == features) {
-      return format;
-    }
-  }
-  throw std::runtime_error("failed to find supported format!");
-}
-
-void GraphicDepth::CreateDepthImage(VkExtent2D extent) {
-  VkFormat depth_format = GetDepthFormat(
-      {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-      VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-
-  depth_image_ = core::vulkan::VulkanImage(
-      context_, extent.width, extent.height, depth_format,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
-
-  depth_image_.TransitionDepthImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_format);
 }
 
 }  // namespace core

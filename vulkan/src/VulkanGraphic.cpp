@@ -87,6 +87,19 @@ void VulkanGraphic::CreatePipeline() {
                                           VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
   color_blend_attachment.blendEnable = VK_FALSE;
 
+  // 9. depth testing state
+  VkPipelineDepthStencilStateCreateInfo depth_stencil{};
+  depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+  depth_stencil.depthTestEnable = SetDepthTesting();
+  depth_stencil.depthWriteEnable = SetDepthWriting();
+  depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+  depth_stencil.depthBoundsTestEnable = VK_FALSE;
+  depth_stencil.minDepthBounds = 0.0f;  // Optional
+  depth_stencil.maxDepthBounds = 1.0f;  // Optional
+  depth_stencil.stencilTestEnable = VK_FALSE;
+  depth_stencil.front = {};  // Optional
+  depth_stencil.back = {};   // Optional
+
   VkPipelineColorBlendStateCreateInfo color_blending_state{};
   color_blending_state.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
   color_blending_state.logicOpEnable = VK_FALSE;
@@ -108,7 +121,7 @@ void VulkanGraphic::CreatePipeline() {
   pipeline_info.pViewportState = &viewport_state;
   pipeline_info.pRasterizationState = &rasterize_state;
   pipeline_info.pMultisampleState = &multisample_state;
-  pipeline_info.pDepthStencilState = nullptr;
+  pipeline_info.pDepthStencilState = &depth_stencil;
   pipeline_info.pColorBlendState = &color_blending_state;
   pipeline_info.pDynamicState = &dynamic_state;
   pipeline_info.layout = pipeline_layout;

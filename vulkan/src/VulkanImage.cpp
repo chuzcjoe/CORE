@@ -172,7 +172,7 @@ void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
   VkPipelineStageFlags source_stage;
   VkPipelineStageFlags destination_stage;
 
-  if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
+  if (new_layout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) {
     barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
     if (format == VK_FORMAT_D32_SFLOAT_S8_UINT || format == VK_FORMAT_D24_UNORM_S8_UINT) {
       barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;

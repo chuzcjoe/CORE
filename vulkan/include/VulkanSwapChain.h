@@ -19,7 +19,8 @@ struct SwapChainSupportDetails {
 class VulkanSwapChain {
  public:
   VulkanSwapChain() = delete;
-  explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface);
+  explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
+                           const bool enable_depth_buffer = false);
   ~VulkanSwapChain();
 
   void UnInit();
@@ -38,6 +39,7 @@ class VulkanSwapChain {
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
   void CreateImageViews();
+  void CreateDepthResources(VkFormat depth_format);
 
   VulkanContext* context_;
   SwapChainSupportDetails swapchain_support_details_;
@@ -47,6 +49,8 @@ class VulkanSwapChain {
   std::vector<VkImage> swapchain_images_;
 
   std::vector<VkImageView> swapchain_image_views_;
+  bool enable_depth_buffer_ = false;
+  core::vulkan::VulkanImage depth_image_;
 
 #if defined(__APPLE__)
   GLFWwindow* window_;
