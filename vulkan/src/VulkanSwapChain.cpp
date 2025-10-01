@@ -3,8 +3,9 @@
 namespace core {
 namespace vulkan {
 
-VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface)
-    : context_(context), surface_(surface) {
+VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
+                                 const bool enable_depth_buffer)
+    : context_(context), surface_(surface), enable_depth_buffer_(enable_depth_buffer) {
   swapchain_support_details_ = QuerySwapChainSupport(context_->physical_device);
   surface_format_ = ChooseSwapSurfaceFormat(swapchain_support_details_.formats);
   present_mode_ = ChooseSwapPresentMode(swapchain_support_details_.present_modes);
@@ -162,17 +163,35 @@ void VulkanSwapChain::CreateImageViews() {
   }
 }
 
+void VulkanSwapChain::CreateDepthResources(VkFormat depth_format) {
+  depth_image_ = core::vulkan::VulkanImage(
+      context_, swapchain_extent.width, swapchain_extent.height, depth_format,
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+
+  depth_image_.TransitionDepthImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_format);
+}
+
 void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
+  if (enable_depth_buffer_) {
+    CreateDepthResources(render_pass.depth_format);
+  }
+
   swapchain_framebuffers.resize(swapchain_image_views_.size());
 
   for (size_t i = 0; i < swapchain_image_views_.size(); ++i) {
-    VkImageView attachments[] = {swapchain_image_views_[i]};
+    std::vector<VkImageView> attachments;
+    attachments.push_back(swapchain_image_views_[i]);
+    if (enable_depth_buffer_) {
+      attachments.push_back(depth_image_.image_view);
+    }
 
     VkFramebufferCreateInfo framebuffer_info{};
     framebuffer_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
     framebuffer_info.renderPass = render_pass.GetRenderPass();
-    framebuffer_info.attachmentCount = 1;
-    framebuffer_info.pAttachments = attachments;
+    framebuffer_info.attachmentCount = static_cast<uint32_t>(attachments.size());
+    framebuffer_info.pAttachments = attachments.data();
     framebuffer_info.width = swapchain_extent.width;
     framebuffer_info.height = swapchain_extent.height;
     framebuffer_info.layers = 1;

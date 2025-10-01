@@ -22,6 +22,8 @@ class VulkanGraphic : public VulkanBase {
   // Derived class can customize these settings
   virtual VkCullModeFlags SetCullMode() const { return VK_CULL_MODE_BACK_BIT; }
   virtual VkFrontFace SetFrontFace() const { return VK_FRONT_FACE_CLOCKWISE; }
+  virtual VkBool32 SetDepthTesting() const { return VK_FALSE; }
+  virtual VkBool32 SetDepthWriting() const { return VK_FALSE; }
 
   // Derived class needs to configure these explicitly
   virtual const std::vector<uint32_t> LoadVertexShader() const = 0;
