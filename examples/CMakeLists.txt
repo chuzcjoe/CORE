@@ -71,4 +71,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
                                                 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
     add_dependencies(vk_depth_demo vulkan_example_shaders)
     target_link_libraries(vk_depth_demo PRIVATE glfw vulkan stb)
+
+    # 7. load model demo using vulkan
+    file(GLOB vk_model_src "./vulkan/LoadModelDemo/*.cpp")
+    add_executable(vk_model_demo ${vk_model_src})
+    target_include_directories(vk_model_demo PUBLIC ./vulkan/LoadModelDemo
+                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+    add_dependencies(vk_model_demo vulkan_example_shaders)
+    target_link_libraries(vk_model_demo PRIVATE glfw vulkan stb tinyobjloader)
 endif()
