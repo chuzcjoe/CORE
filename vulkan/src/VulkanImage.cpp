@@ -62,25 +62,25 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
 }
 
 VulkanImage::~VulkanImage() {
-  if (image_view != VK_NULL_HANDLE) {
+  if (context_ && image_view != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->logical_device, image_view, nullptr);
   }
-  if (image != VK_NULL_HANDLE) {
+  if (context_ && image != VK_NULL_HANDLE) {
     vkDestroyImage(context_->logical_device, image, nullptr);
   }
-  if (image_memory != VK_NULL_HANDLE) {
+  if (context_ && image_memory != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, image_memory, nullptr);
   }
 }
 
 VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
-  if (image_view != VK_NULL_HANDLE) {
+  if (context_ && image_view != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->logical_device, image_view, nullptr);
   }
-  if (image != VK_NULL_HANDLE) {
+  if (context_ && image != VK_NULL_HANDLE) {
     vkDestroyImage(context_->logical_device, image, nullptr);
   }
-  if (image_memory != VK_NULL_HANDLE) {
+  if (context_ && image_memory != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, image_memory, nullptr);
   }
 
