@@ -31,19 +31,19 @@ VulkanBuffer::VulkanBuffer(VulkanContext* context, const VkDeviceSize size,
 }
 
 VulkanBuffer::~VulkanBuffer() {
-  if (buffer != VK_NULL_HANDLE) {
+  if (context_ && buffer != VK_NULL_HANDLE) {
     vkDestroyBuffer(context_->logical_device, buffer, nullptr);
   }
-  if (buffer_memory_ != VK_NULL_HANDLE) {
+  if (context_ && buffer_memory_ != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, buffer_memory_, nullptr);
   }
 }
 
 VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
-  if (buffer != VK_NULL_HANDLE) {
+  if (context_ && buffer != VK_NULL_HANDLE) {
     vkDestroyBuffer(context_->logical_device, buffer, nullptr);
   }
-  if (buffer_memory_ != VK_NULL_HANDLE) {
+  if (context_ && buffer_memory_ != VK_NULL_HANDLE) {
     vkFreeMemory(context_->logical_device, buffer_memory_, nullptr);
   }
 
