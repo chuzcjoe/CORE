@@ -79,4 +79,12 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
                                                 PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
     add_dependencies(vk_model_demo vulkan_example_shaders)
     target_link_libraries(vk_model_demo PRIVATE glfw vulkan stb tinyobjloader)
+
+    # 8. Implement a rasterizer using compute shader + barycentric algo
+    file(GLOB vk_rasterize_src "./vulkan/ComputeBarycentricRasterizer/*.cpp")
+    add_executable(vk_rasterize_demo ${vk_rasterize_src})
+    target_include_directories(vk_rasterize_demo PUBLIC ./vulkan/ComputeBarycentricRasterizer
+                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+    add_dependencies(vk_rasterize_demo vulkan_example_shaders)
+    target_link_libraries(vk_rasterize_demo PRIVATE vulkan stb)
 endif()
