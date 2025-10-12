@@ -13,10 +13,10 @@ class VulkanSampler {
   ~VulkanSampler();
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
 
  public:
-  VkSampler sampler;
+  VkSampler sampler = VK_NULL_HANDLE;
 };
 
 }  // namespace vulkan

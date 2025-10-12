@@ -24,10 +24,10 @@ class VulkanCommandBuffer {
   VkCommandBuffer buffer() const { return command_buffer_; }
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
   QueueFamilyType queue_family_type_;
-  VkCommandPool command_pool_;
-  VkCommandBuffer command_buffer_;
+  VkCommandPool command_pool_ = VK_NULL_HANDLE;
+  VkCommandBuffer command_buffer_ = VK_NULL_HANDLE;
 };
 
 }  // namespace vulkan

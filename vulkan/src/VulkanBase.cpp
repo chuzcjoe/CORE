@@ -105,7 +105,7 @@ VkShaderModule VulkanBase::CreateShaderModule(const std::vector<uint32_t>& shade
 void VulkanBase::CreateUniformBufferDescriptorSet(const uint32_t binding,
                                                   const VulkanBuffer& buffer) {
   CheckBufferInfoSize();
-  auto& bi = buffer_infos_[static_cast<int>(binding)];
+  auto& bi = buffer_infos_[static_cast<int>(buffer_idx_++)];
   bi.buffer = buffer.buffer;
   bi.offset = 0;
   bi.range = buffer.Size();
@@ -123,7 +123,7 @@ void VulkanBase::CreateUniformBufferDescriptorSet(const uint32_t binding,
 void VulkanBase::CreateStorageBufferDescriptorSet(const uint32_t binding,
                                                   const VulkanBuffer& buffer) {
   CheckBufferInfoSize();
-  auto& bi = buffer_infos_[static_cast<int>(binding)];
+  auto& bi = buffer_infos_[static_cast<int>(buffer_idx_++)];
   bi.buffer = buffer.buffer;
   bi.offset = 0;
   bi.range = buffer.Size();
@@ -142,7 +142,7 @@ void VulkanBase::CreateCombinedImageSamplerDescriptorSet(const uint32_t binding,
                                                          const VkImageView& image_view,
                                                          const VkSampler& sampler) {
   CheckImageInfoSize();
-  auto& ii = image_infos_[static_cast<int>(binding)];
+  auto& ii = image_infos_[static_cast<int>(image_idx_++)];
   ii.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   ii.imageView = image_view;
   ii.sampler = sampler;

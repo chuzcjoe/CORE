@@ -25,8 +25,8 @@ class VulkanRenderPass {
   VkFormat FindDepthFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
                            VkFormatFeatureFlags features) const;
 
-  VulkanContext* context_;
-  VkRenderPass render_pass_;
+  VulkanContext* context_ = nullptr;
+  VkRenderPass render_pass_ = VK_NULL_HANDLE;
 
   bool has_color_attachment_ = false;
   bool has_depth_attachment_ = false;

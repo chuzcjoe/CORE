@@ -29,7 +29,7 @@ class VulkanSwapChain {
 
   VkExtent2D swapchain_extent;
   std::vector<VkFramebuffer> swapchain_framebuffers;
-  VkSwapchainKHR swapchain;
+  VkSwapchainKHR swapchain = VK_NULL_HANDLE;
   VkFormat swapchain_image_format;
 
  private:
@@ -41,9 +41,9 @@ class VulkanSwapChain {
   void CreateImageViews();
   void CreateDepthResources(VkFormat depth_format);
 
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
   SwapChainSupportDetails swapchain_support_details_;
-  VkSurfaceKHR surface_;
+  VkSurfaceKHR surface_ = VK_NULL_HANDLE;
   VkSurfaceFormatKHR surface_format_;
   VkPresentModeKHR present_mode_;
   std::vector<VkImage> swapchain_images_;
