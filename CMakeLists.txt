@@ -7,6 +7,9 @@ set(ANDROID_STL "c++_shared")
 
 find_package(Vulkan REQUIRED)
 
+# cmake
+include(cmake/example.cmake)
+
 add_subdirectory(external)
 add_subdirectory(vulkan)
 add_subdirectory(opengl)

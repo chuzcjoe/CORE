@@ -24,67 +24,68 @@ add_custom_target(vulkan_example_shaders DEPENDS ${shader_spv_files})
 # only add glfw/draw triangle for macos
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # 1. glfw demo
-    add_executable(glfw_demo ./vulkan/GLFWWindowDemo/glfw.cpp)
-    target_link_libraries(glfw_demo PRIVATE glfw)
+    build_example(glfw_demo
+        SOURCE_GLOBS "./vulkan/GLFWWindowDemo/*.cpp"
+        LIBRARIES glfw)
 
     # 2. draw triangle demo using vulkan
-    file(GLOB vk_triangle_src "./vulkan/DrawTriangleDemo/*.cpp")
-    add_executable(vk_triangle_demo ${vk_triangle_src})
-    target_include_directories(vk_triangle_demo PUBLIC ./vulkan/DrawTriangleDemo
-                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(vk_triangle_demo vulkan_example_shaders)
-    target_link_libraries(vk_triangle_demo PRIVATE glfw vulkan)
+    build_example(vk_triangle_demo
+        SOURCE_GLOBS "./vulkan/DrawTriangleDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/DrawTriangleDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan)
 
     # 3. draw texture demo using vulkan
-    file(GLOB vk_texture_src "./vulkan/DrawTextureDemo/*.cpp")
-    add_executable(vk_texture_demo ${vk_texture_src})
-    target_include_directories(vk_texture_demo PUBLIC ./vulkan/DrawTextureDemo
-                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(vk_texture_demo vulkan_example_shaders)
-    target_link_libraries(vk_texture_demo PRIVATE glfw vulkan stb)
+    build_example(vk_texture_demo
+        SOURCE_GLOBS "./vulkan/DrawTextureDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/DrawTextureDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb)
 
     # 4. draw triangle demo using opengl
-    file(GLOB gl_triangle_src "./opengl/GLTriangleDemo/*.cpp")
-    add_executable(gl_triangle_demo ${gl_triangle_src})
-    target_include_directories(gl_triangle_demo PUBLIC ./opengl/GLTriangleDemo)
-    target_link_libraries(gl_triangle_demo PRIVATE glfw gl_glad opengl)
-    target_compile_definitions(gl_triangle_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+    build_example(gl_triangle_demo
+        SOURCE_GLOBS "./opengl/GLTriangleDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLTriangleDemo
+        LIBRARIES glfw gl_glad opengl
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 
-    # 4. draw texture demo using opengl
-    file(GLOB gl_texture_src "./opengl/GLTextureDemo/*.cpp")
-    add_executable(gl_texture_demo ${gl_texture_src})
-    target_include_directories(gl_texture_demo PUBLIC ./opengl/GLTextureDemo)
-    target_link_libraries(gl_texture_demo PRIVATE glfw gl_glad opengl stb)
-    target_compile_definitions(gl_texture_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+    # 5. draw texture demo using opengl
+    build_example(gl_texture_demo
+        SOURCE_GLOBS "./opengl/GLTextureDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLTextureDemo
+        LIBRARIES glfw gl_glad opengl stb
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 
-    # 5. camera movement demo using opengl
-    file(GLOB gl_camera_src "./opengl/GLCameraDemo/*.cpp")
-    add_executable(gl_camera_demo ${gl_camera_src})
-    target_include_directories(gl_camera_demo PUBLIC ./opengl/GLCameraDemo)
-    target_link_libraries(gl_camera_demo PRIVATE glfw gl_glad opengl stb)
-    target_compile_definitions(gl_camera_demo PRIVATE GL_SILENCE_DEPRECATION) # silence macos deprecation warning
+    # 6. camera movement demo using opengl
+    build_example(gl_camera_demo
+        SOURCE_GLOBS "./opengl/GLCameraDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLCameraDemo
+        LIBRARIES glfw gl_glad opengl stb
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 
-    # 6. draw texture demo using vulkan
-    file(GLOB vk_depth_src "./vulkan/DepthTestingDemo/*.cpp")
-    add_executable(vk_depth_demo ${vk_depth_src})
-    target_include_directories(vk_depth_demo PUBLIC ./vulkan/DepthTestingDemo
-                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(vk_depth_demo vulkan_example_shaders)
-    target_link_libraries(vk_depth_demo PRIVATE glfw vulkan stb)
+    # 7. draw texture demo using vulkan
+    build_example(vk_depth_demo
+        SOURCE_GLOBS "./vulkan/DepthTestingDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/DepthTestingDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb)
 
-    # 7. load model demo using vulkan
-    file(GLOB vk_model_src "./vulkan/LoadModelDemo/*.cpp")
-    add_executable(vk_model_demo ${vk_model_src})
-    target_include_directories(vk_model_demo PUBLIC ./vulkan/LoadModelDemo
-                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(vk_model_demo vulkan_example_shaders)
-    target_link_libraries(vk_model_demo PRIVATE glfw vulkan stb tinyobjloader)
+    # 8. load model demo using vulkan
+    build_example(vk_model_demo
+        SOURCE_GLOBS "./vulkan/LoadModelDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/LoadModelDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb tinyobjloader)
 
-    # 8. Implement a rasterizer using compute shader + barycentric algo
-    file(GLOB vk_rasterize_src "./vulkan/ComputeBarycentricRasterizer/*.cpp")
-    add_executable(vk_rasterize_demo ${vk_rasterize_src})
-    target_include_directories(vk_rasterize_demo PUBLIC ./vulkan/ComputeBarycentricRasterizer
-                                                PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
-    add_dependencies(vk_rasterize_demo vulkan_example_shaders)
-    target_link_libraries(vk_rasterize_demo PRIVATE vulkan stb)
+    # 9. Implement a rasterizer using compute shader + barycentric algo
+    build_example(vk_rasterize_demo
+        SOURCE_GLOBS "./vulkan/ComputeBarycentricRasterizer/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/ComputeBarycentricRasterizer
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb)
 endif()
