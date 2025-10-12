@@ -64,9 +64,9 @@ class VulkanContext {
   bool enable_validation_layers_;
   QueueFamilyType queue_family_type_;
   QueueFamilyIndices queue_family_indices_;
-  VkQueue compute_queue_;
-  VkQueue graphics_queue_;
-  VkQueue present_queue_;
+  VkQueue compute_queue_ = VK_NULL_HANDLE;
+  VkQueue graphics_queue_ = VK_NULL_HANDLE;
+  VkQueue present_queue_ = VK_NULL_HANDLE;
   VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
   VkDebugUtilsMessengerEXT debug_messenger_;

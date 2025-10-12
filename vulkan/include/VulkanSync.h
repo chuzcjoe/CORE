@@ -12,10 +12,10 @@ class VulkanFence {
 
   void Reset();
 
-  VkFence fence;
+  VkFence fence = VK_NULL_HANDLE;
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
 };
 
 class VulkanSemaphore {
@@ -23,10 +23,10 @@ class VulkanSemaphore {
   explicit VulkanSemaphore(VulkanContext* context);
   ~VulkanSemaphore();
 
-  VkSemaphore semaphore;
+  VkSemaphore semaphore = VK_NULL_HANDLE;
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
 };
 
 }  // namespace vulkan

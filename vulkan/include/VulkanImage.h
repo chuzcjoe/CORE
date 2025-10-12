@@ -30,15 +30,15 @@ class VulkanImage {
   // void CreateTextureImage(const std::string& image_path);
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
 
  public:
   uint32_t image_width;
   uint32_t image_height;
 
-  VkImage image;
-  VkImageView image_view;
-  VkDeviceMemory image_memory;
+  VkImage image = VK_NULL_HANDLE;
+  VkImageView image_view = VK_NULL_HANDLE;
+  VkDeviceMemory image_memory = VK_NULL_HANDLE;
 };
 
 }  // namespace vulkan

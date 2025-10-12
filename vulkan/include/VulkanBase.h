@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <mutex>
 #include <vector>
 
@@ -46,7 +47,7 @@ class VulkanBase {
                                                const VkImageView& image_view,
                                                const VkSampler& sampler);
 
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
   VkDescriptorSetLayout descriptor_set_layout_;
   VkDescriptorPool descriptor_pool_;
   VkDescriptorSet descriptor_set_;
@@ -57,6 +58,9 @@ class VulkanBase {
 
  private:
   std::mutex write_mutex_;
+
+  int buffer_idx_ = 0;
+  int image_idx_ = 0;
 
   int GetBufferSize(const std::vector<BindingInfo>&& bindings) const {
     int size = 0;

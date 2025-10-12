@@ -32,14 +32,14 @@ class VulkanBuffer {
 
   VkDeviceSize Size() const { return buffer_size_; }
 
-  VkBuffer buffer;
+  VkBuffer buffer = VK_NULL_HANDLE;
 
   // TODO: keep them public
  private:
-  VulkanContext* context_;
-  VkDeviceSize buffer_size_;
-  VkMemoryPropertyFlags memory_properties_;
-  VkDeviceMemory buffer_memory_;
+  VulkanContext* context_ = nullptr;
+  VkDeviceSize buffer_size_ = 0;
+  VkMemoryPropertyFlags memory_properties_ = 0;
+  VkDeviceMemory buffer_memory_ = VK_NULL_HANDLE;
 };
 
 }  // namespace vulkan

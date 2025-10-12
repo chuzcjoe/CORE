@@ -18,7 +18,7 @@ class VulkanQueryPool {
   std::vector<uint64_t> GetTimeStamps() const { return timestamps_; }
 
  private:
-  VulkanContext* context_;
+  VulkanContext* context_ = nullptr;
   VkQueryType query_type_;
   VkQueryPool query_pool_;
 
