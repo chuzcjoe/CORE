@@ -76,14 +76,14 @@ std::vector<core::vulkan::BindingInfo> GraphicModel::GetBindingInfo() const {
 
 const std::vector<uint32_t> GraphicModel::LoadVertexShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "Depth.vert.spv"
+#include "Model.vert.spv"
       ;
   return shader_code;
 }
 
 const std::vector<uint32_t> GraphicModel::LoadFragmentShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "Depth.frag.spv"
+#include "Model.frag.spv"
       ;
   return shader_code;
 }
@@ -151,6 +151,7 @@ void GraphicModel::LoadModel(const std::string& model_path) {
       indices_.push_back(unique_vertices[vertex]);
     }
   }
+  printf("Loaded model vertices: %zu, indices: %zu\n", vertices_.size(), indices_.size());
 }
 
 void GraphicModel::CreateBuffers() {
