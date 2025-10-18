@@ -45,9 +45,9 @@ int main() {
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format,
                                              kEnableDepthBuffer);  // enable depth buffer
-  std::unique_ptr<core::GraphicModel> texture =
+  std::unique_ptr<core::GraphicModel> model =
       std::make_unique<core::GraphicModel>(&context, render_pass);
-  texture->Init(kTexturePath, kModelPath);
+  model->Init(kTexturePath, kModelPath);
   swap_chain->CreateFrameBuffers(render_pass);
 
   while (!glfwWindowShouldClose(window)) {
@@ -58,8 +58,8 @@ int main() {
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
-    texture->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
-                                 swap_chain->swapchain_extent.height);
+    model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
+                               swap_chain->swapchain_extent.height);
     // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
@@ -77,7 +77,7 @@ int main() {
     renderpass_info.clearValueCount = static_cast<uint32_t>(clear_values.size());
     renderpass_info.pClearValues = clear_values.data();
     vkCmdBeginRenderPass(command_buffer.buffer(), &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-    texture->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    model->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRenderPass(command_buffer.buffer());
 
     VkSubmitInfo submit_info{};
