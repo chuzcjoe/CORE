@@ -17,7 +17,6 @@ class GLTexture {
   void ActivateBind(GLenum target, int texture_uint) {
     if (texture_ids_.find(texture_uint) == texture_ids_.end()) {
       throw std::runtime_error("Texture unit not found");
-      return;
     }
     // printf("Activate and bind texture unit %d with ID %u\n", texture_uint,
     // texture_ids_[texture_uint]);
