@@ -235,13 +235,13 @@ int main() {
 
   float quad_vertices[] = { // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
+        -0.3f,  1.0f,  0.0f, 1.0f,
+        -0.3f,  0.5f,  0.0f, 0.0f,
+         0.3f,  0.5f,  1.0f, 0.0f,
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
+        -0.3f,  1.0f,  0.0f, 1.0f,
+         0.3f,  0.5f,  1.0f, 0.0f,
+         0.3f,  1.0f,  1.0f, 1.0f
     };
   // clang-format on
 
@@ -319,6 +319,7 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     process_inputs(window);
 
+    // 1. first render pass
     // bind to the created framebuffer
     framebuffer.Bind();
     glEnable(GL_DEPTH_TEST);
@@ -368,13 +369,40 @@ int main() {
     }
     transparent_vao.Unbind();
 
-    // bind the default framebuffer and draw a quad plane with the attached framebuffer color
-    // texture
+    // 2. second render pass
+    // bind the default framebuffer and draw a quad with the attached framebuffer color texture
     framebuffer.Unbind();
+    glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    model = glm::mat4(1.0f);
+    cube_vao.Bind();
+    program.SetUniform1i("texture_type", 0);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+    program.SetUniformMat4f("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+    program.SetUniformMat4f("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    cube_vao.Unbind();
+    plane_vao.Bind();
+    program.SetUniform1i("texture_type", 1);
+    model = glm::mat4(1.0f);
+    program.SetUniformMat4f("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    plane_vao.Unbind();
+    transparent_vao.Bind();
+    program.SetUniform1i("texture_type", 2);
+    for (unsigned int i = 0; i < vegetation.size(); i++) {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, vegetation[i]);
+      program.SetUniformMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    transparent_vao.Unbind();
+
     glDisable(GL_DEPTH_TEST);  // disable depth test so screen-space quad isn't discarded due to
                                // depth test.
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
     screen_program.Use();
     screen_vao.Bind();
     glActiveTexture(GL_TEXTURE0);
