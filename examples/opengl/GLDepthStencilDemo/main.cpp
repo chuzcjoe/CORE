@@ -62,10 +62,12 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     }
 
     void main() {
-      if (texture_type == 1) {
+      if (texture_type == 0) {
         FragColor = texture(texture1, TexCoords);
-      } else {
+      } else if (texture_type == 1) {
         FragColor = texture(texture2, TexCoords);
+      } else {
+        FragColor = vec4(0.0, 1.0, 0.0, 1.0);
       }
       // float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
       // FragColor = vec4(vec3(depth), 1.0);
@@ -180,8 +182,13 @@ int main() {
                                    (void*)(3 * sizeof(float)));
   plane_vao.Unbind();
 
+  // depth testing
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
+
+  // stencil testing
+  glEnable(GL_STENCIL_TEST);
+  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
   program.Use();
   program.SetUniform1i("texture1", 0);
@@ -194,13 +201,13 @@ int main() {
   program.SetUniformMat4f("projection", projection);
   program.SetUniformMat4f("model", model);
 
-  // render loop
+  // render loops
   // -----------
   while (!glfwWindowShouldClose(window)) {
     process_inputs(window);
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
     program.Use();
     auto view = camera->GetViewMatrix();
@@ -212,6 +219,8 @@ int main() {
 
     model = glm::mat4(1.0f);
     // draw two cubes
+    glStencilFunc(GL_ALWAYS, 1, 0xFF);  // all fragments should update the stencil buffer
+    glStencilMask(0xFF);                // enable writing to the stencil buffer
     cube_vao.Bind();
     program.SetUniform1i("texture_type", 0);
     model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -223,13 +232,36 @@ int main() {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     cube_vao.Unbind();
 
+    // draw two upscaled cubes to create a border effect
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);  // draw only where stencil is not 1
+    glStencilMask(0x00);                  // disable writing to the stencil buffer
+    float scale = 1.01f;
+    cube_vao.Bind();
+    program.SetUniform1i("texture_type", 2);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+    model = glm::scale(model, glm::vec3(scale, scale, scale));
+    program.SetUniformMat4f("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+    model = glm::scale(model, glm::vec3(scale, scale, scale));
+    program.SetUniformMat4f("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    cube_vao.Unbind();
+
     // draw plane
+    glStencilMask(0x00);  // disable writing to the stencil buffer
     plane_vao.Bind();
     program.SetUniform1i("texture_type", 1);
     model = glm::mat4(1.0f);
     program.SetUniformMat4f("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     plane_vao.Unbind();
+
+    // make sure to stencil buffer will be reset in glClear()
+    glStencilMask(0xFF);
+    glStencilFunc(GL_ALWAYS, 0, 0xFF);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
