@@ -31,6 +31,7 @@ GLTexture::~GLTexture() {
 }
 
 void GLTexture::Load2DTextureFromFile(const char* file_path, GLenum format, int texture_unit,
+                                      [[maybe_unused]] GLint wrap_type,
                                       [[maybe_unused]] bool flip_vertically) {
   stbi_set_flip_vertically_on_load(flip_vertically);
 
@@ -43,8 +44,8 @@ void GLTexture::Load2DTextureFromFile(const char* file_path, GLenum format, int 
   glGenTextures(1, &texture_id);
   glBindTexture(GL_TEXTURE_2D, texture_id);
   // Set texture parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_type);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_type);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   ReadImageData(file_path, texture_id, format);

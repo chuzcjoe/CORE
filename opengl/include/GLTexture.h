@@ -26,6 +26,7 @@ class GLTexture {
   }
 
   void Load2DTextureFromFile(const char* file_path, GLenum format, int texture_unit,
+                             [[maybe_unused]] GLint wrap_type = GL_REPEAT,
                              [[maybe_unused]] bool flip_vertically = true);
 
  private:
