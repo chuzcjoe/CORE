@@ -102,4 +102,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         PUBLIC_INCLUDES ./opengl/GLBlendDemo
         LIBRARIES glfw gl_glad opengl stb
         DEFINITIONS GL_SILENCE_DEPRECATION)
+
+    # 12. framebuffer demo using opengl
+    build_example(gl_framebuffer_demo
+        SOURCE_GLOBS "./opengl/GLFrameBufferDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLFrameBufferDemo
+        LIBRARIES glfw gl_glad opengl stb
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()
