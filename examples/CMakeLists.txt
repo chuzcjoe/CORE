@@ -88,4 +88,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan stb)
+
+    # 10. depth and stencil testing demo using opengl
+    build_example(gl_depth_stencil_demo
+        SOURCE_GLOBS "./opengl/GLDepthStencilDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLDepthStencilDemo
+        LIBRARIES glfw gl_glad opengl stb
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()

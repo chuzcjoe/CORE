@@ -34,6 +34,7 @@ void GLTexture::Load2DTextureFromFile(const char* file_path, GLenum format, int 
                                       [[maybe_unused]] bool flip_vertically) {
   stbi_set_flip_vertically_on_load(flip_vertically);
 
+  // If texture for the texture unit already exists, update it
   if (texture_ids_.find(texture_unit) != texture_ids_.end()) {
     ReadImageData(file_path, texture_ids_[texture_unit], format);
   }
