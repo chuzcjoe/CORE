@@ -95,4 +95,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         PUBLIC_INCLUDES ./opengl/GLDepthStencilDemo
         LIBRARIES glfw gl_glad opengl stb
         DEFINITIONS GL_SILENCE_DEPRECATION)
+
+    # 11. blend demo using opengl
+    build_example(gl_blend_demo
+        SOURCE_GLOBS "./opengl/GLBlendDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLBlendDemo
+        LIBRARIES glfw gl_glad opengl stb
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()

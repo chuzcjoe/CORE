@@ -52,25 +52,23 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     in vec2 TexCoords;
     uniform sampler2D texture1;
     uniform sampler2D texture2;
+    uniform sampler2D texture3;
     uniform int texture_type;
-    float near = 0.1; 
-    float far  = 100.0; 
-  
-    float LinearizeDepth(float depth) {
-        float z = depth * 2.0 - 1.0; // back to NDC 
-        return (2.0 * near * far) / (far + near - z * (far - near));	
-    }
 
     void main() {
       if (texture_type == 0) {
         FragColor = texture(texture1, TexCoords);
       } else if (texture_type == 1) {
         FragColor = texture(texture2, TexCoords);
+      } else if (texture_type == 2) {
+        FragColor = texture(texture3, TexCoords);
+        // discard transparent fragments
+        if (FragColor.a < 0.1) {
+          discard;
+        }    
       } else {
         FragColor = vec4(0.0, 1.0, 0.0, 1.0);
       }
-      // float depth = LinearizeDepth(gl_FragCoord.z) / far; // divide by far for demonstration
-      // FragColor = vec4(vec3(depth), 1.0);
     }
 );
 // clang-format on
@@ -85,7 +83,7 @@ int main() {
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-  GLFWwindow* window = glfwCreateWindow(kWidth, kHeight, "OpenGLDepthStencil", NULL, NULL);
+  GLFWwindow* window = glfwCreateWindow(kWidth, kHeight, "OpenGLBlend", NULL, NULL);
   if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
@@ -104,9 +102,12 @@ int main() {
   core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
   core::opengl::GLVertexArray cube_vao;
   core::opengl::GLVertexArray plane_vao;
+  core::opengl::GLVertexArray transparent_vao;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
-  texture.Load2DTextureFromFile("./examples/opengl/GLDepthStencilDemo/metal.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/opengl/GLDepthStencilDemo/marble.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/metal.png", GL_RGB, 0);
+  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/marble.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/grass.png", GL_RGBA, 2,
+                                GL_CLAMP_TO_EDGE, false);
 
   // clang-format off
   float cube_vertices[] = {
@@ -164,6 +165,17 @@ int main() {
         -5.0f, -0.5f - 0.01f, -5.0f,  0.0f, 2.0f,
          5.0f, -0.5f - 0.01f, -5.0f,  2.0f, 2.0f								
   };
+
+  float transparent_vertices[] = {
+        // positions         // texture Coords
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
   // clang-format on
 
   // config cube vao
@@ -182,17 +194,22 @@ int main() {
                                    (void*)(3 * sizeof(float)));
   plane_vao.Unbind();
 
+  // config transparent vao
+  transparent_vao.Bind();
+  transparent_vao.SetVertexData(transparent_vertices, sizeof(transparent_vertices), GL_STATIC_DRAW);
+  transparent_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+  transparent_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+                                         (void*)(3 * sizeof(float)));
+  transparent_vao.Unbind();
+
   // depth testing
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
-  // stencil testing
-  glEnable(GL_STENCIL_TEST);
-  glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
   program.Use();
   program.SetUniform1i("texture1", 0);
   program.SetUniform1i("texture2", 1);
+  program.SetUniform1i("texture3", 2);
 
   // Transformation matrices
   glm::mat4 model = glm::mat4(1.0f);
@@ -201,13 +218,20 @@ int main() {
   program.SetUniformMat4f("projection", projection);
   program.SetUniformMat4f("model", model);
 
+  std::vector<glm::vec3> vegetation;
+  vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
+  vegetation.push_back(glm::vec3(1.5f, 0.0f, 0.51f));
+  vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
+  vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
+  vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
   // render loops
   // -----------
   while (!glfwWindowShouldClose(window)) {
     process_inputs(window);
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     program.Use();
     auto view = camera->GetViewMatrix();
@@ -216,11 +240,10 @@ int main() {
     // bind two textures
     texture.ActivateBind(GL_TEXTURE_2D, 0);
     texture.ActivateBind(GL_TEXTURE_2D, 1);
+    texture.ActivateBind(GL_TEXTURE_2D, 2);
 
     model = glm::mat4(1.0f);
     // draw two cubes
-    glStencilFunc(GL_ALWAYS, 1, 0xFF);  // all fragments should update the stencil buffer
-    glStencilMask(0xFF);                // enable writing to the stencil buffer
     cube_vao.Bind();
     program.SetUniform1i("texture_type", 0);
     model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
@@ -232,26 +255,7 @@ int main() {
     glDrawArrays(GL_TRIANGLES, 0, 36);
     cube_vao.Unbind();
 
-    // draw two upscaled cubes to create a border effect
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);  // draw only where stencil is not 1
-    glStencilMask(0x00);                  // disable writing to the stencil buffer
-    float scale = 1.01f;
-    cube_vao.Bind();
-    program.SetUniform1i("texture_type", 2);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-    model = glm::scale(model, glm::vec3(scale, scale, scale));
-    program.SetUniformMat4f("model", model);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-    model = glm::scale(model, glm::vec3(scale, scale, scale));
-    program.SetUniformMat4f("model", model);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    cube_vao.Unbind();
-
     // draw plane
-    glStencilMask(0x00);  // disable writing to the stencil buffer
     plane_vao.Bind();
     program.SetUniform1i("texture_type", 1);
     model = glm::mat4(1.0f);
@@ -259,9 +263,16 @@ int main() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     plane_vao.Unbind();
 
-    // make sure to stencil buffer will be reset in glClear()
-    glStencilMask(0xFF);
-    glStencilFunc(GL_ALWAYS, 0, 0xFF);
+    // draw grass
+    transparent_vao.Bind();
+    program.SetUniform1i("texture_type", 2);
+    for (unsigned int i = 0; i < vegetation.size(); i++) {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, vegetation[i]);
+      program.SetUniformMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    transparent_vao.Unbind();
 
     glfwSwapBuffers(window);
     glfwPollEvents();
