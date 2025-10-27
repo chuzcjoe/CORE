@@ -4,6 +4,7 @@
 // clang-format on
 
 #include <iostream>
+#include <map>
 
 #include "GLCamera.h"
 #include "GLProgram.h"
@@ -53,6 +54,7 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     uniform sampler2D texture1;
     uniform sampler2D texture2;
     uniform sampler2D texture3;
+    uniform sampler2D texture4;
     uniform int texture_type;
 
     void main() {
@@ -60,13 +62,16 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
         FragColor = texture(texture1, TexCoords);
       } else if (texture_type == 1) {
         FragColor = texture(texture2, TexCoords);
-      } else if (texture_type == 2) {
+      } else if (texture_type == 2) { // grass
         FragColor = texture(texture3, TexCoords);
         // discard transparent fragments
         if (FragColor.a < 0.1) {
           discard;
         }    
-      } else {
+      } else if (texture_type == 3) { // window
+        FragColor = texture(texture4, TexCoords);
+      }
+      else {
         FragColor = vec4(0.0, 1.0, 0.0, 1.0);
       }
     }
@@ -107,6 +112,8 @@ int main() {
   texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/metal.png", GL_RGB, 0);
   texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/marble.jpg", GL_RGB, 1);
   texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/grass.png", GL_RGBA, 2,
+                                GL_CLAMP_TO_EDGE, false);
+  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/window.png", GL_RGBA, 3,
                                 GL_CLAMP_TO_EDGE, false);
 
   // clang-format off
@@ -175,7 +182,7 @@ int main() {
         0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
         1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
         1.0f,  0.5f,  0.0f,  1.0f,  0.0f
-    };
+  };
   // clang-format on
 
   // config cube vao
@@ -206,10 +213,16 @@ int main() {
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
 
+  // blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendEquation(GL_FUNC_ADD);  // default
+
   program.Use();
   program.SetUniform1i("texture1", 0);
   program.SetUniform1i("texture2", 1);
   program.SetUniform1i("texture3", 2);
+  program.SetUniform1i("texture4", 3);
 
   // Transformation matrices
   glm::mat4 model = glm::mat4(1.0f);
@@ -224,6 +237,18 @@ int main() {
   vegetation.push_back(glm::vec3(0.0f, 0.0f, 0.7f));
   vegetation.push_back(glm::vec3(-0.3f, 0.0f, -2.3f));
   vegetation.push_back(glm::vec3(0.5f, 0.0f, -0.6f));
+
+  std::vector<glm::vec3> window_positions;
+  window_positions.push_back(glm::vec3(-1.5f, 0.0f, -0.3f));
+  window_positions.push_back(glm::vec3(1.5f, 0.0f, 0.6f));
+  window_positions.push_back(glm::vec3(0.0f, 0.0f, 0.8f));
+
+  // sort the transparent windows before rendering
+  std::map<float, glm::vec3> sorted;
+  for (unsigned int i = 0; i < window_positions.size(); i++) {
+    float distance = glm::length(camera->camera_position - window_positions[i]);
+    sorted[distance] = window_positions[i];
+  }
 
   // render loops
   // -----------
@@ -241,6 +266,7 @@ int main() {
     texture.ActivateBind(GL_TEXTURE_2D, 0);
     texture.ActivateBind(GL_TEXTURE_2D, 1);
     texture.ActivateBind(GL_TEXTURE_2D, 2);
+    texture.ActivateBind(GL_TEXTURE_2D, 3);
 
     model = glm::mat4(1.0f);
     // draw two cubes
@@ -263,12 +289,19 @@ int main() {
     glDrawArrays(GL_TRIANGLES, 0, 6);
     plane_vao.Unbind();
 
-    // draw grass
+    // draw grass and window
     transparent_vao.Bind();
     program.SetUniform1i("texture_type", 2);
     for (unsigned int i = 0; i < vegetation.size(); i++) {
       model = glm::mat4(1.0f);
       model = glm::translate(model, vegetation[i]);
+      program.SetUniformMat4f("model", model);
+      glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
+    program.SetUniform1i("texture_type", 3);
+    for (auto it = sorted.rbegin(); it != sorted.rend(); ++it) {
+      model = glm::mat4(1.0f);
+      model = glm::translate(model, it->second);
       program.SetUniformMat4f("model", model);
       glDrawArrays(GL_TRIANGLES, 0, 6);
     }
