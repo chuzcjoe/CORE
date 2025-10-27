@@ -20,7 +20,7 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
 // settings
 const unsigned int kWidth = 1000;
 const unsigned int kHeight = 1000;
-const glm::vec3 kCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.0f, 3.0f);
 const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 const float kCameraSpeed = 0.03f;
@@ -195,17 +195,6 @@ int main() {
     program.SetUniformMat4f("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 6);
     plane_vao.Unbind();
-
-    // vao.Bind();
-    // for (int i = 0; i < 3; i++) {
-    //   model = glm::mat4(1.0f);
-    //   model = glm::translate(model, cube_positions[i]);
-    //   model = glm::rotate(model, (float)glfwGetTime() * glm::radians(20.0f * (i + 1)),
-    //                       glm::vec3(1.0f, 0.3f, 0.5f));
-    //   program.SetUniformMat4f("model", model);
-    //   glDrawArrays(GL_TRIANGLES, 0, 36);
-    // }
-    // vao.Unbind();
 
     glfwSwapBuffers(window);
     glfwPollEvents();
