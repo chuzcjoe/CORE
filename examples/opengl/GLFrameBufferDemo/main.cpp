@@ -90,9 +90,36 @@ const char* screen_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
   out vec4 FragColor;
   in vec2 TexCoords;
   uniform sampler2D screenTexture;
-  void main() { 
-      FragColor = texture(screenTexture, TexCoords);
-  }
+  const float offset = 1.0 / 300.0;  
+  void main() {
+      vec2 offsets[9] = vec2[](
+          vec2(-offset,  offset), // top-left
+          vec2( 0.0f,    offset), // top-center
+          vec2( offset,  offset), // top-right
+          vec2(-offset,  0.0f),   // center-left
+          vec2( 0.0f,    0.0f),   // center-center
+          vec2( offset,  0.0f),   // center-right
+          vec2(-offset, -offset), // bottom-left
+          vec2( 0.0f,   -offset), // bottom-center
+          vec2( offset, -offset)  // bottom-right    
+      );
+
+      float kernel[9] = float[](
+          -1, -1, -1,
+          -1,  9, -1,
+          -1, -1, -1
+      );
+      
+      vec3 sampleTex[9];
+      for(int i = 0; i < 9; i++) {
+          sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
+      }
+      vec3 col = vec3(0.0);
+      for(int i = 0; i < 9; i++) {
+        col += sampleTex[i] * kernel[i];
+      }
+      FragColor = vec4(col, 1.0);
+  } 
 );
 // clang-format on
 
@@ -271,7 +298,7 @@ int main() {
   program.SetUniform1i("texture3", 2);
 
   screen_program.Use();
-  screen_program.SetUniform1i("screenTexture", 3);
+  screen_program.SetUniform1i("screenTexture", 0);
 
   // Transformation matrices
   program.Use();
@@ -279,7 +306,6 @@ int main() {
   glm::mat4 projection = glm::perspective(
       glm::radians(45.0f), static_cast<float>(kWidth) / static_cast<float>(kHeight), 0.1f, 100.0f);
   program.SetUniformMat4f("projection", projection);
-  program.SetUniformMat4f("model", model);
 
   std::vector<glm::vec3> vegetation;
   vegetation.push_back(glm::vec3(-1.5f, 0.0f, -0.48f));
@@ -293,7 +319,7 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     process_inputs(window);
 
-    // bind to created framebuffer
+    // bind to the created framebuffer
     framebuffer.Bind();
     glEnable(GL_DEPTH_TEST);
 
@@ -305,7 +331,7 @@ int main() {
     auto view = camera->GetViewMatrix();
     program.SetUniformMat4f("view", view);
 
-    // bind two textures
+    // bind textures
     texture.ActivateBind(GL_TEXTURE_2D, 0);
     texture.ActivateBind(GL_TEXTURE_2D, 1);
     texture.ActivateBind(GL_TEXTURE_2D, 2);
@@ -342,8 +368,8 @@ int main() {
     }
     transparent_vao.Unbind();
 
-    // now bind back to default framebuffer and draw a quad plane with the attached framebuffer
-    // color texture
+    // bind the default framebuffer and draw a quad plane with the attached framebuffer color
+    // texture
     framebuffer.Unbind();
     glDisable(GL_DEPTH_TEST);  // disable depth test so screen-space quad isn't discarded due to
                                // depth test.
@@ -351,7 +377,7 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT);
     screen_program.Use();
     screen_vao.Bind();
-    glActiveTexture(GL_TEXTURE3);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, framebuffer.GetTexutureID());
     glDrawArrays(GL_TRIANGLES, 0, 6);
 

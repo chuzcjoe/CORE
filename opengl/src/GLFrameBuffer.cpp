@@ -25,7 +25,7 @@ void GLFrameBuffer::AttachTexture2D(GLenum attachment, GLenum internal_format, G
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture_id_, 0);
-  //   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 void GLFrameBuffer::AttachRenderBuffer(GLenum internal_format, GLsizei width,
@@ -37,7 +37,7 @@ void GLFrameBuffer::AttachRenderBuffer(GLenum internal_format, GLsizei width,
   glBindRenderbuffer(GL_RENDERBUFFER, rbo_id_);
   glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_id_);
-  //   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 }  // namespace opengl
