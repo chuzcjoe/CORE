@@ -10,6 +10,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 
     add_subdirectory(glfw)
+    add_subdirectory(metal_cpp)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
