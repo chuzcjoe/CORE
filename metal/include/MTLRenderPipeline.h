@@ -1,0 +1,23 @@
+#pragma once
+
+#include "MTLContext.h"
+
+namespace core {
+namespace metal {
+
+class MTLRenderPipeline {
+ public:
+  explicit MTLRenderPipeline(MTLContext* context);
+  ~MTLRenderPipeline();
+
+  void CreateRenderPipeline(MTL::Function* vertex_shader, MTL::Function* fragment_shader,
+                            MTL::PixelFormat pixel_format);
+
+ private:
+  MTLContext* context_;
+  MTL::RenderPipelineDescriptor* pipeline_descriptor_;
+  MTL::RenderPipelineState* pipeline_state_;
+};
+
+}  // namespace metal
+}  // namespace core

@@ -13,6 +13,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     find_library(METAL_FRAMEWORK Metal)
     find_library(FOUNDATION_FRAMEWORK Foundation)
     find_library(QUARTZCORE_FRAMEWORK QuartzCore)
+    find_library(COCOA_FRAMEWORK Cocoa)
 
     target_link_libraries(core_metal
         PUBLIC
@@ -20,6 +21,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         ${METAL_FRAMEWORK}
         ${FOUNDATION_FRAMEWORK}
         ${QUARTZCORE_FRAMEWORK}
+        ${COCOA_FRAMEWORK}
         mat
         glm
         glfw

@@ -14,9 +14,19 @@ MTLContext::MTLContext() : metal_device_(nullptr), metal_layer_(nullptr) {
   metal_layer_ = CA::MetalLayer::layer()->retain();
   metal_layer_->setDevice(metal_device_);
   metal_layer_->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+  // TODO: fix hardcode size
+  metal_layer_->setDrawableSize(CGSizeMake(800, 600));
 }
 
 MTLContext::~MTLContext() {
+  if (vertex_fn_) {
+    vertex_fn_->release();
+    vertex_fn_ = nullptr;
+  }
+  if (fragment_fn_) {
+    fragment_fn_->release();
+    fragment_fn_ = nullptr;
+  }
   if (metal_layer_) {
     metal_layer_->release();
     metal_layer_ = nullptr;
@@ -27,8 +37,8 @@ MTLContext::~MTLContext() {
   }
 }
 
-std::shared_ptr<MTL::Library> MTLContext::loadMetallib(MTL::Device* device, const char* path) {
-  std::string p(path);
+void MTLContext::LoadMetalShader(const std::string shader_path, const std::string vertex_fn_name,
+                                 const std::string fragment_fn_name) {
   NS::Error* error = nullptr;
   MTL::Library* library = nullptr;
 
@@ -37,9 +47,9 @@ std::shared_ptr<MTL::Library> MTLContext::loadMetallib(MTL::Device* device, cons
     return s.size() >= n && s.compare(s.size() - n, n, suf) == 0;
   };
 
-  if (ends_with(p, ".metal")) {
+  if (ends_with(shader_path, ".metal")) {
     // Compile from source at runtime
-    std::ifstream file(path, std::ios::in | std::ios::binary);
+    std::ifstream file(shader_path, std::ios::in | std::ios::binary);
     if (!file.is_open()) {
       throw std::runtime_error("Failed to open .metal source file");
     }
@@ -52,18 +62,27 @@ std::shared_ptr<MTL::Library> MTLContext::loadMetallib(MTL::Device* device, cons
 
     NS::String* source = NS::String::string(src.c_str(), NS::UTF8StringEncoding);
     MTL::CompileOptions* opts = MTL::CompileOptions::alloc()->init();
-    library = device->newLibrary(source, opts, &error);
+    library = metal_device_->newLibrary(source, opts, &error);
     opts->release();
   } else {
     // Load a precompiled metallib from file path
-    NS::String* nsPath = NS::String::string(path, NS::UTF8StringEncoding);
-    library = device->newLibrary(nsPath, &error);
+    NS::String* nsPath = NS::String::string(shader_path.c_str(), NS::UTF8StringEncoding);
+    library = metal_device_->newLibrary(nsPath, &error);
   }
 
   if (error || library == nullptr) {
     throw std::runtime_error("Failed to create Metal library (source or metallib)");
   }
-  return std::shared_ptr<MTL::Library>(library, [](MTL::Library* p) { p->release(); });
+  NS::String* vname = NS::String::string(vertex_fn_name.c_str(), NS::UTF8StringEncoding);
+  NS::String* fname = NS::String::string(fragment_fn_name.c_str(), NS::UTF8StringEncoding);
+  vertex_fn_ = library->newFunction(vname);
+  fragment_fn_ = library->newFunction(fname);
+
+  if (vertex_fn_ == nullptr || fragment_fn_ == nullptr) {
+    throw std::runtime_error("Failed to create Metal shader functions");
+  }
+
+  library->release();
 }
 
 }  // namespace metal
