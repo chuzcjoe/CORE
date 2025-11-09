@@ -109,4 +109,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         PUBLIC_INCLUDES ./opengl/GLFrameBufferDemo
         LIBRARIES glfw gl_glad opengl stb
         DEFINITIONS GL_SILENCE_DEPRECATION)
+
+    # 13. metal triangle demo
+    build_example(metal_triangle_demo
+        SOURCE_GLOBS "./metal/MetalTriangleDemo/main.cpp"
+        LIBRARIES core_metal glfw)
 endif()

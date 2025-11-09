@@ -12,7 +12,7 @@ if (APPLE)
     find_library(QUARTZCORE_FRAMEWORK QuartzCore)
     target_link_libraries(core-tests PUBLIC 
             glfw 
-            metal 
+            metal_cpp
             ${METAL_FRAMEWORK}
             ${FOUNDATION_FRAMEWORK}
             ${QUARTZCORE_FRAMEWORK})
