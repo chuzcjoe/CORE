@@ -114,4 +114,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     build_example(metal_triangle_demo
         SOURCE_GLOBS "./metal/MetalTriangleDemo/main.cpp"
         LIBRARIES core_metal glfw)
+    
+    # 14. metal texture demo
+    build_example(metal_texture_demo
+        SOURCE_GLOBS "./metal/MetalTextureDemo/main.cpp"
+        LIBRARIES core_metal glfw stb)
 endif()
