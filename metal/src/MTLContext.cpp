@@ -59,53 +59,5 @@ void MTLContext::CreateMetalLayerForWindow(GLFWwindow* window) {
   ObjcCall<void>(content_view, "setLayer:", reinterpret_cast<id>(metal_layer_));
 }
 
-void MTLContext::LoadMetalShader(const std::string shader_path, const std::string vertex_fn_name,
-                                 const std::string fragment_fn_name) {
-  NS::Error* error = nullptr;
-  MTL::Library* library = nullptr;
-
-  auto ends_with = [](const std::string& s, const char* suf) -> bool {
-    const size_t n = std::strlen(suf);
-    return s.size() >= n && s.compare(s.size() - n, n, suf) == 0;
-  };
-
-  if (ends_with(shader_path, ".metal")) {
-    // Compile from source at runtime
-    std::ifstream file(shader_path, std::ios::in | std::ios::binary);
-    if (!file.is_open()) {
-      throw std::runtime_error("Failed to open .metal source file");
-    }
-    std::string src;
-    file.seekg(0, std::ios::end);
-    src.resize(static_cast<size_t>(file.tellg()));
-    file.seekg(0, std::ios::beg);
-    file.read(src.data(), static_cast<std::streamsize>(src.size()));
-    file.close();
-
-    NS::String* source = NS::String::string(src.c_str(), NS::UTF8StringEncoding);
-    MTL::CompileOptions* opts = MTL::CompileOptions::alloc()->init();
-    library = metal_device_->newLibrary(source, opts, &error);
-    opts->release();
-  } else {
-    // Load a precompiled metallib from file path
-    NS::String* nsPath = NS::String::string(shader_path.c_str(), NS::UTF8StringEncoding);
-    library = metal_device_->newLibrary(nsPath, &error);
-  }
-
-  if (error || library == nullptr) {
-    throw std::runtime_error("Failed to create Metal library (source or metallib)");
-  }
-  NS::String* vname = NS::String::string(vertex_fn_name.c_str(), NS::UTF8StringEncoding);
-  NS::String* fname = NS::String::string(fragment_fn_name.c_str(), NS::UTF8StringEncoding);
-  vertex_fn_ = library->newFunction(vname);
-  fragment_fn_ = library->newFunction(fname);
-
-  if (vertex_fn_ == nullptr || fragment_fn_ == nullptr) {
-    throw std::runtime_error("Failed to create Metal shader functions");
-  }
-
-  library->release();
-}
-
 }  // namespace metal
 }  // namespace core

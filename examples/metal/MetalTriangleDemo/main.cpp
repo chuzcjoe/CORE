@@ -60,9 +60,7 @@ int main() {
       std::make_unique<core::metal::MTLBuffer>(context.get(), MTL::ResourceStorageModeShared);
 
   buffer->CreateBuffer(kVertices, sizeof(kVertices));
-  context->LoadMetalShader("./examples/metal/MetalTriangleDemo/triangle.metal", "vertex_main",
-                           "fragment_main");
-  pipeline->CreateRenderPipeline(context->vertex_function(), context->fragment_function(),
+  pipeline->CreateRenderPipeline("./examples/metal/MetalTriangleDemo/triangle.metal",
                                  MTL::PixelFormatBGRA8Unorm);
 
   while (!glfwWindowShouldClose(window)) {
