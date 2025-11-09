@@ -112,6 +112,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     # 13. metal triangle demo
     build_example(metal_triangle_demo
-        SOURCE_GLOBS "./metal/MetalTriangleDemo/main2.cpp"
+        SOURCE_GLOBS "./metal/MetalTriangleDemo/main.cpp"
         LIBRARIES core_metal glfw)
 endif()
