@@ -11,8 +11,8 @@
 - [x] Vulkan
 - [x] OpenGL
 - [x] Metal
-- [] OpenCL (WIP)
-- [] OpenGLES (WIP)
+- [ ] OpenCL (WIP)
+- [ ] OpenGLES (WIP)
 
 # 2. Supporting OS
 
