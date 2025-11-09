@@ -11,6 +11,7 @@
 #include <string>
 
 #include "Foundation/Foundation.hpp"
+#include "MTLBuffer.h"
 #include "MTLCommandQueue.h"
 #include "MTLContext.h"
 #include "MTLRenderPipeline.h"
@@ -20,16 +21,16 @@
 constexpr unsigned int kWidth = 800;
 constexpr unsigned int kHeight = 600;
 
-// struct Vertex {
-//   simd::float2 position;
-//   simd::float3 color;
-// };
+struct Vertex {
+  simd::float2 position;
+  simd::float3 color;
+};
 
-// constexpr Vertex kVertices[] = {
-//     {{-0.7f, -0.6f}, {1.0f, 0.2f, 0.2f}},
-//     {{0.0f, 0.7f}, {0.2f, 0.9f, 0.3f}},
-//     {{0.7f, -0.6f}, {0.2f, 0.4f, 1.0f}},
-// };
+constexpr Vertex kVertices[] = {
+    {{-0.7f, -0.6f}, {1.0f, 0.2f, 0.2f}},
+    {{0.0f, 0.7f}, {0.2f, 0.9f, 0.3f}},
+    {{0.7f, -0.6f}, {0.2f, 0.4f, 1.0f}},
+};
 
 int main() {
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
@@ -49,10 +50,12 @@ int main() {
     throw std::runtime_error("Failed to create GLFW window");
   }
 
-  core::metal::MTLContext context;
+  core::metal::MTLContext context(window);
   core::metal::MTLCommandQueue command_queue(&context);
   core::metal::MTLRenderPipeline pipeline(&context);
+  core::metal::MTLBuffer buffer(&context, MTL::ResourceStorageModeShared);
 
+  buffer.CreateBuffer(kVertices, sizeof(kVertices));
   context.LoadMetalShader("./examples/metal/MetalTriangleDemo/triangle.metal", "vertex_main",
                           "fragment_main");
   pipeline.CreateRenderPipeline(context.vertex_function(), context.fragment_function(),
@@ -60,6 +63,30 @@ int main() {
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
+    // render
+    NS::AutoreleasePool* frame_pool = NS::AutoreleasePool::alloc()->init();
+    CA::MetalDrawable* drawable = context.layer()->nextDrawable();
+    if (!drawable) {
+      frame_pool->release();
+      break;
+    }
+
+    pipeline.SetTexture(drawable);
+    MTL::CommandBuffer* command_buffer = command_queue.command_buffer();
+    MTL::RenderCommandEncoder* encoder =
+        command_buffer->renderCommandEncoder(pipeline.render_pass_descriptor());
+
+    encoder->setRenderPipelineState(pipeline.pipeline_state());
+    encoder->setVertexBuffer(buffer.buffer(), 0, 0);
+    encoder->drawPrimitives(MTL::PrimitiveTypeTriangle, static_cast<NS::UInteger>(0),
+                            static_cast<NS::UInteger>(3));
+    encoder->endEncoding();
+
+    command_buffer->presentDrawable(drawable);
+    command_buffer->commit();
+
+    frame_pool->release();
   }
 
   glfwDestroyWindow(window);

@@ -12,7 +12,7 @@ MTLBuffer::~MTLBuffer() {
   }
 }
 
-void MTLBuffer::CreateBuffer(simd::float3* data, size_t data_size) {
+void MTLBuffer::CreateBuffer(const void* data, size_t data_size) {
   metal_buffer_ = context_->device()->newBuffer(data, data_size, resource_options_);
 }
 

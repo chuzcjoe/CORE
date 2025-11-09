@@ -12,7 +12,7 @@ class MTLBuffer {
   MTLBuffer(MTLContext* context, MTL::ResourceOptions options = MTL::ResourceStorageModeShared);
   ~MTLBuffer();
 
-  void CreateBuffer(simd::float3* data, size_t data_size);
+  void CreateBuffer(const void* data, size_t data_size);
 
   MTL::Buffer* buffer() const { return metal_buffer_; }
 

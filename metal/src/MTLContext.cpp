@@ -14,7 +14,18 @@ MTLContext::MTLContext() : metal_device_(nullptr), metal_layer_(nullptr) {
   metal_layer_ = CA::MetalLayer::layer()->retain();
   metal_layer_->setDevice(metal_device_);
   metal_layer_->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+  metal_layer_->setFramebufferOnly(true);
   // TODO: fix hardcode size
+  metal_layer_->setDrawableSize(CGSizeMake(800, 600));
+}
+
+MTLContext::MTLContext(GLFWwindow* window) : metal_device_(nullptr), metal_layer_(nullptr) {
+  metal_device_ = MTL::CreateSystemDefaultDevice();
+  CreateMetalLayerForWindow(window);
+  metal_layer_->retain();
+  metal_layer_->setDevice(metal_device_);
+  metal_layer_->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+  metal_layer_->setFramebufferOnly(true);
   metal_layer_->setDrawableSize(CGSizeMake(800, 600));
 }
 
@@ -35,6 +46,17 @@ MTLContext::~MTLContext() {
     metal_device_->release();
     metal_device_ = nullptr;
   }
+}
+
+void MTLContext::CreateMetalLayerForWindow(GLFWwindow* window) {
+  id ns_window = glfwGetCocoaWindow(window);
+  if (!ns_window) {
+    throw std::runtime_error("Failed to get Cocoa window from GLFWwindow");
+  }
+  id content_view = ObjcCall<id>(ns_window, "contentView");
+  ObjcCall<void>(content_view, "setWantsLayer:", YES);
+  metal_layer_ = CA::MetalLayer::layer()->retain();
+  ObjcCall<void>(content_view, "setLayer:", reinterpret_cast<id>(metal_layer_));
 }
 
 void MTLContext::LoadMetalShader(const std::string shader_path, const std::string vertex_fn_name,
