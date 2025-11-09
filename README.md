@@ -6,12 +6,20 @@
   <img src="./logo/core.gif" alt="CORE" width="60%"/>
 </p>
 
-# 1. Supporting OS
+# 1. Graphics and Compute APIs
+
+- [x] Vulkan
+- [x] OpenGL
+- [x] Metal
+- [ ] OpenCL (WIP)
+- [ ] OpenGLES (WIP)
+
+# 2. Supporting OS
 
 - MacOS
 - Android arm64-v8a
 
-# 2. Compute
+# 3. Compute
 ```
 ./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
 ```
@@ -21,7 +29,7 @@
 2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
 
 
-# 3. Graphics
+# 4. Graphics
 
 Draw a triangle with 100 lines of code in Vulkan. See example in `examples/DrawTriangleDemo/main.cpp`
 
