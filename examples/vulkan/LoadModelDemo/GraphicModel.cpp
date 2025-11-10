@@ -188,10 +188,10 @@ void GraphicModel::UpdateUniformBuffer(const int width, const int height) {
   uniform_buffer_.MapData([this, width, height](void* data) {
     uniform_data_.model =
         glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniform_data_.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+    uniform_data_.view = glm::lookAt(glm::vec3(-1.0f, -1.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f),
                                      glm::vec3(0.0f, 0.0f, 1.0f));
     uniform_data_.project =
-        glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 10.0f);
+        glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
     uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
 
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
