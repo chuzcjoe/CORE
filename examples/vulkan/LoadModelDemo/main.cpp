@@ -10,8 +10,8 @@
 const uint32_t kWidth = 1000;
 const uint32_t kHeight = 1000;
 const bool kEnableDepthBuffer = true;
-const std::string kModelPath = "./examples/vulkan/LoadModelDemo/viking_room.obj";
-const std::string kTexturePath = "./examples/vulkan/LoadModelDemo/viking_room.png";
+const std::string kModelPath = "./examples/vulkan/LoadModelDemo/moon.obj";
+const std::string kTexturePath = "./examples/vulkan/LoadModelDemo/moon.jpeg";
 
 int main() {
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
