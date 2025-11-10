@@ -6,7 +6,7 @@ target_include_directories(vulkan
     PUBLIC
     include)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_libraries(vulkan
         PUBLIC
         Vulkan::Vulkan

@@ -22,7 +22,7 @@ endforeach(shader)
 add_custom_target(vulkan_example_shaders DEPENDS ${shader_spv_files})
 
 # only add glfw/draw triangle for macos
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(APPLE)
     # 1. glfw demo
     build_example(glfw_demo
         SOURCE_GLOBS "./vulkan/GLFWWindowDemo/*.cpp"

@@ -7,7 +7,7 @@ target_include_directories(core_metal
     PUBLIC
     include)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+if(APPLE)
     # Link against the metal-cpp headers (INTERFACE target named "metal")
     # and required Apple frameworks so dependents get them transitively.
     find_library(METAL_FRAMEWORK Metal)
