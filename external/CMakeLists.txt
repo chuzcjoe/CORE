@@ -11,6 +11,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     add_subdirectory(glfw)
     add_subdirectory(metal_cpp)
+    add_subdirectory(imgui)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
