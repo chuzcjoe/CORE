@@ -55,7 +55,7 @@ if(APPLE)
     build_example(gl_texture_demo
         SOURCE_GLOBS "./opengl/GLTextureDemo/*.cpp"
         PUBLIC_INCLUDES ./opengl/GLTextureDemo
-        LIBRARIES glfw gl_glad opengl stb
+        LIBRARIES glfw gl_glad opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 6. camera movement demo using opengl
