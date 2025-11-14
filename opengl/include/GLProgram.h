@@ -24,11 +24,15 @@ class GLProgram {
     glUniform1f(glGetUniformLocation(program_id_, name.c_str()), value);
   }
 
-  void SetUniform1i(const std::string& name, int value) const {
+  void SetUniform1i(const std::string& name, const int value) const {
     glUniform1i(glGetUniformLocation(program_id_, name.c_str()), value);
   }
 
-  void SetUniformMat4f(const std::string& name, glm::mat4& mat) const {
+  void SetUniform3f(const std::string& name, const float v1, const float v2, const float v3) const {
+    glUniform3f(glGetUniformLocation(program_id_, name.c_str()), v1, v2, v3);
+  }
+
+  void SetUniformMat4f(const std::string& name, const glm::mat4& mat) const {
     glUniformMatrix4fv(glGetUniformLocation(program_id_, name.c_str()), 1, GL_FALSE,
                        glm::value_ptr(mat));
   }
