@@ -32,9 +32,11 @@ const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
 const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     out vec4 FragColor; 
     in vec2 TexCoord;
+    uniform float alpha;
     uniform sampler2D texture1;
     void main() { 
-        FragColor = texture(texture1, TexCoord);
+        vec4 tmp = texture(texture1, TexCoord);
+        FragColor = vec4(tmp.r, tmp.g, tmp.b, alpha);
     }
 );
 // clang-format on
@@ -98,6 +100,12 @@ int main() {
                              (void*)(3 * sizeof(float)));
   vao.Unbind();
 
+  float alpha = 1.0f;
+
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  glBlendEquation(GL_FUNC_ADD);
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -105,10 +113,11 @@ int main() {
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    ImGui::Begin("Hello ImGui!");
-    ImGui::Text("This is working on macOS!");
+
+    // UI to control transparency
+    ImGui::Begin("Transparency Control");
+    ImGui::SliderFloat("Alpha", &alpha, 0.0f, 1.0f);
     ImGui::End();
-    ImGui::Render();
 
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -119,11 +128,13 @@ int main() {
 
     // draw our first triangle
     program.Use();
+    program.SetUniform1f("alpha", alpha);
 
     vao.Bind();
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     vao.Unbind();
 
+    ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
