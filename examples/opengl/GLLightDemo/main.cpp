@@ -20,7 +20,7 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
 // settings
 const unsigned int kWidth = 1000;
 const unsigned int kHeight = 1000;
-const glm::vec3 kCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 kCameraPos = glm::vec3(0.0f, 2.0f, 6.0f);
 const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 const float kCameraSpeed = 0.03f;
@@ -37,20 +37,43 @@ std::unique_ptr<core::opengl::GLCamera> camera =
 // Object shaders
 const char* obj_vertex_shader_source = OPENGL_VERTEX_SHADER(
     layout(location = 0) in vec3 aPos; 
+    layout(location = 1) in vec3 aNormal;
     uniform mat4 model;
     uniform mat4 view;
     uniform mat4 projection;
+    out vec3 Normal;
+    out vec3 FragPos;
+
     void main() {
         gl_Position = projection * view * model * vec4(aPos, 1.0);
+        FragPos = vec3(model * vec4(aPos, 1.0)); // get fragment position in world space
+        Normal = aNormal;
     }
 );
 
 const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
+    in vec3 Normal;
+    in vec3 FragPos;
     out vec4 FragColor; 
     uniform vec3 objectColor;
     uniform vec3 lightColor;
+    uniform vec3 lightPos;
+
     void main() {
-        FragColor = vec4(objectColor * lightColor, 1.0f);
+        float ambientStrength = 0.1;
+
+        // ambient
+        vec3 ambient = ambientStrength * lightColor;
+        
+        // diffuse
+        vec3 norm = normalize(Normal);
+        vec3 lightDir = normalize(lightPos - FragPos);
+        float diff = max(dot(norm, lightDir), 0.0);
+        vec3 diffuse = diff * lightColor;
+
+        // final color
+        vec3 result = (ambient + diffuse) * objectColor;
+        FragColor = vec4(result, 1.0f);
     }
 );
 
@@ -106,66 +129,72 @@ int main() {
 
   // clang-format off
   float vertices[] = {
-        -0.5f, -0.5f, -0.5f, 
-         0.5f, -0.5f, -0.5f,  
-         0.5f,  0.5f, -0.5f,  
-         0.5f,  0.5f, -0.5f,  
-        -0.5f,  0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
 
-        -0.5f, -0.5f,  0.5f, 
-         0.5f, -0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f, -0.5f,  0.5f, 
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
 
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f,  0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
-        -0.5f, -0.5f, -0.5f, 
-        -0.5f, -0.5f,  0.5f, 
-        -0.5f,  0.5f,  0.5f, 
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f, -0.5f,  
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f, 
-         0.5f, -0.5f, -0.5f,  
-         0.5f, -0.5f,  0.5f,  
-         0.5f, -0.5f,  0.5f,  
-        -0.5f, -0.5f,  0.5f, 
-        -0.5f, -0.5f, -0.5f, 
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-        -0.5f,  0.5f, -0.5f, 
-         0.5f,  0.5f, -0.5f,  
-         0.5f,  0.5f,  0.5f,  
-         0.5f,  0.5f,  0.5f,  
-        -0.5f,  0.5f,  0.5f, 
-        -0.5f,  0.5f, -0.5f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
   };
   // clang-format on
 
   // setup object cube
   obj_vao.Bind();
   obj_vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
-  obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  // position attribute
+  obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  // normal attribute
+  obj_vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                                 (void*)(3 * sizeof(float)));
   obj_vao.Unbind();
 
   // setup light cube
   light_vao.Bind();
   light_vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
-  light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
   light_vao.Unbind();
 
   glEnable(GL_DEPTH_TEST);
 
   // Transformation matrices
   glm::mat4 model = glm::mat4(1.0f);
+  model = glm::translate(model, glm::vec3(1.2f, 1.0f, 2.0f));
+  model = glm::scale(model, glm::vec3(0.2f));
   glm::mat4 projection = glm::perspective(
       glm::radians(45.0f), static_cast<float>(kWidth) / static_cast<float>(kHeight), 0.1f, 100.0f);
 
@@ -173,9 +202,11 @@ int main() {
   light_program.SetUniformMat4f("projection", projection);
   light_program.SetUniformMat4f("model", model);
 
+  model = glm::mat4(1.0f);
   obj_program.Use();
   obj_program.SetUniformMat4f("projection", projection);
   obj_program.SetUniformMat4f("model", model);
+  obj_program.SetUniform3f("lightPos", 1.2f, 1.0f, 2.0f);
 
   // render loop
   // -----------
@@ -188,11 +219,7 @@ int main() {
     // draw light
     light_program.Use();
     auto view = camera->GetViewMatrix();
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(1.2f, 1.0f, 2.0f));
-    model = glm::scale(model, glm::vec3(0.2f));
     light_program.SetUniformMat4f("view", view);
-    light_program.SetUniformMat4f("model", model);
     light_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
