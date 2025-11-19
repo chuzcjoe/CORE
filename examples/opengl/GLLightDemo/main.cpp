@@ -3,6 +3,10 @@
 #include <GLFW/glfw3.h>
 // clang-format on
 
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_opengl3.h>
+#include <imgui.h>
+
 #include <iostream>
 
 #include "GLCamera.h"
@@ -20,8 +24,8 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
 // settings
 const unsigned int kWidth = 1000;
 const unsigned int kHeight = 1000;
-const glm::vec3 kCameraPos = glm::vec3(0.0f, 2.0f, 6.0f);
-const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+const glm::vec3 kCameraPos = glm::vec3(1.5f, 1.0f, 5.0f);
+const glm::vec3 kCameraFront = glm::vec3(-0.2f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 const float kCameraSpeed = 0.03f;
 const float kMouseSensitivity = 0.1f;
@@ -113,13 +117,23 @@ int main() {
     return -1;
   }
   glfwMakeContextCurrent(window);
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(window, mouse_callback);
+  //   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  //   glfwSetCursorPosCallback(window, mouse_callback);
 
   // glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     throw std::runtime_error("Failed to initialize GLAD");
   }
+
+  // imgui setup
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  (void)io;
+
+  ImGui::StyleColorsDark();
+  ImGui_ImplGlfw_InitForOpenGL(window, true);
+  ImGui_ImplOpenGL3_Init("#version 330");
 
   // Use GL after glad is initialized
   core::opengl::GLProgram obj_program(obj_vertex_shader_source, obj_fragment_shader_source);
@@ -208,9 +222,25 @@ int main() {
   obj_program.SetUniformMat4f("model", model);
   obj_program.SetUniform3f("lightPos", 1.2f, 1.0f, 2.0f);
 
+  float light_x = 1.2f;
+  float light_y = 1.0f;
+  float light_z = 2.0f;
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
+    // imgui
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // UI to control transparency
+    ImGui::Begin("Light Control");
+    ImGui::SliderFloat("light_x", &light_x, -2.0f, 6.0f);
+    ImGui::SliderFloat("light_y", &light_y, -2.0f, 6.0f);
+    ImGui::SliderFloat("light_z", &light_z, -2.0f, 6.0f);
+    ImGui::End();
+
     process_inputs(window);
     // render
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -219,7 +249,11 @@ int main() {
     // draw light
     light_program.Use();
     auto view = camera->GetViewMatrix();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(light_x, light_y, light_z));
+    model = glm::scale(model, glm::vec3(0.2f));
     light_program.SetUniformMat4f("view", view);
+    light_program.SetUniformMat4f("model", model);
     light_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
@@ -227,13 +261,21 @@ int main() {
     obj_program.Use();
     obj_program.SetUniform3f("objectColor", 1.0f, 0.5f, 0.31f);
     obj_program.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
+    obj_program.SetUniform3f("lightPos", light_x, light_y, light_z);
     obj_program.SetUniformMat4f("view", view);
     obj_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
     glfwSwapBuffers(window);
     glfwPollEvents();
   }
+
+  ImGui_ImplOpenGL3_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
 
   glfwTerminate();
   return 0;

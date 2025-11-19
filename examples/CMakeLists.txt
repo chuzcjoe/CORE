@@ -124,6 +124,6 @@ if(APPLE)
     build_example(gl_light_demo
         SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
         PUBLIC_INCLUDES ./opengl/GLLightDemo
-        LIBRARIES glfw gl_glad opengl stb
+        LIBRARIES glfw gl_glad opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()
