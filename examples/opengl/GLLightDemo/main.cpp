@@ -24,8 +24,8 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
 // settings
 const unsigned int kWidth = 1000;
 const unsigned int kHeight = 1000;
-const glm::vec3 kCameraPos = glm::vec3(1.5f, 1.0f, 5.0f);
-const glm::vec3 kCameraFront = glm::vec3(-0.2f, 0.0f, -1.0f);
+const glm::vec3 kCameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
 const float kCameraSpeed = 0.03f;
 const float kMouseSensitivity = 0.1f;
@@ -62,9 +62,11 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     uniform vec3 objectColor;
     uniform vec3 lightColor;
     uniform vec3 lightPos;
+    uniform vec3 viewPos;
 
     void main() {
         float ambientStrength = 0.1;
+        float specularStrength = 0.5;
 
         // ambient
         vec3 ambient = ambientStrength * lightColor;
@@ -75,8 +77,14 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
         float diff = max(dot(norm, lightDir), 0.0);
         vec3 diffuse = diff * lightColor;
 
+        // specular
+        vec3 viewDir = normalize(viewPos - FragPos);
+        vec3 reflectDir = reflect(-lightDir, norm);
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
+        vec3 specular = specularStrength * spec * lightColor;
+
         // final color
-        vec3 result = (ambient + diffuse) * objectColor;
+        vec3 result = (ambient + diffuse + specular) * objectColor;
         FragColor = vec4(result, 1.0f);
     }
 );
@@ -226,6 +234,9 @@ int main() {
   float light_y = 1.0f;
   float light_z = 2.0f;
 
+  printf("camera position: x=%f, y=%f, z=%f\n", camera->camera_position.x,
+         camera->camera_position.y, camera->camera_position.z);
+
   // render loop
   // -----------
   while (!glfwWindowShouldClose(window)) {
@@ -262,6 +273,8 @@ int main() {
     obj_program.SetUniform3f("objectColor", 1.0f, 0.5f, 0.31f);
     obj_program.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
     obj_program.SetUniform3f("lightPos", light_x, light_y, light_z);
+    obj_program.SetUniform3f("viewPos", camera->camera_position.x, camera->camera_position.y,
+                             camera->camera_position.z);
     obj_program.SetUniformMat4f("view", view);
     obj_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
