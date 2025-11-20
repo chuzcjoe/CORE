@@ -119,4 +119,11 @@ if(APPLE)
     build_example(metal_texture_demo
         SOURCE_GLOBS "./metal/MetalTextureDemo/main.cpp"
         LIBRARIES core_metal glfw stb)
+
+    # 15. light demo using opengl
+    build_example(gl_light_demo
+        SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
+        PUBLIC_INCLUDES ./opengl/GLLightDemo
+        LIBRARIES glfw gl_glad opengl stb imgui
+        DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()
