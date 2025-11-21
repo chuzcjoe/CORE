@@ -12,10 +12,8 @@ class GLVertexArray {
   GLVertexArray();
   ~GLVertexArray();
 
-  void Bind() const;
-  void Unbind() const;
-
-  // void SetVertexData(const void* data, size_t size, GLenum usage = GL_STATIC_DRAW) const;
+  void Bind() const { glBindVertexArray(vao_id_); }
+  void Unbind() const { glBindVertexArray(0); }
 
   void SetElementData(const void* data, size_t size, GLenum usage = GL_STATIC_DRAW) const;
 

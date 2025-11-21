@@ -14,6 +14,7 @@
 #include "GLTexture.h"
 #include "GLUtils.h"
 #include "GLVertexArray.h"
+#include "GLVertexBuffer.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -148,6 +149,7 @@ int main() {
   core::opengl::GLProgram light_program(light_vertex_shader_source, light_fragment_shader_source);
   core::opengl::GLVertexArray obj_vao;
   core::opengl::GLVertexArray light_vao;
+  core::opengl::GLVertexBuffer vbo;  // share between object and light
 
   // clang-format off
   float vertices[] = {
@@ -195,21 +197,19 @@ int main() {
   };
   // clang-format on
 
+  // Setup VBO
+  vbo.SetData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+
   // setup object cube
-  obj_vao.Bind();
-  obj_vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
-  // position attribute
+  obj_vao.AttachVertexBuffer(vbo.id());
   obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
   // normal attribute
   obj_vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                                  (void*)(3 * sizeof(float)));
-  obj_vao.Unbind();
 
   // setup light cube
-  light_vao.Bind();
-  light_vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+  light_vao.AttachVertexBuffer(vbo.id());
   light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-  light_vao.Unbind();
 
   glEnable(GL_DEPTH_TEST);
 

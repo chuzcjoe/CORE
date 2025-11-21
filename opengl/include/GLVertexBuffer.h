@@ -18,8 +18,8 @@ class GLVertexBuffer {
   GLVertexBuffer(const GLVertexBuffer&) = delete;
   GLVertexBuffer& operator=(const GLVertexBuffer&) = delete;
 
-  GLVertexBuffer(GLVertexBuffer&& other) noexcept;
-  GLVertexBuffer& operator=(GLVertexBuffer&& other) noexcept;
+  GLVertexBuffer(GLVertexBuffer&& other) = delete;
+  GLVertexBuffer& operator=(GLVertexBuffer&& other) = delete;
 
   void Bind() const { glBindBuffer(target_, buffer_id_); }
   void Unbind() const { glBindBuffer(target_, 0); }

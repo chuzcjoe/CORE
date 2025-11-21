@@ -13,15 +13,6 @@ GLVertexArray::~GLVertexArray() {
   glDeleteBuffers(1, &ebo_id_);
 }
 
-void GLVertexArray::Bind() const { glBindVertexArray(vao_id_); }
-
-void GLVertexArray::Unbind() const { glBindVertexArray(0); }
-
-// void GLVertexArray::SetVertexData(const void* data, size_t size, GLenum usage) const {
-//   glBindBuffer(GL_ARRAY_BUFFER, vbo_id_);
-//   glBufferData(GL_ARRAY_BUFFER, size, data, usage);
-// }
-
 void GLVertexArray::SetElementData(const void* data, size_t size, GLenum usage) const {
   Bind();
   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo_id_);
