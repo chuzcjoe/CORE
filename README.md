@@ -18,8 +18,8 @@
 
 - [x] MacOS
 - [x] Android arm64-v8a
-- [ ] Windows (WIP)
-- [ ] Linux (WIP)
+- [ ] Windows (WIP, I am trying to get a windows laptop)
+- [ ] Linux (WIP, I am trying to get a linux laptop)
 
 # 3. Compile
 
