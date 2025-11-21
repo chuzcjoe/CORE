@@ -3,4 +3,3 @@ build/
 .vscode/
 *.png
 tmp/
-imgui.*
