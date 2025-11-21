@@ -19,5 +19,6 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
         PUBLIC
         mat
         glm
-        gles_glad)
+        gles_glad
+        stb)
 endif()

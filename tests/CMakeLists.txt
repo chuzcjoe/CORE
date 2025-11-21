@@ -1,4 +1,8 @@
 file(GLOB test_src "*.cpp")
+# Exclude MetalTest.cpp on non-Apple platforms
+if (NOT APPLE)
+    list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/MetalTest.cpp")
+endif()
 
 add_executable(core-tests ${test_src})
 
