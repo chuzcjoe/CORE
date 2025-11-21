@@ -8,6 +8,7 @@
 #include "GLProgram.h"
 #include "GLUtils.h"
 #include "GLVertexArray.h"
+#include "GLVertexBuffer.h"
 
 // settings
 const unsigned int kWidth = 800;
@@ -61,6 +62,7 @@ int main() {
   // Use GL after glad is initialized
   core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
   core::opengl::GLVertexArray vao;
+  core::opengl::GLVertexBuffer vbo(GL_ARRAY_BUFFER);
 
   float vertices[] = {
       0.5f,  0.5f,  0.0f, 1.0f, 0.0f, 0.0f,  // top right
@@ -73,13 +75,15 @@ int main() {
       1, 2, 3   // second Triangle
   };
 
-  vao.Bind();
-  vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+  // Setup VBO (handle vbo binding internally)
+  vbo.SetData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+
+  // Setup VAO (handle vao binding internally)
+  vao.AttachVertexBuffer(vbo.id());
   vao.SetElementData(indices, sizeof(indices), GL_STATIC_DRAW);
   vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
   vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
                              (void*)(3 * sizeof(float)));
-  vao.Unbind();
 
   // Enable blending for transparency
   glEnable(GL_BLEND);

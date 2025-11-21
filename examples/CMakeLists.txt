@@ -52,18 +52,18 @@ if(APPLE)
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 5. draw texture demo using opengl
-    build_example(gl_texture_demo
-        SOURCE_GLOBS "./opengl/GLTextureDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLTextureDemo
-        LIBRARIES glfw gl_glad opengl stb imgui
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_texture_demo
+    #     SOURCE_GLOBS "./opengl/GLTextureDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLTextureDemo
+    #     LIBRARIES glfw gl_glad opengl stb imgui
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 6. camera movement demo using opengl
-    build_example(gl_camera_demo
-        SOURCE_GLOBS "./opengl/GLCameraDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLCameraDemo
-        LIBRARIES glfw gl_glad opengl stb
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_camera_demo
+    #     SOURCE_GLOBS "./opengl/GLCameraDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLCameraDemo
+    #     LIBRARIES glfw gl_glad opengl stb
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 7. draw texture demo using vulkan
     build_example(vk_depth_demo
@@ -90,25 +90,25 @@ if(APPLE)
         LIBRARIES glfw vulkan stb)
 
     # 10. depth and stencil testing demo using opengl
-    build_example(gl_depth_stencil_demo
-        SOURCE_GLOBS "./opengl/GLDepthStencilDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLDepthStencilDemo
-        LIBRARIES glfw gl_glad opengl stb
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_depth_stencil_demo
+    #     SOURCE_GLOBS "./opengl/GLDepthStencilDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLDepthStencilDemo
+    #     LIBRARIES glfw gl_glad opengl stb
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 11. blend demo using opengl
-    build_example(gl_blend_demo
-        SOURCE_GLOBS "./opengl/GLBlendDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLBlendDemo
-        LIBRARIES glfw gl_glad opengl stb
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_blend_demo
+    #     SOURCE_GLOBS "./opengl/GLBlendDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLBlendDemo
+    #     LIBRARIES glfw gl_glad opengl stb
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 12. framebuffer demo using opengl
-    build_example(gl_framebuffer_demo
-        SOURCE_GLOBS "./opengl/GLFrameBufferDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLFrameBufferDemo
-        LIBRARIES glfw gl_glad opengl stb
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_framebuffer_demo
+    #     SOURCE_GLOBS "./opengl/GLFrameBufferDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLFrameBufferDemo
+    #     LIBRARIES glfw gl_glad opengl stb
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 13. metal triangle demo
     build_example(metal_triangle_demo
@@ -121,9 +121,9 @@ if(APPLE)
         LIBRARIES core_metal glfw stb)
 
     # 15. light demo using opengl
-    build_example(gl_light_demo
-        SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
-        PUBLIC_INCLUDES ./opengl/GLLightDemo
-        LIBRARIES glfw gl_glad opengl stb imgui
-        DEFINITIONS GL_SILENCE_DEPRECATION)
+    # build_example(gl_light_demo
+    #     SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./opengl/GLLightDemo
+    #     LIBRARIES glfw gl_glad opengl stb imgui
+    #     DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()
