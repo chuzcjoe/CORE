@@ -45,7 +45,7 @@ export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 
 # 4. Examples
 
-There are many examples under `exmaples/` folder. If you build with command `./run.sh -target macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
+There are many examples under the `examples/` folder. If you build with command `./run.sh -target macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
 
 ```
 ./build/macos/examples/gl_light_demo
