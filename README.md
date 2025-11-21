@@ -6,6 +6,18 @@
   <img src="./logo/core.gif" alt="CORE" width="60%"/>
 </p>
 
+# Table of Content
+- [1. Graphics and Compute APIs](#1-graphics-and-compute-apis)
+- [2. Supporting OS](#2-supporting-os)
+- [3. Compile](#3-compile)
+  - [3.1 Prerequisites](#31-prerequisites)
+  - [3.2 Host(MacOS) + Target(MacOS)](#32-hostmacos--targetmacos)
+  - [3.3 Host(MacOS) + Target(Android arm64-v8a)](#33-hostmacos--targetandroid-arm64-v8a)
+- [4. Examples](#4-examples)
+- [5. Compute](#5-compute)
+  - [Vulkan](#vulkan)
+- [6. Graphics](#6-graphics)
+
 # 1. Graphics and Compute APIs
 
 - [x] Vulkan
@@ -70,6 +82,5 @@ How to run this demo?
 ```
 ./run.sh -target macos
 ./build/macos/examples/vk_triangle_demo
-
 ```
 
