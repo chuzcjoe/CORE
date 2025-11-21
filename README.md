@@ -43,7 +43,15 @@ export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 ./run.sh -target arm64-v8a
 ``` 
 
-# 4. Compute
+# 4. Examples
+
+There are many examples under `exmaples/` folder. If you build with command `./run.sh -target macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
+
+```
+./build/macos/examples/gl_light_demo
+```
+
+# 5. Compute
 ```
 ./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
 ```
@@ -53,7 +61,7 @@ export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
 
 
-# 5. Graphics
+# 6. Graphics
 
 Normally, you need to write ~1000 lines of code in Vulkan to draw a simple triangle. Using **CORE** APIs,
 It only takes about **100** lines of code. See example in `examples/DrawTriangleDemo/main.cpp`
