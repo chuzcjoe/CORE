@@ -3,4 +3,4 @@ build/
 .vscode/
 *.png
 tmp/
-imgui.ini
+imgui.*
