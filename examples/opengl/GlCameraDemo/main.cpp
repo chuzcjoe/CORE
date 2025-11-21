@@ -10,6 +10,7 @@
 #include "GLTexture.h"
 #include "GLUtils.h"
 #include "GLVertexArray.h"
+#include "GLVertexBuffer.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -86,6 +87,7 @@ int main() {
   // Use GL after glad is initialized
   core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
   core::opengl::GLVertexArray vao;
+  core::opengl::GLVertexBuffer vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
   texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/core.png", GL_RGB, 0);
   texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/wall.jpg", GL_RGB, 1);
@@ -120,13 +122,14 @@ int main() {
       glm::vec3(-1.5f, -2.2f, -2.5f),
   };
 
-  // setup vertex data (and buffer(s)) and configure vertex attributes
-  vao.Bind();
-  vao.SetVertexData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+  // Setup VBO
+  vbo.SetData(vertices, sizeof(vertices), GL_STATIC_DRAW);
+
+  // Setup VAO
+  vao.AttachVertexBuffer(vbo.id());
   vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                              (void*)(3 * sizeof(float)));
-  vao.Unbind();
 
   glEnable(GL_DEPTH_TEST);
 

@@ -12,6 +12,7 @@
 #include "GLTexture.h"
 #include "GLUtils.h"
 #include "GLVertexArray.h"
+#include "GLVertexBuffer.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -157,6 +158,10 @@ int main() {
   core::opengl::GLVertexArray plane_vao;
   core::opengl::GLVertexArray transparent_vao;
   core::opengl::GLVertexArray screen_vao;
+  core::opengl::GLVertexBuffer cube_vbo;
+  core::opengl::GLVertexBuffer plane_vbo;
+  core::opengl::GLVertexBuffer transparent_vbo;
+  core::opengl::GLVertexBuffer screen_vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
   core::opengl::GLFrameBuffer framebuffer(true);  // use renderbuffer
 
@@ -246,36 +251,32 @@ int main() {
   // clang-format on
 
   // config cube vao
-  cube_vao.Bind();
-  cube_vao.SetVertexData(cube_vertices, sizeof(cube_vertices), GL_STATIC_DRAW);
+  cube_vbo.SetData(cube_vertices, sizeof(cube_vertices), GL_STATIC_DRAW);
+  cube_vao.AttachVertexBuffer(cube_vbo.id());
   cube_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   cube_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                                   (void*)(3 * sizeof(float)));
-  cube_vao.Unbind();
 
   // config plane vao
-  plane_vao.Bind();
-  plane_vao.SetVertexData(plane_vertices, sizeof(plane_vertices), GL_STATIC_DRAW);
+  plane_vbo.SetData(plane_vertices, sizeof(plane_vertices), GL_STATIC_DRAW);
+  plane_vao.AttachVertexBuffer(plane_vbo.id());
   plane_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   plane_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                                    (void*)(3 * sizeof(float)));
-  plane_vao.Unbind();
 
   // config transparent vao
-  transparent_vao.Bind();
-  transparent_vao.SetVertexData(transparent_vertices, sizeof(transparent_vertices), GL_STATIC_DRAW);
+  transparent_vbo.SetData(transparent_vertices, sizeof(transparent_vertices), GL_STATIC_DRAW);
+  transparent_vao.AttachVertexBuffer(transparent_vbo.id());
   transparent_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
   transparent_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
                                          (void*)(3 * sizeof(float)));
-  transparent_vao.Unbind();
 
   // config screen vao
-  screen_vao.Bind();
-  screen_vao.SetVertexData(quad_vertices, sizeof(quad_vertices), GL_STATIC_DRAW);
+  screen_vbo.SetData(quad_vertices, sizeof(quad_vertices), GL_STATIC_DRAW);
+  screen_vao.AttachVertexBuffer(screen_vbo.id());
   screen_vao.SetVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
   screen_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
                                     (void*)(2 * sizeof(float)));
-  screen_vao.Unbind();
 
   // config framebuffer
   framebuffer.AttachTexture2D(GL_COLOR_ATTACHMENT0, GL_RGB, kWidth, kHeight, GL_RGB,
