@@ -33,6 +33,16 @@ After downloading the NDK, set the environment variable **ANDROID_NDK_ROOT** poi
 export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 ```
 
+## 3.2 Host(MacOS) + Target(MacOS)
+```
+./run.sh -target macos
+```
+
+## 3.3 Host(MacOS) + Target(Android arm64-v8a)
+```
+./run.sh -target arm64-v8a
+``` 
+
 # 4. Compute
 ```
 ./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
