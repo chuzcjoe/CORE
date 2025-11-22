@@ -61,10 +61,9 @@ int main() {
   std::unique_ptr<core::metal::MTLTexture> texture =
       std::make_unique<core::metal::MTLTexture>(context.get());
 
-  texture->LoadTextureFromFile("./examples/metal/MetalTextureDemo/mc_grass.jpeg");
+  texture->LoadTextureFromFile("./examples/data/mc_grass.jpeg");
   buffer->CreateBuffer(square_vertices, sizeof(square_vertices));
-  pipeline->CreateRenderPipeline("./examples/metal/MetalTextureDemo/square.metal",
-                                 MTL::PixelFormatBGRA8Unorm);
+  pipeline->CreateRenderPipeline("./examples/data/square.metal", MTL::PixelFormatBGRA8Unorm);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();

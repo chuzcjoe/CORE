@@ -113,12 +113,10 @@ int main() {
   core::opengl::GLVertexBuffer plane_vbo;
   core::opengl::GLVertexBuffer transparent_vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
-  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/metal.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/marble.jpg", GL_RGB, 1);
-  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/grass.png", GL_RGBA, 2,
-                                GL_CLAMP_TO_EDGE, false);
-  texture.Load2DTextureFromFile("./examples/opengl/GLBlendDemo/window.png", GL_RGBA, 3,
-                                GL_CLAMP_TO_EDGE, false);
+  texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
+  texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE, false);
+  texture.Load2DTextureFromFile("./examples/data/window.png", GL_RGBA, 3, GL_CLAMP_TO_EDGE, false);
 
   // clang-format off
   float cube_vertices[] = {
