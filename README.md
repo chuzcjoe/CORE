@@ -14,8 +14,9 @@
   - [3.2 Host(MacOS) + Target(MacOS)](#32-hostmacos--targetmacos)
   - [3.3 Host(MacOS) + Target(Android arm64-v8a)](#33-hostmacos--targetandroid-arm64-v8a)
 - [4. Examples](#4-examples)
-- [5. Compute](#5-compute)
-- [6. Graphics](#6-graphics)
+- [5. Unit Test](#5-unit-test)
+- [6. Compute](#6-compute)
+- [7. Graphics](#6-graphics)
 
 # 1. Graphics and Compute APIs
 
@@ -62,7 +63,16 @@ There are many examples under the `examples/` folder. If you build with command 
 ./build/macos/examples/gl_light_demo
 ```
 
-# 5. Compute
+# 5. Unit Test
+
+All unit tests are under `./tests` folder. To run a specific test:
+```
+./run.sh -target macos -test_module tests -test_filter MatTest3.test
+```
+
+If **-test_filter** is not specified, all the tests will be run.
+
+# 6. Compute
 ```
 ./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
 ```
@@ -72,7 +82,7 @@ There are many examples under the `examples/` folder. If you build with command 
 2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
 
 
-# 6. Graphics
+# 7. Graphics
 
 Normally, you need to write ~1000 lines of code in Vulkan to draw a simple triangle. Using **CORE** APIs,
 It only takes about **100** lines of code. See example in `examples/DrawTriangleDemo/main.cpp`
