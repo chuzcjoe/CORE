@@ -89,8 +89,8 @@ int main() {
   core::opengl::GLVertexArray vao;
   core::opengl::GLVertexBuffer vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
-  texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/core.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/opengl/GLCameraDemo/wall.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/data/core.png", GL_RGB, 0);
+  texture.Load2DTextureFromFile("./examples/data/wall.jpg", GL_RGB, 1);
 
   float vertices[] = {-0.5f, -0.5f, -0.5f, 0.0f, 0.0f, 0.5f,  -0.5f, -0.5f, 1.0f, 0.0f,
                       0.5f,  0.5f,  -0.5f, 1.0f, 1.0f, 0.5f,  0.5f,  -0.5f, 1.0f, 1.0f,

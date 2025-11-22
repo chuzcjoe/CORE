@@ -165,10 +165,9 @@ int main() {
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
   core::opengl::GLFrameBuffer framebuffer(true);  // use renderbuffer
 
-  texture.Load2DTextureFromFile("./examples/opengl/GLFrameBufferDemo/metal.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/opengl/GLFrameBufferDemo/marble.jpg", GL_RGB, 1);
-  texture.Load2DTextureFromFile("./examples/opengl/GLFrameBufferDemo/grass.png", GL_RGBA, 2,
-                                GL_CLAMP_TO_EDGE, false);
+  texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
+  texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE, false);
 
   // clang-format off
   float cube_vertices[] = {

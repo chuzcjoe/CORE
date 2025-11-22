@@ -45,7 +45,7 @@ int main() {
                                              kEnableDepthBuffer);  // enable depth buffer
   std::unique_ptr<core::GraphicDepth> texture =
       std::make_unique<core::GraphicDepth>(&context, render_pass);
-  texture->Init("examples/vulkan/DepthTestingDemo/core.png");
+  texture->Init("examples/data/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 
   while (!glfwWindowShouldClose(window)) {

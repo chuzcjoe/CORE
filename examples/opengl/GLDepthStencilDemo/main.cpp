@@ -108,8 +108,8 @@ int main() {
   core::opengl::GLVertexBuffer cube_vbo;
   core::opengl::GLVertexBuffer plane_vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
-  texture.Load2DTextureFromFile("./examples/opengl/GLDepthStencilDemo/metal.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/opengl/GLDepthStencilDemo/marble.jpg", GL_RGB, 1);
+  texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
+  texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
 
   // clang-format off
   float cube_vertices[] = {
