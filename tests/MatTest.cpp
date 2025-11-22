@@ -37,5 +37,20 @@ TEST(MatTest2, test) {
   }
 }
 
+TEST(MatTest3, test) {
+  std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
+  core::MatView<float, 1> mat_view(data.data(), 2, 2);
+
+  for (int i = 0; i < mat_view.total(); ++i) {
+    mat_view.data()[i] += 1.0f;
+    printf("mat_view.data()[%d] = %f\n", i, mat_view.data()[i]);
+    printf("data[%d] = %f\n", i, data[i]);
+  }
+
+  for (int i = 0; i < mat_view.total(); ++i) {
+    EXPECT_EQ(data[i], mat_view.data()[i]);
+  }
+}
+
 }  // namespace test
 }  // namespace core
