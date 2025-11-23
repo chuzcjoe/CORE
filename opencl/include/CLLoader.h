@@ -27,10 +27,9 @@ typedef void* CORE_DYNLIB_HANDLE;
 
 #define CL_GET_FUN(x) x
 
-#define CL_SUCCESS 0             //!<    Success error code
-#define CL_ERROR_OPEN_FAILED -1  //!<    Error code for failing to open the dynamic library
-#define CL_ERROR_ATEXIT_FAILED \
-  -2  //!<    Error code for failing to queue the closing of the dynamic library to atexit()
+#define CL_SUCCESS 0               // success
+#define CL_ERROR_OPEN_FAILED -1    // fail to open the OpenCL dynamic library
+#define CL_ERROR_ATEXIT_FAILED -2  // fail to register atexit handler
 
 #define clGetPlatformIDs CL_GET_FUN(core::opencl::__clGetPlatformIDs)
 
