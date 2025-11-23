@@ -9,8 +9,28 @@ namespace opencl {
 
 static CORE_DYNLIB_HANDLE module = nullptr;
 
+// clang-format off
 // Function pointers
-PFN_CLGETPLATFORMIDS __clGetPlatformIDs = nullptr;
+PFN_CLGETPLATFORMIDS          __clGetPlatformIDs          = nullptr;
+PFN_CLGETDEVICEIDS            __clGetDeviceIDs            = nullptr;
+PFN_CLCREATECONTEXT           __clCreateContext           = nullptr;
+PFN_CLCREATECOMMANDQUEUE      __clCreateCommandQueue      = nullptr;
+PFN_CLCREATEPROGRAMWITHSOURCE __clCreateProgramWithSource = nullptr;
+PFN_CLBUILDPROGRAM            __clBuildProgram            = nullptr;
+PFN_CLCREATEKERNEL            __clCreateKernel            = nullptr;
+PFN_CLCREATEBUFFER            __clCreateBuffer            = nullptr;
+PFN_CLSETKERNELARG            __clSetKernelArg            = nullptr;
+PFN_CLENQUEUENDRANGEKERNEL    __clEnqueueNDRangeKernel    = nullptr;
+PFN_CLFINISH                  __clFinish                  = nullptr;
+PFN_CLENQUEUEREADBUFFER       __clEnqueueReadBuffer       = nullptr;
+PFN_CLRELEASEMEMOBJECT        __clReleaseMemObject        = nullptr;
+PFN_CLRELEASEKERNEL           __clReleaseKernel           = nullptr;
+PFN_CLRELEASEPROGRAM          __clReleaseProgram          = nullptr;
+PFN_CLRELEASECOMMANDQUEUE     __clReleaseCommandQueue     = nullptr;
+PFN_CLRELEASECONTEXT          __clReleaseContext          = nullptr;
+PFN_CLGETPROGRAMBUILDINFO     __clGetProgramBuildInfo     = nullptr;
+
+// clang-format on
 
 static void *dynamic_library_open_find(const char **paths) {
   int i = 0;
@@ -68,8 +88,27 @@ int cl_init() {
     return CL_ERROR_ATEXIT_FAILED;
   }
 
+  // clang-format off
   // Load functions
-  __clGetPlatformIDs = (PFN_CLGETPLATFORMIDS)CORE_DYNLIB_IMPORT(module, "clGetPlatformIDs");
+  __clGetPlatformIDs          = (PFN_CLGETPLATFORMIDS )CORE_DYNLIB_IMPORT(module, "clGetPlatformIDs");
+  __clGetDeviceIDs            = (PFN_CLGETDEVICEIDS)CORE_DYNLIB_IMPORT(module, "clGetDeviceIDs");
+  __clCreateContext           = (PFN_CLCREATECONTEXT)CORE_DYNLIB_IMPORT(module, "clCreateContext");
+  __clCreateCommandQueue      = (PFN_CLCREATECOMMANDQUEUE)CORE_DYNLIB_IMPORT(module, "clCreateCommandQueue");
+  __clCreateProgramWithSource = (PFN_CLCREATEPROGRAMWITHSOURCE)CORE_DYNLIB_IMPORT(module, "clCreateProgramWithSource");
+  __clBuildProgram            = (PFN_CLBUILDPROGRAM)CORE_DYNLIB_IMPORT(module, "clBuildProgram");
+  __clCreateKernel            = (PFN_CLCREATEKERNEL)CORE_DYNLIB_IMPORT(module, "clCreateKernel");
+  __clCreateBuffer            = (PFN_CLCREATEBUFFER)CORE_DYNLIB_IMPORT(module, "clCreateBuffer");
+  __clSetKernelArg            = (PFN_CLSETKERNELARG)CORE_DYNLIB_IMPORT(module, "clSetKernelArg");
+  __clEnqueueNDRangeKernel    = (PFN_CLENQUEUENDRANGEKERNEL)CORE_DYNLIB_IMPORT(module, "clEnqueueNDRangeKernel");
+  __clFinish                  = (PFN_CLFINISH)CORE_DYNLIB_IMPORT(module, "clFinish");
+  __clEnqueueReadBuffer       = (PFN_CLENQUEUEREADBUFFER)CORE_DYNLIB_IMPORT(module, "clEnqueueReadBuffer");
+  __clReleaseMemObject        = (PFN_CLRELEASEMEMOBJECT)CORE_DYNLIB_IMPORT(module, "clReleaseMemObject");
+  __clReleaseKernel           = (PFN_CLRELEASEKERNEL)CORE_DYNLIB_IMPORT(module, "clReleaseKernel");
+  __clReleaseProgram          = (PFN_CLRELEASEPROGRAM)CORE_DYNLIB_IMPORT(module, "clReleaseProgram");
+  __clReleaseCommandQueue     = (PFN_CLRELEASECOMMANDQUEUE)CORE_DYNLIB_IMPORT(module, "clReleaseCommandQueue");
+  __clReleaseContext          = (PFN_CLRELEASECONTEXT)CORE_DYNLIB_IMPORT(module, "clReleaseContext");
+  __clGetProgramBuildInfo     = (PFN_CLGETPROGRAMBUILDINFO)CORE_DYNLIB_IMPORT(module, "clGetProgramBuildInfo");
+  // clang-format on
 
   printf("OpenCL library loaded successfully.\n");
 
