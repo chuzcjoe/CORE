@@ -44,6 +44,7 @@ typedef void* CORE_DYNLIB_HANDLE;
 #define clEnqueueNDRangeKernel    CL_GET_FUN(core::opencl::__clEnqueueNDRangeKernel)
 #define clFinish                  CL_GET_FUN(core::opencl::__clFinish)
 #define clEnqueueReadBuffer       CL_GET_FUN(core::opencl::__clEnqueueReadBuffer)
+#define clEnqueueWriteBuffer      CL_GET_FUN(core::opencl::__clEnqueueWriteBuffer)
 #define clReleaseMemObject        CL_GET_FUN(core::opencl::__clReleaseMemObject)
 #define clReleaseKernel           CL_GET_FUN(core::opencl::__clReleaseKernel)
 #define clReleaseProgram          CL_GET_FUN(core::opencl::__clReleaseProgram)
@@ -115,6 +116,14 @@ typedef cl_int (*PFN_CLENQUEUEREADBUFFER)(cl_command_queue /* command_queue */, 
                                           const cl_event* /* event_wait_list */,
                                           cl_event* /* event */) CL_API_SUFFIX__VERSION_1_0;
 
+typedef cl_int (*PFN_CLENQUEUEWRITEBUFFER)(cl_command_queue /* command_queue */,
+                                           cl_mem /* buffer */, cl_bool /* blocking_write */,
+                                           size_t /* offset */, size_t /* cb */,
+                                           const void* /* ptr */,
+                                           cl_uint /* num_events_in_wait_list */,
+                                           const cl_event* /* event_wait_list */,
+                                           cl_event* /* event */) CL_API_SUFFIX__VERSION_1_0;
+
 typedef cl_int (*PFN_CLGETPROGRAMBUILDINFO)(
     cl_program /* program */, cl_device_id /* device */, cl_program_build_info /* param_name */,
     size_t /* param_value_size */, void* /* param_value */,
@@ -144,6 +153,7 @@ extern PFN_CLSETKERNELARG            __clSetKernelArg;
 extern PFN_CLENQUEUENDRANGEKERNEL    __clEnqueueNDRangeKernel;
 extern PFN_CLFINISH                  __clFinish;
 extern PFN_CLENQUEUEREADBUFFER       __clEnqueueReadBuffer;
+extern PFN_CLENQUEUEWRITEBUFFER      __clEnqueueWriteBuffer;
 extern PFN_CLGETPROGRAMBUILDINFO     __clGetProgramBuildInfo;
 extern PFN_CLRELEASEMEMOBJECT        __clReleaseMemObject;
 extern PFN_CLRELEASEKERNEL           __clReleaseKernel;

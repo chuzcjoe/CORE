@@ -23,6 +23,7 @@ PFN_CLSETKERNELARG            __clSetKernelArg            = nullptr;
 PFN_CLENQUEUENDRANGEKERNEL    __clEnqueueNDRangeKernel    = nullptr;
 PFN_CLFINISH                  __clFinish                  = nullptr;
 PFN_CLENQUEUEREADBUFFER       __clEnqueueReadBuffer       = nullptr;
+PFN_CLENQUEUEWRITEBUFFER      __clEnqueueWriteBuffer      = nullptr;
 PFN_CLRELEASEMEMOBJECT        __clReleaseMemObject        = nullptr;
 PFN_CLRELEASEKERNEL           __clReleaseKernel           = nullptr;
 PFN_CLRELEASEPROGRAM          __clReleaseProgram          = nullptr;
@@ -102,6 +103,7 @@ int cl_init() {
   __clEnqueueNDRangeKernel    = (PFN_CLENQUEUENDRANGEKERNEL)CORE_DYNLIB_IMPORT(module, "clEnqueueNDRangeKernel");
   __clFinish                  = (PFN_CLFINISH)CORE_DYNLIB_IMPORT(module, "clFinish");
   __clEnqueueReadBuffer       = (PFN_CLENQUEUEREADBUFFER)CORE_DYNLIB_IMPORT(module, "clEnqueueReadBuffer");
+  __clEnqueueWriteBuffer      = (PFN_CLENQUEUEWRITEBUFFER)CORE_DYNLIB_IMPORT(module, "clEnqueueWriteBuffer");
   __clReleaseMemObject        = (PFN_CLRELEASEMEMOBJECT)CORE_DYNLIB_IMPORT(module, "clReleaseMemObject");
   __clReleaseKernel           = (PFN_CLRELEASEKERNEL)CORE_DYNLIB_IMPORT(module, "clReleaseKernel");
   __clReleaseProgram          = (PFN_CLRELEASEPROGRAM)CORE_DYNLIB_IMPORT(module, "clReleaseProgram");

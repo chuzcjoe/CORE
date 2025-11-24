@@ -2,7 +2,12 @@
 
 #include <iostream>
 
+#include "CLBuffer.h"
+#include "CLCommandQueue.h"
+#include "CLContext.h"
+#include "CLKernel.h"
 #include "CLLoader.h"
+#include "CLProgram.h"
 
 namespace core {
 namespace test {
@@ -116,6 +121,46 @@ TEST(OpenCL, VecAdd) {
   clReleaseProgram(program);
   clReleaseCommandQueue(queue);
   clReleaseContext(context);
+}
+
+TEST(OpenCL, VecAddCLWrapper) {
+  const int N = 8;
+  std::vector<float> A(N), B(N), C(N);
+  for (int i = 0; i < N; ++i) {
+    A[i] = static_cast<float>(i);
+    B[i] = static_cast<float>(i * 10);
+    std::cout << "A[" << i << "] = " << A[i] << ", B[" << i << "] = " << B[i] << '\n';
+  }
+
+  // initialize OpenCL
+  int init = core::opencl::cl_init();
+  if (init) {
+    throw std::runtime_error("Failed to initialize OpenCL loader");
+  }
+
+  size_t globalWorkSize = N;
+
+  core::opencl::CLContext clcontext;
+  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/vec_add.cl");
+  core::opencl::CLKernel clkernel(&clprogram, "vec_add");
+  core::opencl::CLCommandQueue clqueue(&clcontext);
+  core::opencl::CLBuffer bufA(&clcontext, sizeof(float) * N,
+                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, A.data());
+  core::opencl::CLBuffer bufB(&clcontext, sizeof(float) * N,
+                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, B.data());
+  core::opencl::CLBuffer bufC(&clcontext, sizeof(float) * N, CL_MEM_WRITE_ONLY);
+
+  clkernel.SetArgs(0, bufA);
+  clkernel.SetArgs(1, bufB);
+  clkernel.SetArgs(2, bufC);
+
+  clqueue.Submit(clkernel, globalWorkSize);
+  clqueue.Finish();
+  clqueue.ReadBuffer(bufC, C.data(), sizeof(float) * N);
+
+  for (int i = 0; i < N; ++i) {
+    std::cout << "C[" << i << "] = " << C[i] << '\n';
+  }
 }
 
 }  // namespace test
