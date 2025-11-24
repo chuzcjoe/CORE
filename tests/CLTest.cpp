@@ -124,7 +124,6 @@ TEST(OpenCL, VecAdd) {
 }
 
 TEST(OpenCL, VecAddCLWrapper) {
-  // 1. Input data
   const int N = 8;
   std::vector<float> A(N), B(N), C(N);
   for (int i = 0; i < N; ++i) {
@@ -159,7 +158,6 @@ TEST(OpenCL, VecAddCLWrapper) {
   clqueue.Finish();
   clqueue.ReadBuffer(bufC, C.data(), sizeof(float) * N);
 
-  // 9. Print results
   for (int i = 0; i < N; ++i) {
     std::cout << "C[" << i << "] = " << C[i] << '\n';
   }
