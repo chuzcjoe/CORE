@@ -30,7 +30,8 @@ PFN_CLRELEASEPROGRAM          __clReleaseProgram          = nullptr;
 PFN_CLRELEASECOMMANDQUEUE     __clReleaseCommandQueue     = nullptr;
 PFN_CLRELEASECONTEXT          __clReleaseContext          = nullptr;
 PFN_CLGETPROGRAMBUILDINFO     __clGetProgramBuildInfo     = nullptr;
-
+PFN_CLGETDEVICEINFO           __clGetDeviceInfo           = nullptr;
+PFN_CLGETPLATFORMINFO         __clGetPlatformInfo        = nullptr;
 // clang-format on
 
 static void *dynamic_library_open_find(const char **paths) {
@@ -110,6 +111,8 @@ int cl_init() {
   __clReleaseCommandQueue     = (PFN_CLRELEASECOMMANDQUEUE)CORE_DYNLIB_IMPORT(module, "clReleaseCommandQueue");
   __clReleaseContext          = (PFN_CLRELEASECONTEXT)CORE_DYNLIB_IMPORT(module, "clReleaseContext");
   __clGetProgramBuildInfo     = (PFN_CLGETPROGRAMBUILDINFO)CORE_DYNLIB_IMPORT(module, "clGetProgramBuildInfo");
+  __clGetDeviceInfo           = (PFN_CLGETDEVICEINFO)CORE_DYNLIB_IMPORT(module, "clGetDeviceInfo");
+  __clGetPlatformInfo         = (PFN_CLGETPLATFORMINFO)CORE_DYNLIB_IMPORT(module, "clGetPlatformInfo");
   // clang-format on
 
   printf("OpenCL library loaded successfully.\n");

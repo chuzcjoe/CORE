@@ -143,6 +143,9 @@ TEST(OpenCL, VecAddCLWrapper) {
   size_t buffer_size = sizeof(float) * N;
 
   core::opencl::CLContext clcontext;
+  // print opencl info
+  core::opencl::CLContext::PrintInfo();
+
   core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/vec_add.cl");
   core::opencl::CLKernel clkernel(&clprogram, "vec_add");
   core::opencl::CLCommandQueue clqueue(&clcontext);
