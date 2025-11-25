@@ -51,6 +51,8 @@ typedef void* CORE_DYNLIB_HANDLE;
 #define clReleaseCommandQueue     CL_GET_FUN(core::opencl::__clReleaseCommandQueue)
 #define clReleaseContext          CL_GET_FUN(core::opencl::__clReleaseContext)
 #define clGetProgramBuildInfo     CL_GET_FUN(core::opencl::__clGetProgramBuildInfo)
+#define clGetDeviceInfo           CL_GET_FUN(core::opencl::__clGetDeviceInfo)
+#define clGetPlatformInfo         CL_GET_FUN(core::opencl::__clGetPlatformInfo)
 // clang-format on
 
 namespace core {
@@ -140,6 +142,14 @@ typedef cl_int (*PFN_CLRELEASECOMMANDQUEUE)(cl_command_queue /* command_queue */
 
 typedef cl_int (*PFN_CLRELEASECONTEXT)(cl_context /* context */) CL_API_SUFFIX__VERSION_1_0;
 
+typedef cl_int (*PFN_CLGETDEVICEINFO)(
+    cl_device_id /* device */, cl_device_info /* param_name */, size_t /* param_value_size */,
+    void* /* param_value */, size_t* /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+typedef cl_int (*PFN_CLGETPLATFORMINFO)(
+    cl_platform_id /* platform */, cl_platform_info /* param_name */, size_t /* param_value_size */,
+    void* /* param_value */, size_t* /* param_value_size_ret */) CL_API_SUFFIX__VERSION_1_0;
+
 // clang-format off
 extern PFN_CLGETPLATFORMIDS          __clGetPlatformIDs;
 extern PFN_CLGETDEVICEIDS            __clGetDeviceIDs;
@@ -160,6 +170,8 @@ extern PFN_CLRELEASEKERNEL           __clReleaseKernel;
 extern PFN_CLRELEASEPROGRAM          __clReleaseProgram;
 extern PFN_CLRELEASECOMMANDQUEUE     __clReleaseCommandQueue;
 extern PFN_CLRELEASECONTEXT          __clReleaseContext;
+extern PFN_CLGETDEVICEINFO           __clGetDeviceInfo;
+extern PFN_CLGETPLATFORMINFO        __clGetPlatformInfo;
 // clang-format on
 
 }  // namespace opencl

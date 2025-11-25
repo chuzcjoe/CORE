@@ -89,16 +89,16 @@ TEST(OpenCL, VecAdd) {
   cl_kernel kernel = clCreateKernel(program, "vec_add", &err);
 
   // 6. Create buffers
-  cl_mem bufA = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * N,
-                               A.data(), &err);
-  cl_mem bufB = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, sizeof(float) * N,
-                               B.data(), &err);
-  cl_mem bufC = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * N, nullptr, &err);
+  cl_mem buffer_a = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   sizeof(float) * N, A.data(), &err);
+  cl_mem buffer_b = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                   sizeof(float) * N, B.data(), &err);
+  cl_mem buffer_c = clCreateBuffer(context, CL_MEM_WRITE_ONLY, sizeof(float) * N, nullptr, &err);
 
   // 7. Set arguments and launch kernel
-  clSetKernelArg(kernel, 0, sizeof(cl_mem), &bufA);
-  clSetKernelArg(kernel, 1, sizeof(cl_mem), &bufB);
-  clSetKernelArg(kernel, 2, sizeof(cl_mem), &bufC);
+  clSetKernelArg(kernel, 0, sizeof(cl_mem), &buffer_a);
+  clSetKernelArg(kernel, 1, sizeof(cl_mem), &buffer_b);
+  clSetKernelArg(kernel, 2, sizeof(cl_mem), &buffer_c);
 
   size_t globalWorkSize = N;
   err = clEnqueueNDRangeKernel(queue, kernel, 1, nullptr, &globalWorkSize, nullptr, 0, nullptr,
@@ -106,7 +106,8 @@ TEST(OpenCL, VecAdd) {
   clFinish(queue);
 
   // 8. Read results
-  clEnqueueReadBuffer(queue, bufC, CL_TRUE, 0, sizeof(float) * N, C.data(), 0, nullptr, nullptr);
+  clEnqueueReadBuffer(queue, buffer_c, CL_TRUE, 0, sizeof(float) * N, C.data(), 0, nullptr,
+                      nullptr);
 
   // 9. Print results
   for (int i = 0; i < N; ++i) {
@@ -114,9 +115,9 @@ TEST(OpenCL, VecAdd) {
   }
 
   // 10. Cleanup
-  clReleaseMemObject(bufA);
-  clReleaseMemObject(bufB);
-  clReleaseMemObject(bufC);
+  clReleaseMemObject(buffer_a);
+  clReleaseMemObject(buffer_b);
+  clReleaseMemObject(buffer_c);
   clReleaseKernel(kernel);
   clReleaseProgram(program);
   clReleaseCommandQueue(queue);
@@ -139,24 +140,26 @@ TEST(OpenCL, VecAddCLWrapper) {
   }
 
   size_t globalWorkSize = N;
+  size_t buffer_size = sizeof(float) * N;
 
   core::opencl::CLContext clcontext;
+  // print opencl info
+  core::opencl::CLContext::PrintInfo();
+
   core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/vec_add.cl");
   core::opencl::CLKernel clkernel(&clprogram, "vec_add");
   core::opencl::CLCommandQueue clqueue(&clcontext);
-  core::opencl::CLBuffer bufA(&clcontext, sizeof(float) * N,
-                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, A.data());
-  core::opencl::CLBuffer bufB(&clcontext, sizeof(float) * N,
-                              CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, B.data());
-  core::opencl::CLBuffer bufC(&clcontext, sizeof(float) * N, CL_MEM_WRITE_ONLY);
+  core::opencl::CLBuffer buffer_a(&clcontext, buffer_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  A.data());
+  core::opencl::CLBuffer buffer_b(&clcontext, buffer_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                  B.data());
+  core::opencl::CLBuffer buffer_c(&clcontext, buffer_size, CL_MEM_WRITE_ONLY);
 
-  clkernel.SetArgs(0, bufA);
-  clkernel.SetArgs(1, bufB);
-  clkernel.SetArgs(2, bufC);
+  clkernel.SetArgs(buffer_a, buffer_b, buffer_c);
 
   clqueue.Submit(clkernel, globalWorkSize);
   clqueue.Finish();
-  clqueue.ReadBuffer(bufC, C.data(), sizeof(float) * N);
+  clqueue.ReadBuffer(buffer_c, C.data(), buffer_size);
 
   for (int i = 0; i < N; ++i) {
     std::cout << "C[" << i << "] = " << C[i] << '\n';
