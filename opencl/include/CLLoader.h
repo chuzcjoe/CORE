@@ -45,6 +45,8 @@ typedef void* CORE_DYNLIB_HANDLE;
 #define clFinish                  CL_GET_FUN(core::opencl::__clFinish)
 #define clEnqueueReadBuffer       CL_GET_FUN(core::opencl::__clEnqueueReadBuffer)
 #define clEnqueueWriteBuffer      CL_GET_FUN(core::opencl::__clEnqueueWriteBuffer)
+#define clEnqueueMapBuffer        CL_GET_FUN(core::opencl::__clEnqueueMapBuffer)
+#define clEnqueueUnmapMemObject   CL_GET_FUN(core::opencl::__clEnqueueUnmapMemObject)
 #define clReleaseMemObject        CL_GET_FUN(core::opencl::__clReleaseMemObject)
 #define clReleaseKernel           CL_GET_FUN(core::opencl::__clReleaseKernel)
 #define clReleaseProgram          CL_GET_FUN(core::opencl::__clReleaseProgram)
@@ -129,6 +131,20 @@ typedef cl_int (*PFN_CLENQUEUEWRITEBUFFER)(cl_command_queue /* command_queue */,
                                            const cl_event* /* event_wait_list */,
                                            cl_event* /* event */) CL_API_SUFFIX__VERSION_1_0;
 
+typedef void* (*PFN_CLENQUEUEMAPBUFFER)(cl_command_queue /* command_queue */, cl_mem /* buffer */,
+                                        cl_bool /* blocking_map */, cl_map_flags /* map_flags */,
+                                        size_t /* offset */, size_t /* size */,
+                                        cl_uint /* num_events_in_wait_list */,
+                                        const cl_event* /* event_wait_list */,
+                                        cl_event* /* event */,
+                                        cl_int* /* errcode_ret */)CL_API_SUFFIX__VERSION_1_0;
+
+typedef cl_int (*PFN_CLENQUEUEUNMAPMEMOBJECT)(cl_command_queue /* command_queue */,
+                                              cl_mem /* memobj */, void* /* mapped_ptr */,
+                                              cl_uint /* num_events_in_wait_list */,
+                                              const cl_event* /* event_wait_list */,
+                                              cl_event* /* event */) CL_API_SUFFIX__VERSION_1_0;
+
 typedef cl_int (*PFN_CLGETPROGRAMBUILDINFO)(
     cl_program /* program */, cl_device_id /* device */, cl_program_build_info /* param_name */,
     size_t /* param_value_size */, void* /* param_value */,
@@ -176,6 +192,8 @@ extern PFN_CLENQUEUENDRANGEKERNEL    __clEnqueueNDRangeKernel;
 extern PFN_CLFINISH                  __clFinish;
 extern PFN_CLENQUEUEREADBUFFER       __clEnqueueReadBuffer;
 extern PFN_CLENQUEUEWRITEBUFFER      __clEnqueueWriteBuffer;
+extern PFN_CLENQUEUEMAPBUFFER        __clEnqueueMapBuffer;
+extern PFN_CLENQUEUEUNMAPMEMOBJECT   __clEnqueueUnmapMemObject;
 extern PFN_CLGETPROGRAMBUILDINFO     __clGetProgramBuildInfo;
 extern PFN_CLRELEASEMEMOBJECT        __clReleaseMemObject;
 extern PFN_CLRELEASEKERNEL           __clReleaseKernel;
