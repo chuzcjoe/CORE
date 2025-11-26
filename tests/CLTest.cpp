@@ -272,9 +272,9 @@ TEST(OpenCL, MapMemGaussianBlur) {
 
   size_t src_size = height * width * sizeof(float);
   core::opencl::CLBuffer input_buffer(&clcontext, src_size,
-                                      CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR, nullptr);
+                                      CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR);
   core::opencl::CLBuffer output_buffer(&clcontext, src_size,
-                                       CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR, nullptr);
+                                       CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR);
 
   // Map input buffer and copy data
   float* mapped_input = input_buffer.MapBuffer<float>(clqueue.queue, CL_MAP_WRITE);
@@ -299,7 +299,7 @@ TEST(OpenCL, MapMemGaussianBlur) {
 
   // Enqueue kernel
   size_t global_work_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
-  clqueue.Submit(clkernel, 2, global_work_size, nullptr, nullptr);
+  clqueue.Submit(clkernel, 2, global_work_size);
   // unmap buffers
   input_buffer.UnmapBuffer(clqueue.queue, mapped_input);
   output_buffer.UnmapBuffer(clqueue.queue, mapped_output);
