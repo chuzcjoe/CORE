@@ -300,6 +300,9 @@ TEST(OpenCL, MapMemGaussianBlur) {
   // Enqueue kernel
   size_t global_work_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
   clqueue.Submit(clkernel, 2, global_work_size, nullptr, nullptr);
+  // unmap buffers
+  input_buffer.UnmapBuffer(clqueue.queue, mapped_input);
+  output_buffer.UnmapBuffer(clqueue.queue, mapped_output);
   clqueue.Finish();
 
   // CPU reference implementation (3x3 Gaussian with clamping, same sigma)
