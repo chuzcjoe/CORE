@@ -1,5 +1,6 @@
 #! /bin/bash
 set -e
+set -x
 
 usage() {
   cat <<EOF
@@ -110,5 +111,4 @@ if [ "$target" = "arm64-v8a" ]; then
       # pull results from device
       adb pull $device_path/data ./tmp
     fi
-    exit 1
 fi

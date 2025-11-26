@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <iostream>
 
 #include "CLBuffer.h"
@@ -8,6 +9,7 @@
 #include "CLKernel.h"
 #include "CLLoader.h"
 #include "CLProgram.h"
+#include "Mat.h"
 
 namespace core {
 namespace test {
@@ -139,7 +141,6 @@ TEST(OpenCL, VecAddCLWrapper) {
     throw std::runtime_error("Failed to initialize OpenCL loader");
   }
 
-  size_t globalWorkSize = N;
   size_t buffer_size = sizeof(float) * N;
 
   core::opencl::CLContext clcontext;
@@ -157,13 +158,100 @@ TEST(OpenCL, VecAddCLWrapper) {
 
   clkernel.SetArgs(buffer_a, buffer_b, buffer_c);
 
-  clqueue.Submit(clkernel, globalWorkSize);
+  size_t global_work_size[1] = {static_cast<size_t>(N)};
+  clqueue.Submit(clkernel, 1, global_work_size, nullptr, nullptr);
   clqueue.Finish();
   clqueue.ReadBuffer(buffer_c, C.data(), buffer_size);
 
   for (int i = 0; i < N; ++i) {
     std::cout << "C[" << i << "] = " << C[i] << '\n';
   }
+}
+
+TEST(OpenCL, GaussianBlur) {
+  // Prepare input and fill with random data
+  core::Mat<float, 1> src(4000, 3000);
+  src.Random();
+
+  // Initialize OpenCL
+  int init = core::opencl::cl_init();
+  if (init) {
+    throw std::runtime_error("Failed to initialize OpenCL loader");
+  }
+
+  // Create OpenCL context, program, kernel, command queue, and buffers
+  core::opencl::CLContext clcontext;
+  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/gaussian_blur.cl");
+  core::opencl::CLKernel clkernel(&clprogram, "gaussian_blur");
+  core::opencl::CLCommandQueue clqueue(&clcontext, CL_QUEUE_PROFILING_ENABLE);
+
+  size_t src_size = src.rows() * src.cols() * sizeof(float);
+  core::opencl::CLBuffer input_buffer(&clcontext, src_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                      src.data());
+  core::opencl::CLBuffer output_buffer(&clcontext, src_size, CL_MEM_WRITE_ONLY);
+
+  // Set kernel arguments
+  const int radius = 1;      // 3x3 kernel
+  const float sigma = 2.0f;  // match GPU and CPU
+  clkernel.SetArgs(input_buffer, output_buffer, src.cols(), src.rows(), radius, sigma);
+
+  cl_event event = nullptr;
+  // Enqueue kernel
+  size_t global_work_size[2] = {static_cast<size_t>(src.cols()), static_cast<size_t>(src.rows())};
+  clqueue.Submit(clkernel, 2, global_work_size, nullptr, &event);
+  clWaitForEvents(1, &event);
+
+  cl_ulong start = 0, end = 0;
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(start), &start, nullptr);
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(end), &end, nullptr);
+  const double ms = (end - start) * 1e-6;
+  // TODO: check the gpu time, 0.5ms is too fast for 4000x3000 image
+  printf("Kernel took %.3f ms\n", ms);
+
+  // Read back output image
+  core::Mat<float, 1> dst(src.rows(), src.cols());
+  clqueue.ReadBuffer(output_buffer, dst.data(), src_size);
+
+  // CPU reference implementation (3x3 Gaussian with clamping, same sigma)
+  auto gaussian = [](float x, float s) -> float { return std::expf(-(x * x) / (2.0f * s * s)); };
+  auto clampi = [](int v, int lo, int hi) -> int { return v < lo ? lo : (v > hi ? hi : v); };
+
+  core::Mat<float, 1> ref(src.rows(), src.cols());
+  const int width = src.cols();
+  const int height = src.rows();
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      float accum = 0.0f;
+      float wsum = 0.0f;
+      for (int dy = -radius; dy <= radius; ++dy) {
+        const int yy = clampi(y + dy, 0, height - 1);
+        const float wy = gaussian(static_cast<float>(dy), sigma);
+        for (int dx = -radius; dx <= radius; ++dx) {
+          const int xx = clampi(x + dx, 0, width - 1);
+          const float wx = gaussian(static_cast<float>(dx), sigma);
+          const float w = wx * wy;
+          accum += src(yy, xx)[0] * w;
+          wsum += w;
+        }
+      }
+      ref(y, x)[0] = (wsum > 0.0f) ? (accum / wsum) : src(y, x)[0];
+    }
+  }
+
+  // Compare GPU and CPU results
+  double max_abs_err = 0.0;
+  for (int y = 0; y < height; ++y) {
+    for (int x = 0; x < width; ++x) {
+      const double a = static_cast<double>(dst(y, x)[0]);
+      const double b = static_cast<double>(ref(y, x)[0]);
+      const double e = std::abs(a - b);
+      if (e > max_abs_err) max_abs_err = e;
+    }
+  }
+  std::cout << "GaussianBlur CPU vs GPU max abs error: " << max_abs_err << std::endl;
+  ASSERT_LT(max_abs_err, 1e-3) << "CPU and GPU Gaussian blur differ too much";
+
+  clReleaseEvent(event);
 }
 
 }  // namespace test

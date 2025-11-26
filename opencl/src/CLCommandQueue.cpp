@@ -7,9 +7,10 @@
 namespace core {
 namespace opencl {
 
-CLCommandQueue::CLCommandQueue(CLContext* context) : context_(context) {
+CLCommandQueue::CLCommandQueue(CLContext* context, const cl_command_queue_properties properties)
+    : context_(context) {
   cl_int err = CL_SUCCESS;
-  queue = clCreateCommandQueue(context_->context, context_->device, 0, &err);
+  queue = clCreateCommandQueue(context_->context, context_->device, properties, &err);
   if (err != CL_SUCCESS || !queue) {
     throw std::runtime_error("clCreateCommandQueue failed");
   }
@@ -22,10 +23,10 @@ CLCommandQueue::~CLCommandQueue() {
   }
 }
 
-void CLCommandQueue::Submit(const CLKernel& kernel, size_t global_size) {
-  size_t g = global_size;
-  cl_int err =
-      clEnqueueNDRangeKernel(queue, kernel.kernel, 1, nullptr, &g, nullptr, 0, nullptr, nullptr);
+void CLCommandQueue::Submit(const CLKernel& kernel, const cl_int dim, const size_t* global_size,
+                            const size_t* local_size, cl_event* event) {
+  cl_int err = clEnqueueNDRangeKernel(queue, kernel.kernel, dim, nullptr, global_size, local_size,
+                                      0, nullptr, event);
   if (err != CL_SUCCESS) {
     throw std::runtime_error("clEnqueueNDRangeKernel failed");
   }
