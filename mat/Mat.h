@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cassert>
 #include <cstring>
+#include <limits>
+#include <random>
 #include <type_traits>
 #include <vector>
 
@@ -106,6 +108,23 @@ class Mat : public MatView<T, C> {
   }
 
   void Fill(const T value) { std::fill(storage_.begin(), storage_.end(), value); }
+
+  void Random() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    if constexpr (std::is_floating_point_v<T>) {
+      std::uniform_real_distribution<T> dist(static_cast<T>(0), static_cast<T>(1));
+      for (auto& v : storage_) v = dist(gen);
+    } else if constexpr (std::is_integral_v<T>) {
+      using U = std::conditional_t<std::is_signed_v<T>, long long, unsigned long long>;
+      std::uniform_int_distribution<U> dist(static_cast<U>(0),
+                                            static_cast<U>(std::numeric_limits<T>::max()));
+      for (auto& v : storage_) v = static_cast<T>(dist(gen));
+    } else {
+      // For non-arithmetic types, default-initialize
+      for (auto& v : storage_) v = T{};
+    }
+  }
 
  private:
   std::vector<T> storage_;

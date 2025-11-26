@@ -8,6 +8,7 @@
 #include "CLKernel.h"
 #include "CLLoader.h"
 #include "CLProgram.h"
+#include "Mat.h"
 
 namespace core {
 namespace test {
@@ -139,7 +140,6 @@ TEST(OpenCL, VecAddCLWrapper) {
     throw std::runtime_error("Failed to initialize OpenCL loader");
   }
 
-  size_t globalWorkSize = N;
   size_t buffer_size = sizeof(float) * N;
 
   core::opencl::CLContext clcontext;
@@ -157,13 +157,59 @@ TEST(OpenCL, VecAddCLWrapper) {
 
   clkernel.SetArgs(buffer_a, buffer_b, buffer_c);
 
-  clqueue.Submit(clkernel, globalWorkSize);
+  size_t global_work_size[1] = {static_cast<size_t>(N)};
+  clqueue.Submit(clkernel, 1, global_work_size, nullptr, nullptr);
   clqueue.Finish();
   clqueue.ReadBuffer(buffer_c, C.data(), buffer_size);
 
   for (int i = 0; i < N; ++i) {
     std::cout << "C[" << i << "] = " << C[i] << '\n';
   }
+}
+
+TEST(OpenCL, GaussianBlur) {
+  // Prepare input and fill with random data
+  core::Mat<float, 1> src(4000, 3000);
+  src.Random();
+
+  // Initialize OpenCL
+  int init = core::opencl::cl_init();
+  if (init) {
+    throw std::runtime_error("Failed to initialize OpenCL loader");
+  }
+
+  // Create OpenCL context, program, kernel, command queue, and buffers
+  core::opencl::CLContext clcontext;
+  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/gaussian_blur.cl");
+  core::opencl::CLKernel clkernel(&clprogram, "gaussian_blur");
+  core::opencl::CLCommandQueue clqueue(&clcontext, CL_QUEUE_PROFILING_ENABLE);
+
+  size_t src_size = src.rows() * src.cols() * sizeof(float);
+  core::opencl::CLBuffer input_buffer(&clcontext, src_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                      src.data());
+  core::opencl::CLBuffer output_buffer(&clcontext, src_size, CL_MEM_WRITE_ONLY);
+
+  // Set kernel arguments
+  clkernel.SetArgs(input_buffer, output_buffer, src.cols(), src.rows(), 1, 2.0f);
+
+  cl_event event = nullptr;
+  // Enqueue kernel
+  size_t global_work_size[2] = {static_cast<size_t>(src.cols()), static_cast<size_t>(src.rows())};
+  clqueue.Submit(clkernel, 2, global_work_size, nullptr, &event);
+  clWaitForEvents(1, &event);
+
+  cl_ulong start = 0, end = 0;
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(start), &start, nullptr);
+  clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(end), &end, nullptr);
+  const double ms = (end - start) * 1e-6;
+  // TODO: check the gpu time, 0.5ms is too fast for 4000x3000 image
+  printf("Kernel took %.3f ms\n", ms);
+
+  // Read back output image
+  core::Mat<float, 1> dst(src.cols(), src.rows());
+  clqueue.ReadBuffer(output_buffer, dst.data(), src_size);
+
+  clReleaseEvent(event);
 }
 
 }  // namespace test
