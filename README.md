@@ -23,7 +23,7 @@
 - [x] Vulkan
 - [x] OpenGL
 - [x] Metal
-- [ ] OpenCL (WIP)
+- [x] OpenCL
 - [ ] OpenGLES (WIP)
 
 # 2. Supporting OS
@@ -78,8 +78,18 @@ If **-test_filter** is not specified, all the tests will be run.
 ```
 
 ## Vulkan:
-1. ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
-2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
+For MacOS:
+- ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
+
+For Android arm64-v8a:
+- ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
+
+## OpenCL:
+For MacOS:
+- ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
+
+For Android arm64-v8a:
+- ./run.sh -target arm64-v8a -test_module tests -test_filter OpenCL.GaussianBlur
 
 
 # 7. Graphics
