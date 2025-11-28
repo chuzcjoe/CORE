@@ -85,6 +85,8 @@ For Android arm64-v8a:
 - ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
 
 ## OpenCL:
+**CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
+
 For MacOS:
 - ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
 
