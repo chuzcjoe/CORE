@@ -16,7 +16,12 @@
 - [4. Examples](#4-examples)
 - [5. Unit Test](#5-unit-test)
 - [6. Compute](#6-compute)
-- [7. Graphics](#6-graphics)
+  - [6.1 Vulkan](#61-vulkan)
+  - [6.2 OpenCL](#62-opencl)
+- [7. Graphics](#7-graphics)
+  - [7.1 Vulkan](#71-vulkan)
+  - [7.2 OpenCL](#72-metal)
+  - [7.3 OpenCL](#72-opengl)
 
 # 1. Graphics and Compute APIs
 
