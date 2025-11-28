@@ -97,8 +97,10 @@ if [ "$target" = "arm64-v8a" ]; then
 
     if [ "$test_module" = "tests" ]; then
       echo "run tests"
+      adb shell mkdir -p $device_path/tests
       adb push ./build/$target/tests/core-tests $device_path
-      adb push ./tests/data $device_path
+      adb push ./tests/data $device_path/tests
+      adb push ./tests/shaders $device_path/tests
       adb shell chmod +X $device_path/core-tests
       if [ -z "$test_filter" ]; then
         # test_filter is empty → run all tests

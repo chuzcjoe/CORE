@@ -12,6 +12,12 @@
 #include "CLProgram.h"
 #include "Mat.h"
 
+#if defined(__ANDROID__)
+#define SHADER_PATH "/data/local/tmp/core/tests/shaders/"
+#elif defined(__APPLE__)
+#define SHADER_PATH "./tests/shaders/"
+#endif
+
 namespace core {
 namespace test {
 
@@ -148,7 +154,7 @@ TEST(OpenCL, VecAddCLWrapper) {
   // print opencl info
   core::opencl::CLContext::PrintInfo();
 
-  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/vec_add.cl");
+  core::opencl::CLProgram clprogram(&clcontext, std::string(SHADER_PATH) + "vec_add.cl");
   core::opencl::CLKernel clkernel(&clprogram, "vec_add");
   core::opencl::CLCommandQueue clqueue(&clcontext);
   core::opencl::CLBuffer buffer_a(&clcontext, buffer_size, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
@@ -182,7 +188,7 @@ TEST(OpenCL, GaussianBlur) {
 
   // Create OpenCL context, program, kernel, command queue, and buffers
   core::opencl::CLContext clcontext;
-  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/gaussian_blur.cl");
+  core::opencl::CLProgram clprogram(&clcontext, std::string(SHADER_PATH) + "gaussian_blur.cl");
   core::opencl::CLKernel clkernel(&clprogram, "gaussian_blur");
   core::opencl::CLCommandQueue clqueue(&clcontext, CL_QUEUE_PROFILING_ENABLE);
 
@@ -266,7 +272,7 @@ TEST(OpenCL, MapMemGaussianBlur) {
 
   // Create OpenCL context, program, kernel, command queue, and buffers
   core::opencl::CLContext clcontext;
-  core::opencl::CLProgram clprogram(&clcontext, "./tests/shaders/gaussian_blur.cl");
+  core::opencl::CLProgram clprogram(&clcontext, std::string(SHADER_PATH) + "gaussian_blur.cl");
   core::opencl::CLKernel clkernel(&clprogram, "gaussian_blur");
   core::opencl::CLCommandQueue clqueue(&clcontext);
 

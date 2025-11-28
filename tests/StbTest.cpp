@@ -13,12 +13,12 @@
 namespace core {
 namespace test {
 
-#ifdef __APPLE__
+#if defined(__APPLE__)
 const std::string kDataPath = "./tests/data/core.png";
 const std::string kOutputPath = "./tmp/core_write.png";
 #elif defined(__ANDROID__)
-const std::string kDataPath = "/data/local/tmp/core/data/core.png";
-const std::string kOutputPath = "/data/local/tmp/core/data/core_write.png";
+const std::string kDataPath = "/data/local/tmp/core/tests/data/core.png";
+const std::string kOutputPath = "/data/local/tmp/core/tests/data/core_write.png";
 #endif
 
 TEST(StbTest, test) {
