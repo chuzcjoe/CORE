@@ -16,14 +16,19 @@
 - [4. Examples](#4-examples)
 - [5. Unit Test](#5-unit-test)
 - [6. Compute](#6-compute)
-- [7. Graphics](#6-graphics)
+  - [6.1 Vulkan](#61-vulkan)
+  - [6.2 OpenCL](#62-opencl)
+- [7. Graphics](#7-graphics)
+  - [7.1 Vulkan](#71-vulkan)
+  - [7.2 Metal](#72-metal)
+  - [7.3 OpenGL](#73-opengl)
 
 # 1. Graphics and Compute APIs
 
 - [x] Vulkan
 - [x] OpenGL
 - [x] Metal
-- [ ] OpenCL (WIP)
+- [x] OpenCL
 - [ ] OpenGLES (WIP)
 
 # 2. Supporting OS
@@ -77,19 +82,38 @@ If **-test_filter** is not specified, all the tests will be run.
 ./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
 ```
 
-## Vulkan:
-1. ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
-2. ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
+## 6.1 Vulkan
+For MacOS:
+- ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
+
+For Android arm64-v8a:
+- ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
+
+## 6.2 OpenCL
+**CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
+
+For MacOS:
+- ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
+
+For Android arm64-v8a:
+- ./run.sh -target arm64-v8a -test_module tests -test_filter OpenCL.GaussianBlur
 
 
 # 7. Graphics
 
+## 7.1 Vulkan
 Normally, you need to write ~1000 lines of code in Vulkan to draw a simple triangle. Using **CORE** APIs,
-It only takes about **100** lines of code. See example in `examples/DrawTriangleDemo/main.cpp`
+It only takes about **100** lines of code. See example in `examples/vulkan/DrawTriangleDemo/main.cpp`
 
 How to run this demo?
 ```
 ./run.sh -target macos
 ./build/macos/examples/vk_triangle_demo
 ```
+
+## 7.2 Metal
+See example in `examples/metal/`.
+
+## 7.3 OpenGL
+See example in `examples/opengl/`.
 
