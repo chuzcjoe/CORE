@@ -94,12 +94,19 @@ For Android arm64-v8a:
 
 # 7. Graphics
 
+## Vulkan:
 Normally, you need to write ~1000 lines of code in Vulkan to draw a simple triangle. Using **CORE** APIs,
-It only takes about **100** lines of code. See example in `examples/DrawTriangleDemo/main.cpp`
+It only takes about **100** lines of code. See example in `examples/vulkan/DrawTriangleDemo/main.cpp`
 
 How to run this demo?
 ```
 ./run.sh -target macos
 ./build/macos/examples/vk_triangle_demo
 ```
+
+# Metal:
+See example in `examples/metal/`.
+
+# OpenGL:
+See example in `examples/opengl/`.
 
