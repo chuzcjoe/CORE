@@ -20,8 +20,8 @@
   - [6.2 OpenCL](#62-opencl)
 - [7. Graphics](#7-graphics)
   - [7.1 Vulkan](#71-vulkan)
-  - [7.2 OpenCL](#72-metal)
-  - [7.3 OpenCL](#72-opengl)
+  - [7.2 Metal](#72-metal)
+  - [7.3 OpenGL](#72-opengl)
 
 # 1. Graphics and Compute APIs
 
@@ -111,9 +111,9 @@ How to run this demo?
 ./build/macos/examples/vk_triangle_demo
 ```
 
-# 7.2 Metal:
+## 7.2 Metal:
 See example in `examples/metal/`.
 
-# 7.3 OpenGL:
+## 7.3 OpenGL:
 See example in `examples/opengl/`.
 
