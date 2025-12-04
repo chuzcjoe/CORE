@@ -57,35 +57,46 @@ const char* obj_vertex_shader_source = OPENGL_VERTEX_SHADER(
 );
 
 const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
+    struct Material {
+      vec3 ambient;
+      vec3 diffuse;
+      vec3 specular;
+      float shininess;
+    };
+
+    struct Light {
+      vec3 position;
+      vec3 ambient;
+      vec3 diffuse;
+      vec3 specular;
+    };
+
     in vec3 Normal;
     in vec3 FragPos;
     out vec4 FragColor; 
-    uniform vec3 objectColor;
-    uniform vec3 lightColor;
-    uniform vec3 lightPos;
     uniform vec3 viewPos;
 
-    void main() {
-        float ambientStrength = 0.1;
-        float specularStrength = 0.5;
+    uniform Material material;
+    uniform Light light;
 
+    void main() {
         // ambient
-        vec3 ambient = ambientStrength * lightColor;
+        vec3 ambient = material.ambient * light.ambient;
         
         // diffuse
         vec3 norm = normalize(Normal);
-        vec3 lightDir = normalize(lightPos - FragPos);
+        vec3 lightDir = normalize(light.position - FragPos);
         float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = diff * lightColor;
+        vec3 diffuse = diff * material.diffuse * light.diffuse;
 
         // specular
         vec3 viewDir = normalize(viewPos - FragPos);
         vec3 reflectDir = reflect(-lightDir, norm);
-        float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-        vec3 specular = specularStrength * spec * lightColor;
+        float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+        vec3 specular = material.specular * spec * light.specular;
 
         // final color
-        vec3 result = (ambient + diffuse + specular) * objectColor;
+        vec3 result = ambient + diffuse + specular;
         FragColor = vec4(result, 1.0f);
     }
 );
@@ -102,9 +113,10 @@ const char* light_vertex_shader_source = OPENGL_VERTEX_SHADER(
 );
 
 const char* light_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
-    out vec4 FragColor; 
+    out vec4 FragColor;
+    uniform vec3 lightColor; 
     void main() { 
-        FragColor = vec4(1.0f);
+        FragColor = vec4(lightColor, 1.0f);
     }
 );
 // clang-format on
@@ -223,12 +235,19 @@ int main() {
   light_program.Use();
   light_program.SetUniformMat4f("projection", projection);
   light_program.SetUniformMat4f("model", model);
+  light_program.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
 
   model = glm::mat4(1.0f);
   obj_program.Use();
   obj_program.SetUniformMat4f("projection", projection);
   obj_program.SetUniformMat4f("model", model);
-  obj_program.SetUniform3f("lightPos", 1.2f, 1.0f, 2.0f);
+  obj_program.SetUniform3f("material.ambient", 1.0f, 0.5f, 0.31f);
+  obj_program.SetUniform3f("material.diffuse", 1.0f, 0.5f, 0.31f);
+  obj_program.SetUniform3f("material.specular", 0.5f, 0.5f, 0.5f);
+  obj_program.SetUniform1f("material.shininess", 32.0f);
+  obj_program.SetUniform3f("light.ambient", 0.2f, 0.2f, 0.2f);
+  obj_program.SetUniform3f("light.diffuse", 0.5f, 0.5f, 0.5f);
+  obj_program.SetUniform3f("light.specular", 1.0f, 1.0f, 1.0f);
 
   float light_x = 1.2f;
   float light_y = 1.0f;
@@ -257,6 +276,12 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // change light color over time
+    glm::vec3 light_color;
+    light_color.x = sin(glfwGetTime() * 2.0f);
+    light_color.y = sin(glfwGetTime() * 0.7f);
+    light_color.z = sin(glfwGetTime() * 1.3f);
+
     // draw light
     light_program.Use();
     auto view = camera->GetViewMatrix();
@@ -265,16 +290,16 @@ int main() {
     model = glm::scale(model, glm::vec3(0.2f));
     light_program.SetUniformMat4f("view", view);
     light_program.SetUniformMat4f("model", model);
+    light_program.SetUniformVec3f("lightColor", light_color);
     light_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // draw obj
     obj_program.Use();
-    obj_program.SetUniform3f("objectColor", 1.0f, 0.5f, 0.31f);
-    obj_program.SetUniform3f("lightColor", 1.0f, 1.0f, 1.0f);
-    obj_program.SetUniform3f("lightPos", light_x, light_y, light_z);
-    obj_program.SetUniform3f("viewPos", camera->camera_position.x, camera->camera_position.y,
-                             camera->camera_position.z);
+    obj_program.SetUniform3f("light.position", light_x, light_y, light_z);
+    obj_program.SetUniformVec3f("light.ambient", light_color * glm::vec3(0.1f));
+    obj_program.SetUniformVec3f("light.diffuse", light_color * glm::vec3(0.5f));
+    obj_program.SetUniformVec3f("viewPos", camera->camera_position);
     obj_program.SetUniformMat4f("view", view);
     obj_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
