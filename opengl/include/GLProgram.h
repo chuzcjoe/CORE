@@ -32,6 +32,10 @@ class GLProgram {
     glUniform3f(glGetUniformLocation(program_id_, name.c_str()), v1, v2, v3);
   }
 
+  void SetUniformVec3f(const std::string& name, const glm::vec3& vec) const {
+    glUniform3f(glGetUniformLocation(program_id_, name.c_str()), vec.x, vec.y, vec.z);
+  }
+
   void SetUniformMat4f(const std::string& name, const glm::mat4& mat) const {
     glUniformMatrix4fv(glGetUniformLocation(program_id_, name.c_str()), 1, GL_FALSE,
                        glm::value_ptr(mat));
