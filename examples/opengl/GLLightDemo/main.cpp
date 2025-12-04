@@ -43,24 +43,28 @@ std::unique_ptr<core::opengl::GLCamera> camera =
 const char* obj_vertex_shader_source = OPENGL_VERTEX_SHADER(
     layout(location = 0) in vec3 aPos; 
     layout(location = 1) in vec3 aNormal;
+    layout(location = 2) in vec2 aTexCoord;
+
     uniform mat4 model;
     uniform mat4 view;
     uniform mat4 projection;
+
     out vec3 Normal;
     out vec3 FragPos;
+    out vec2 TexCoord;
 
     void main() {
         gl_Position = projection * view * model * vec4(aPos, 1.0);
         FragPos = vec3(model * vec4(aPos, 1.0)); // get fragment position in world space
         Normal = aNormal;
+        TexCoord = aTexCoord;
     }
 );
 
 const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     struct Material {
-      vec3 ambient;
-      vec3 diffuse;
-      vec3 specular;
+      sampler2D diffuse;
+      sampler2D specular;
       float shininess;
     };
 
@@ -73,6 +77,7 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
 
     in vec3 Normal;
     in vec3 FragPos;
+    in vec2 TexCoord;
     out vec4 FragColor; 
     uniform vec3 viewPos;
 
@@ -80,20 +85,23 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     uniform Light light;
 
     void main() {
+        vec3 diffuseColor = texture(material.diffuse, TexCoord).rgb;
+        vec3 specularColor = texture(material.specular, TexCoord).rgb;
+
         // ambient
-        vec3 ambient = material.ambient * light.ambient;
+        vec3 ambient = diffuseColor * light.ambient;
         
         // diffuse
         vec3 norm = normalize(Normal);
         vec3 lightDir = normalize(light.position - FragPos);
         float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = diff * material.diffuse * light.diffuse;
+        vec3 diffuse = diff * diffuseColor * light.diffuse;
 
         // specular
         vec3 viewDir = normalize(viewPos - FragPos);
         vec3 reflectDir = reflect(-lightDir, norm);
         float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-        vec3 specular = material.specular * spec * light.specular;
+        vec3 specular = specularColor * spec * light.specular;
 
         // final color
         vec3 result = ambient + diffuse + specular;
@@ -162,50 +170,54 @@ int main() {
   core::opengl::GLVertexArray obj_vao;
   core::opengl::GLVertexArray light_vao;
   core::opengl::GLVertexBuffer vbo;  // share between object and light
+  core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
+  texture.Load2DTextureFromFile("./examples/data/container2.png", GL_RGBA, 0);
+  texture.Load2DTextureFromFile("./examples/data/container2_specular.png", GL_RGBA, 1);
 
   // clang-format off
   float vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+      // positions          // normals           // texture coords
+      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
+      0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
+      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+      0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
+      -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
 
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
+      0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
+      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+      0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
+      -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
 
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+      -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+      -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+      -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+      -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+      -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+      -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
+      0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
+      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+      0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
+      0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
+      0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
 
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
+      0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
+      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+      0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
+      -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
+      -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
 
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+      -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
+      0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
+      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
+      -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
+      -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
   };
   // clang-format on
 
@@ -214,14 +226,15 @@ int main() {
 
   // setup object cube
   obj_vao.AttachVertexBuffer(vbo.id());
-  obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-  // normal attribute
-  obj_vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+  obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  obj_vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
                                  (void*)(3 * sizeof(float)));
+  obj_vao.SetVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+                                 (void*)(6 * sizeof(float)));
 
   // setup light cube
   light_vao.AttachVertexBuffer(vbo.id());
-  light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+  light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 
   glEnable(GL_DEPTH_TEST);
 
@@ -241,9 +254,8 @@ int main() {
   obj_program.Use();
   obj_program.SetUniformMat4f("projection", projection);
   obj_program.SetUniformMat4f("model", model);
-  obj_program.SetUniform3f("material.ambient", 1.0f, 0.5f, 0.31f);
-  obj_program.SetUniform3f("material.diffuse", 1.0f, 0.5f, 0.31f);
-  obj_program.SetUniform3f("material.specular", 0.5f, 0.5f, 0.5f);
+  obj_program.SetUniform1i("material.diffuse", 0);   // texture unit 0
+  obj_program.SetUniform1i("material.specular", 1);  // texture unit 1
   obj_program.SetUniform1f("material.shininess", 32.0f);
   obj_program.SetUniform3f("light.ambient", 0.2f, 0.2f, 0.2f);
   obj_program.SetUniform3f("light.diffuse", 0.5f, 0.5f, 0.5f);
@@ -276,11 +288,9 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // change light color over time
-    glm::vec3 light_color;
-    light_color.x = sin(glfwGetTime() * 2.0f);
-    light_color.y = sin(glfwGetTime() * 0.7f);
-    light_color.z = sin(glfwGetTime() * 1.3f);
+    // texture
+    texture.ActivateBind(GL_TEXTURE_2D, 0);
+    texture.ActivateBind(GL_TEXTURE_2D, 1);
 
     // draw light
     light_program.Use();
@@ -290,15 +300,12 @@ int main() {
     model = glm::scale(model, glm::vec3(0.2f));
     light_program.SetUniformMat4f("view", view);
     light_program.SetUniformMat4f("model", model);
-    light_program.SetUniformVec3f("lightColor", light_color);
     light_vao.Bind();
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // draw obj
     obj_program.Use();
     obj_program.SetUniform3f("light.position", light_x, light_y, light_z);
-    obj_program.SetUniformVec3f("light.ambient", light_color * glm::vec3(0.1f));
-    obj_program.SetUniformVec3f("light.diffuse", light_color * glm::vec3(0.5f));
     obj_program.SetUniformVec3f("viewPos", camera->camera_position);
     obj_program.SetUniformMat4f("view", view);
     obj_vao.Bind();
