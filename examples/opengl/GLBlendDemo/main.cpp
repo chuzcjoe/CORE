@@ -112,7 +112,7 @@ int main() {
   core::opengl::GLVertexBuffer cube_vbo;
   core::opengl::GLVertexBuffer plane_vbo;
   core::opengl::GLVertexBuffer transparent_vbo;
-  core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
+  core::opengl::GLTexture texture(GL_TEXTURE_2D);
   texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
   texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
   texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE, false);
