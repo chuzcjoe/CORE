@@ -1,5 +1,6 @@
 # Compile shaders
 set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
+message(STATUS "Using vulkan glslc: ${GLSLC}")
 
 file(GLOB_RECURSE shader_src "vulkan/*/*.comp" 
                                 "vulkan/*/*.vert" 

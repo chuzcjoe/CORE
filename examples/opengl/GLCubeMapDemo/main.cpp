@@ -67,7 +67,8 @@ const char* skybox_vertex_shader_source = OPENGL_VERTEX_SHADER(
     uniform mat4 view;
     uniform mat4 projection;
     void main() {
-        gl_Position = projection * view * vec4(aPos, 1.0);
+        vec4 pos = projection * view * vec4(aPos, 1.0);
+        gl_Position = pos.xyww;
         TexCoords = aPos;
     }
 );
@@ -221,17 +222,6 @@ int main() {
     texture.ActivateBind(GL_TEXTURE_2D, 1);
     skybox_texture.BindCubeMap(0);
 
-    // draw skybox first
-    glDepthMask(GL_FALSE);
-    skybox_program.Use();
-    auto skybox_view =
-        glm::mat4(glm::mat3(camera->GetViewMatrix()));  // remove translation from the view matrix
-    skybox_program.SetUniformMat4f("view", skybox_view);
-    skybox_vao.Bind();
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    skybox_vao.Unbind();
-    glDepthMask(GL_TRUE);
-
     // draw cubes
     program.Use();
     auto view = camera->GetViewMatrix();
@@ -244,6 +234,17 @@ int main() {
       glDrawArrays(GL_TRIANGLES, 0, 36);
     }
     vao.Unbind();
+
+    // draw skybox
+    glDepthFunc(GL_LEQUAL);
+    skybox_program.Use();
+    auto skybox_view =
+        glm::mat4(glm::mat3(camera->GetViewMatrix()));  // remove translation from the view matrix
+    skybox_program.SetUniformMat4f("view", skybox_view);
+    skybox_vao.Bind();
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    skybox_vao.Unbind();
+    glDepthFunc(GL_LESS);
 
     glfwSwapBuffers(window);
     glfwPollEvents();
