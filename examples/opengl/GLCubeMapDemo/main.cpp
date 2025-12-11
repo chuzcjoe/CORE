@@ -29,6 +29,7 @@ const float kMouseSensitivity = 0.1f;
 float laxt_x = kWidth / 2.0f;
 float last_y = kHeight / 2.0f;
 bool first_mouse = true;
+int mapping_mode = 0;  // 0: reflection, 1: refraction
 
 std::unique_ptr<core::opengl::GLCamera> camera =
     std::make_unique<core::opengl::GLCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
@@ -59,10 +60,17 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     out vec4 FragColor;
     uniform samplerCube skybox;
     uniform vec3 cameraPos;
+    uniform int mappingMode; // 0: reflection, 1: refraction
     void main() { 
         vec3 I = normalize(Position - cameraPos);
-        vec3 R = reflect(I, normalize(Normal));
-        FragColor = vec4(texture(skybox, R).rgb, 1.0);
+        if (mappingMode == 0) {
+            vec3 R = reflect(I, normalize(Normal));
+            FragColor = vec4(texture(skybox, R).rgb, 1.0);
+        } else if (mappingMode == 1) {
+            float ratio = 1.00 / 1.52; // air to glass
+            vec3 R = refract(I, normalize(Normal), ratio);
+            FragColor = vec4(texture(skybox, R).rgb, 1.0);
+        }
     }
 );
 
@@ -239,9 +247,6 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    printf("Camera Position: x: %.2f, y: %.2f, z: %.2f\n", camera->camera_position.x,
-           camera->camera_position.y, camera->camera_position.z);
-
     // texture
     texture.ActivateBind(GL_TEXTURE_2D, 0);
     texture.ActivateBind(GL_TEXTURE_2D, 1);
@@ -255,6 +260,7 @@ int main() {
     model = glm::mat4(1.0f);
     program.SetUniformMat4f("model", model);
     program.SetUniformVec3f("cameraPos", camera->camera_position);
+    program.SetUniform1i("mappingMode", mapping_mode);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     vao.Unbind();
 
@@ -278,6 +284,7 @@ int main() {
 }
 
 void process_inputs(GLFWwindow* window) {
+  static bool r_was_pressed = false;
   if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
     camera->ProcessKeyboard(core::opengl::CameraMovement::FORWARD);
@@ -287,6 +294,13 @@ void process_inputs(GLFWwindow* window) {
     camera->ProcessKeyboard(core::opengl::CameraMovement::LEFT);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera->ProcessKeyboard(core::opengl::CameraMovement::RIGHT);
+
+  // toggle mapping mode, make sure press+release to switch
+  bool r_pressed = (glfwGetKey(window, GLFW_KEY_R) == GLFW_PRESS);
+  if (r_pressed && !r_was_pressed) {
+    mapping_mode = (mapping_mode == 0) ? 1 : 0;
+  }
+  r_was_pressed = r_pressed;
 }
 
 void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
