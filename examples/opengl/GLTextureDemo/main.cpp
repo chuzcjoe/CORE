@@ -80,7 +80,7 @@ int main() {
   core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
   core::opengl::GLVertexArray vao;
   core::opengl::GLVertexBuffer vbo;
-  core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
+  core::opengl::GLTexture texture(GL_TEXTURE_2D);
   texture.Load2DTextureFromFile("./examples/data/core.png", GL_RGB, 0);
 
   float vertices[] = {

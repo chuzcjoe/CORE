@@ -1,5 +1,6 @@
 # Compile shaders
 set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
+message(STATUS "Using vulkan glslc: ${GLSLC}")
 
 file(GLOB_RECURSE shader_src "vulkan/*/*.comp" 
                                 "vulkan/*/*.vert" 
@@ -124,6 +125,12 @@ if(APPLE)
     build_example(gl_light_demo
         SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
         PUBLIC_INCLUDES ./opengl/GLLightDemo
+        LIBRARIES glfw gl_glad opengl stb imgui
+        DEFINITIONS GL_SILENCE_DEPRECATION)
+
+    # 16. cubemap demo using opengl
+    build_example(gl_cubemap_demo
+        SOURCE_GLOBS "./opengl/GLCubeMapDemo/*.cpp"
         LIBRARIES glfw gl_glad opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 endif()

@@ -170,7 +170,7 @@ int main() {
   core::opengl::GLVertexArray obj_vao;
   core::opengl::GLVertexArray light_vao;
   core::opengl::GLVertexBuffer vbo;  // share between object and light
-  core::opengl::GLTexture texture(GL_TEXTURE_2D, GL_REPEAT, GL_LINEAR);
+  core::opengl::GLTexture texture(GL_TEXTURE_2D);
   texture.Load2DTextureFromFile("./examples/data/container2.png", GL_RGBA, 0);
   texture.Load2DTextureFromFile("./examples/data/container2_specular.png", GL_RGBA, 1);
 

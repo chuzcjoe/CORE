@@ -6,6 +6,7 @@ set(CMAKE_CXX_FLAGS "-std=c++20 -Wall -Wextra -Wpedantic -Wunused-variable -Wunu
 set(ANDROID_STL "c++_shared")
 
 find_package(Vulkan REQUIRED)
+message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}")
 
 # cmake
 include(cmake/example.cmake)
