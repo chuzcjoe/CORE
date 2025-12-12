@@ -4,3 +4,5 @@ build/
 *.png
 tmp/
 imgui.*
+*.perf
+*.pftrace
