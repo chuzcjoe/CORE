@@ -12,6 +12,7 @@ class Trace {
   void InitializeTracing();
   void StartTracing();
   void StopTracing();
+  void SetTraceProcess(const std::string& process_name);
 
  private:
   std::unique_ptr<perfetto::TracingSession> tracing_session_;

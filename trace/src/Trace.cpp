@@ -29,6 +29,13 @@ void Trace::StartTracing() {
   tracing_session_->StartBlocking();
 }
 
+void Trace::SetTraceProcess(const std::string& process_name) {
+  perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
+  perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();
+  desc.mutable_process()->set_process_name(process_name);
+  perfetto::TrackEvent::SetTrackDescriptor(process_track, desc);
+}
+
 void Trace::StopTracing() {
   // Make sure the last event is closed for this example.
   perfetto::TrackEvent::Flush();

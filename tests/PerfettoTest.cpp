@@ -22,15 +22,10 @@ void DrawGame() {
 }
 
 TEST(Perfetto, test1) {
-  core::trace::Trace trace("test1.perf");
-  trace.InitializeTracing();
-  trace.StartTracing();
-
-  // Give a custom name for the traced process.
-  perfetto::ProcessTrack process_track = perfetto::ProcessTrack::Current();
-  perfetto::protos::gen::TrackDescriptor desc = process_track.Serialize();
-  desc.mutable_process()->set_process_name("test1_process");
-  perfetto::TrackEvent::SetTrackDescriptor(process_track, desc);
+  std::unique_ptr<core::trace::Trace> trace = std::make_unique<core::trace::Trace>("test1.perf");
+  trace->InitializeTracing();
+  trace->StartTracing();
+  trace->SetTraceProcess("test1");
 
   TRACE_EVENT_INSTANT("rendering", "Event1");
 
@@ -45,5 +40,5 @@ TEST(Perfetto, test1) {
 
   TRACE_EVENT_INSTANT("rendering", "Event2");
 
-  trace.StopTracing();
+  trace->StopTracing();
 }
