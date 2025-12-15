@@ -7,6 +7,7 @@
 
 #include "GLCamera.h"
 #include "GLProgram.h"
+#include "GLQuery.h"
 #include "GLTexture.h"
 #include "GLUtils.h"
 #include "GLVertexArray.h"
@@ -132,6 +133,7 @@ int main() {
   core::opengl::GLVertexBuffer skybox_vbo;
   core::opengl::GLTexture texture(GL_TEXTURE_2D);
   core::opengl::GLTexture skybox_texture(GL_TEXTURE_CUBE_MAP);
+  core::opengl::GLQuery query(GL_TIME_ELAPSED, false);
   texture.Load2DTextureFromFile("./examples/data/core.png", GL_RGB, 0);
   texture.Load2DTextureFromFile("./examples/data/wall.jpg", GL_RGB, 1);
   skybox_texture.LoadCubeMapFromFiles(
@@ -271,7 +273,9 @@ int main() {
         glm::mat4(glm::mat3(camera->GetViewMatrix()));  // remove translation from the view matrix
     skybox_program.SetUniformMat4f("view", skybox_view);
     skybox_vao.Bind();
+    query.Begin();
     glDrawArrays(GL_TRIANGLES, 0, 36);
+    query.End();
     skybox_vao.Unbind();
     glDepthFunc(GL_LESS);
 
