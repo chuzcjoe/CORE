@@ -37,7 +37,7 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
   void Init(const std::string& image_path, const std::string& model_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height);
+  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
