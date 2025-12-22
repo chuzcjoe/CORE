@@ -181,15 +181,13 @@ void GraphicModel::CreateBuffers() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicModel::UpdateUniformBuffer(const int width, const int height) {
-  // printf("width: %d, height: %d\n", width, height);
-
+void GraphicModel::UpdateUniformBuffer(const int width, const int height,
+                                       const glm::mat4& view_matrix) {
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
-  uniform_buffer_.MapData([this, width, height](void* data) {
-    uniform_data_.model =
-        glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniform_data_.view = glm::lookAt(glm::vec3(-1.0f, -1.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                     glm::vec3(0.0f, 0.0f, 1.0f));
+  uniform_buffer_.MapData([this, width, height, &view_matrix](void* data) {
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    uniform_data_.model = model;
+    uniform_data_.view = view_matrix;
     uniform_data_.project =
         glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
     uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
