@@ -15,6 +15,9 @@ class VulkanGraphic : public VulkanBase {
  public:
   VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
 
+  // Dynamic rendering
+  VulkanGraphic(VulkanContext* context);
+
  protected:
   void CreatePipeline() override;
 

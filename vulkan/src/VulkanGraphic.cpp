@@ -6,6 +6,8 @@ namespace vulkan {
 VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass)
     : VulkanBase(context), render_pass_(render_pass) {}
 
+VulkanGraphic::VulkanGraphic(VulkanContext* context) : VulkanBase(context) {}
+
 void VulkanGraphic::CreatePipeline() {
   // 1. shader stage
   const auto vertex_shader_module = CreateShaderModule(LoadVertexShader());
@@ -125,7 +127,7 @@ void VulkanGraphic::CreatePipeline() {
   pipeline_info.pColorBlendState = &color_blending_state;
   pipeline_info.pDynamicState = &dynamic_state;
   pipeline_info.layout = pipeline_layout;
-  pipeline_info.renderPass = render_pass_->GetRenderPass();
+  pipeline_info.renderPass = render_pass_ ? render_pass_->GetRenderPass() : nullptr;
   pipeline_info.subpass = 0;
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_info.basePipelineIndex = -1;
