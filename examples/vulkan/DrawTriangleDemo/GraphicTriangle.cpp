@@ -3,7 +3,7 @@
 namespace core {
 
 GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
-                                 core::vulkan::VulkanRenderPass& render_pass)
+                                 core::vulkan::VulkanRenderPass* render_pass)
     : core::vulkan::VulkanGraphic(context, render_pass) {
   CreateVertexBuffer();
 }

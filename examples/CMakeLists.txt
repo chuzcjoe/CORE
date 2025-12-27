@@ -38,12 +38,12 @@ if(APPLE)
         LIBRARIES glfw vulkan)
 
     # 3. draw texture demo using vulkan
-    build_example(vk_texture_demo
-        SOURCE_GLOBS "./vulkan/DrawTextureDemo/*.cpp"
-        PUBLIC_INCLUDES ./vulkan/DrawTextureDemo
-        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan stb)
+    # build_example(vk_texture_demo
+    #     SOURCE_GLOBS "./vulkan/DrawTextureDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./vulkan/DrawTextureDemo
+    #     PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+    #     DEPENDS vulkan_example_shaders
+    #     LIBRARIES glfw vulkan stb)
 
     # 4. draw triangle demo using opengl
     build_example(gl_triangle_demo
@@ -67,28 +67,28 @@ if(APPLE)
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 7. draw texture demo using vulkan
-    build_example(vk_depth_demo
-        SOURCE_GLOBS "./vulkan/DepthTestingDemo/*.cpp"
-        PUBLIC_INCLUDES ./vulkan/DepthTestingDemo
-        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan stb)
+    # build_example(vk_depth_demo
+    #     SOURCE_GLOBS "./vulkan/DepthTestingDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./vulkan/DepthTestingDemo
+    #     PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+    #     DEPENDS vulkan_example_shaders
+    #     LIBRARIES glfw vulkan stb)
 
     # 8. load model demo using vulkan
-    build_example(vk_model_demo
-        SOURCE_GLOBS "./vulkan/LoadModelDemo/*.cpp"
-        PUBLIC_INCLUDES ./vulkan/LoadModelDemo
-        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan stb tinyobjloader)
+    # build_example(vk_model_demo
+    #     SOURCE_GLOBS "./vulkan/LoadModelDemo/*.cpp"
+    #     PUBLIC_INCLUDES ./vulkan/LoadModelDemo
+    #     PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+    #     DEPENDS vulkan_example_shaders
+    #     LIBRARIES glfw vulkan stb tinyobjloader)
 
     # 9. Implement a rasterizer using compute shader + barycentric algo
-    build_example(vk_rasterize_demo
-        SOURCE_GLOBS "./vulkan/ComputeBarycentricRasterizer/*.cpp"
-        PUBLIC_INCLUDES ./vulkan/ComputeBarycentricRasterizer
-        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan stb)
+    # build_example(vk_rasterize_demo
+    #     SOURCE_GLOBS "./vulkan/ComputeBarycentricRasterizer/*.cpp"
+    #     PUBLIC_INCLUDES ./vulkan/ComputeBarycentricRasterizer
+    #     PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+    #     DEPENDS vulkan_example_shaders
+    #     LIBRARIES glfw vulkan stb)
 
     # 10. depth and stencil testing demo using opengl
     build_example(gl_depth_stencil_demo

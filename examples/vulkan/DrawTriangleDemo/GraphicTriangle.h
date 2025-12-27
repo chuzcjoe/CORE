@@ -15,7 +15,7 @@ namespace core {
 class GraphicTriangle : public core::vulkan::VulkanGraphic {
  public:
   GraphicTriangle(core::vulkan::VulkanContext* context,
-                  core::vulkan::VulkanRenderPass& render_pass);
+                  core::vulkan::VulkanRenderPass* render_pass);
 
   void Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);

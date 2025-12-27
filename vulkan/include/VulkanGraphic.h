@@ -13,7 +13,7 @@ namespace vulkan {
 
 class VulkanGraphic : public VulkanBase {
  public:
-  VulkanGraphic(VulkanContext* context, VulkanRenderPass& render_pass);
+  VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
 
  protected:
   void CreatePipeline() override;
@@ -31,7 +31,7 @@ class VulkanGraphic : public VulkanBase {
   virtual std::vector<VkVertexInputBindingDescription> GetVertexBindingDescriptions() const = 0;
   virtual std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const = 0;
 
-  VulkanRenderPass& render_pass_;
+  VulkanRenderPass* render_pass_ = nullptr;
 };
 
 }  // namespace vulkan
