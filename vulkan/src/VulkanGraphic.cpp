@@ -6,8 +6,6 @@ namespace vulkan {
 VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass)
     : VulkanBase(context), render_pass_(render_pass) {}
 
-VulkanGraphic::VulkanGraphic(VulkanContext* context) : VulkanBase(context) {}
-
 void VulkanGraphic::CreatePipeline() {
   // 1. shader stage
   const auto vertex_shader_module = CreateShaderModule(LoadVertexShader());
