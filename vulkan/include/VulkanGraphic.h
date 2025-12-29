@@ -11,9 +11,16 @@
 namespace core {
 namespace vulkan {
 
+struct DynamicRenderingInfo {
+  std::vector<VkFormat> color_formats;
+  VkFormat depth_format = VK_FORMAT_UNDEFINED;
+  VkFormat stencil_format = VK_FORMAT_UNDEFINED;
+};
+
 class VulkanGraphic : public VulkanBase {
  public:
   VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
+  VulkanGraphic(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info);
 
  protected:
   void CreatePipeline() override;
@@ -32,6 +39,7 @@ class VulkanGraphic : public VulkanBase {
   virtual std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const = 0;
 
   VulkanRenderPass* render_pass_ = nullptr;
+  DynamicRenderingInfo dynamic_rendering_info_{};
 };
 
 }  // namespace vulkan

@@ -1,6 +1,10 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
 #include "GraphicTriangle.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
@@ -40,39 +44,91 @@ int main() {
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
-  core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
+  // Dynamic rendering
+  core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
+  dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
   std::unique_ptr<core::GraphicTriangle> triangle =
-      std::make_unique<core::GraphicTriangle>(&context, &render_pass);
+      std::make_unique<core::GraphicTriangle>(&context, dynamic_rendering_info);
   triangle->Init();
-  swap_chain->CreateFrameBuffers(render_pass);
+
+  const bool skip_rendering = std::getenv("CORE_SKIP_RENDERING") != nullptr;
+  const bool skip_draw = std::getenv("CORE_SKIP_DRAW") != nullptr;
+  if (skip_rendering || skip_draw) {
+    std::cout << "Debug toggles: CORE_SKIP_RENDERING=" << (skip_rendering ? 1 : 0)
+              << " CORE_SKIP_DRAW=" << (skip_draw ? 1 : 0) << std::endl;
+  }
+
+  // Swapchain images start in VK_IMAGE_LAYOUT_UNDEFINED after creation.
+  std::vector<VkImageLayout> swapchain_image_layouts(swap_chain->swapchain_images.size(),
+                                                     VK_IMAGE_LAYOUT_UNDEFINED);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
+
+    std::cout << "Frame start" << std::endl;
+
     // draw process
+    std::cout << "Before wait for in_flight_fence" << std::endl;
     vkWaitForFences(context.logical_device, 1, &(in_flight_fence.fence), VK_TRUE, UINT64_MAX);
     in_flight_fence.Reset();
+
     uint32_t image_index;
+    std::cout << "Before vkAcquireNextImageKHR" << std::endl;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
+    std::cout << "After vkAcquireNextImageKHR, image_index = " << image_index << std::endl;
+
     triangle->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                   swap_chain->swapchain_extent.height);
+
     // ========== Command buffer begin ==========
+    std::cout << "Before command_buffer.Reset" << std::endl;
     command_buffer.Reset();
+
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    std::cout << "Before vkBeginCommandBuffer" << std::endl;
     VK_CHECK(vkBeginCommandBuffer(command_buffer.buffer(), &begin_info));
-    VkRenderPassBeginInfo renderpass_info{};
-    renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderpass_info.renderPass = render_pass.GetRenderPass();
-    renderpass_info.framebuffer = swap_chain->swapchain_framebuffers[image_index];
-    renderpass_info.renderArea.offset = {0, 0};
-    renderpass_info.renderArea.extent = swap_chain->swapchain_extent;
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-    renderpass_info.clearValueCount = 1;
-    renderpass_info.pClearValues = &clear_color;
-    vkCmdBeginRenderPass(command_buffer.buffer(), &renderpass_info, VK_SUBPASS_CONTENTS_INLINE);
-    triangle->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
-    vkCmdEndRenderPass(command_buffer.buffer());
+
+    std::cout << "Before CmdTransitionImageLayout to COLOR_ATTACHMENT_OPTIMAL" << std::endl;
+    VkImageLayout old_layout = swapchain_image_layouts[image_index];
+    std::cout << "CmdTransitionImageLayout old_layout = " << old_layout << std::endl;
+    swap_chain->CmdTransitionImageLayout(command_buffer.buffer(), image_index, old_layout,
+                                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    swapchain_image_layouts[image_index] = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkRenderingAttachmentInfo attachment_info{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = swap_chain->swapchain_image_views[image_index],
+        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+    VkRenderingInfo rendering_info{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+        .renderArea = {.offset = {0, 0}, .extent = swap_chain->swapchain_extent},
+        .layerCount = 1,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &attachment_info};
+
+    if (!skip_rendering) {
+      std::cout << "Before vkCmdBeginRendering" << std::endl;
+      vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
+      if (!skip_draw) {
+        std::cout << "Before triangle->Render" << std::endl;
+        triangle->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+      }
+      std::cout << "Before vkCmdEndRendering" << std::endl;
+      vkCmdEndRendering(command_buffer.buffer());
+    } else {
+      std::cout << "Skipping vkCmdBeginRendering / Render / vkCmdEndRendering" << std::endl;
+    }
+
+    std::cout << "Before CmdTransitionImageLayout to PRESENT_SRC_KHR" << std::endl;
+    swap_chain->CmdTransitionImageLayout(command_buffer.buffer(), image_index,
+                                         VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                         VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    swapchain_image_layouts[image_index] = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
     VkSubmitInfo submit_info{};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -84,7 +140,10 @@ int main() {
     VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
+
+    std::cout << "Before command_buffer.Submit" << std::endl;
     command_buffer.Submit(in_flight_fence.fence, submit_info);
+    std::cout << "After command_buffer.Submit" << std::endl;
     // ========== Command buffer end ==========
 
     // present
@@ -96,7 +155,10 @@ int main() {
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapchains;
     present_info.pImageIndices = &image_index;
+
+    std::cout << "Before vkQueuePresentKHR" << std::endl;
     vkQueuePresentKHR(context.present_queue(), &present_info);
+    std::cout << "Frame end" << std::endl;
   }
   vkDeviceWaitIdle(context.logical_device);
   swap_chain->UnInit();  // ImageViews and FrameBuffers need to be released before context release

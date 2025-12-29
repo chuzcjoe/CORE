@@ -8,6 +8,12 @@ GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
   CreateVertexBuffer();
 }
 
+GraphicTriangle::GraphicTriangle(core::vulkan::VulkanContext* context,
+                                 const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info) {
+  CreateVertexBuffer();
+}
+
 void GraphicTriangle::Init() {
   core::vulkan::VulkanGraphic::Init();
 
