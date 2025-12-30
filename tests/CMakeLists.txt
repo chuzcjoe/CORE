@@ -8,7 +8,7 @@ add_executable(core-tests ${test_src})
 
 target_include_directories(core-tests PUBLIC vulkan/include)
 
-target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat) #trace)
+target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat trace)
 
 if (APPLE)
     find_library(METAL_FRAMEWORK Metal)
