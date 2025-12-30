@@ -70,9 +70,7 @@ VulkanCommandBuffer::~VulkanCommandBuffer() {
 }
 
 void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo& submit_info) const {
-  std::cout << "Submit: before vkEndCommandBuffer" << std::endl;
   VK_CHECK(vkEndCommandBuffer(command_buffer_));
-  std::cout << "Submit: after vkEndCommandBuffer" << std::endl;
 
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
@@ -80,12 +78,7 @@ void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo& submit_info
 
   VkQueue queue = queue_family_type_ == QueueFamilyType::Compute ? context_->compute_queue()
                                                                  : context_->graphics_queue();
-  std::cout << "Submit: using queue = " << queue
-            << ", waitSemaphoreCount = " << submit_info.waitSemaphoreCount
-            << ", signalSemaphoreCount = " << submit_info.signalSemaphoreCount << std::endl;
-  std::cout << "Submit: before vkQueueSubmit" << std::endl;
   VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, fence));
-  std::cout << "Submit: after vkQueueSubmit" << std::endl;
 }
 
 void VulkanCommandBuffer::Submit(const VkFence& fence) const {

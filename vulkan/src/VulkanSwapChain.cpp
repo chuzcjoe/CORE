@@ -55,6 +55,7 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
 
   vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count, nullptr);
   swapchain_images.resize(image_count);
+  swapchain_image_layouts_.resize(image_count, VK_IMAGE_LAYOUT_UNDEFINED);
   result = vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count,
                                    swapchain_images.data());
   if (result != VK_SUCCESS) {
@@ -203,70 +204,13 @@ void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
   }
 }
 
-void VulkanSwapChain::TransitionImageLayout(uint32_t image_index, VkImageLayout old_layout,
-                                            VkImageLayout new_layout) const {
+void VulkanSwapChain::TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
+                                            VkImageLayout new_layout) {
   if (image_index >= swapchain_images.size()) {
     throw std::out_of_range("swapchain image index out of range");
   }
 
-  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
-
-  VkImageMemoryBarrier barrier{};
-  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-  barrier.oldLayout = old_layout;
-  barrier.newLayout = new_layout;
-  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-  barrier.image = swapchain_images[image_index];
-  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  barrier.subresourceRange.baseMipLevel = 0;
-  barrier.subresourceRange.levelCount = 1;
-  barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
-
-  VkPipelineStageFlags source_stage;
-  VkPipelineStageFlags destination_stage;
-
-  if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
-      new_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    destination_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-  } else if (old_layout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-             new_layout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    source_stage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    destination_stage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-  } else if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
-             new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    destination_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-  } else if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
-             new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
-    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    barrier.dstAccessMask = 0;
-    source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-  } else {
-    throw std::invalid_argument("unsupported swapchain image layout transition!");
-  }
-
-  vkCmdPipelineBarrier(command_buffer.buffer(), source_stage, destination_stage, 0, 0, nullptr, 0,
-                       nullptr, 1, &barrier);
-
-  command_buffer.EndOneTimeCommands();
-}
-
-void VulkanSwapChain::CmdTransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
-                                               VkImageLayout old_layout,
-                                               VkImageLayout new_layout) const {
-  if (image_index >= swapchain_images.size()) {
-    throw std::out_of_range("swapchain image index out of range");
-  }
+  VkImageLayout old_layout = swapchain_image_layouts_[image_index];
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -301,10 +245,12 @@ void VulkanSwapChain::CmdTransitionImageLayout(VkCommandBuffer command_buffer, u
     barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
     barrier.dstAccessMask = 0;
     source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    destination_stage = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   } else {
     throw std::invalid_argument("unsupported swapchain image layout transition!");
   }
+
+  swapchain_image_layouts_[image_index] = new_layout;
 
   vkCmdPipelineBarrier(command_buffer, source_stage, destination_stage, 0, 0, nullptr, 0, nullptr,
                        1, &barrier);

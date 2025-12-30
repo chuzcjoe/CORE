@@ -165,8 +165,6 @@ void VulkanGraphic::CreatePipeline() {
     rendering_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
     rendering_ci.pNext = nullptr;
     rendering_ci.viewMask = 0;
-    std::cout << "dynamic rendering count: " << dynamic_rendering_info_.color_formats.size()
-              << std::endl;
     rendering_ci.colorAttachmentCount = 1;
     rendering_ci.pColorAttachmentFormats = dynamic_rendering_info_.color_formats.data();
     rendering_ci.depthAttachmentFormat = dynamic_rendering_info_.depth_format;

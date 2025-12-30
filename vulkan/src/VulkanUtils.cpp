@@ -3,6 +3,26 @@
 namespace core {
 namespace vulkan {
 
+VulkanRenderingCommands LoadDynamicRenderingCommands(VkDevice device) {
+  VulkanRenderingCommands cmds{};
+
+  cmds.vkCmdBeginRendering = reinterpret_cast<PFN_vkCmdBeginRendering>(
+      vkGetDeviceProcAddr(device, "vkCmdBeginRenderingKHR"));
+  if (!cmds.vkCmdBeginRendering) {
+    cmds.vkCmdBeginRendering = reinterpret_cast<PFN_vkCmdBeginRendering>(
+        vkGetDeviceProcAddr(device, "vkCmdBeginRendering"));
+  }
+
+  cmds.vkCmdEndRendering =
+      reinterpret_cast<PFN_vkCmdEndRendering>(vkGetDeviceProcAddr(device, "vkCmdEndRenderingKHR"));
+  if (!cmds.vkCmdEndRendering) {
+    cmds.vkCmdEndRendering =
+        reinterpret_cast<PFN_vkCmdEndRendering>(vkGetDeviceProcAddr(device, "vkCmdEndRendering"));
+  }
+
+  return cmds;
+}
+
 std::string VkErrorMessages(const VkResult result) {
   switch (result) {
     case VK_ERROR_OUT_OF_HOST_MEMORY:

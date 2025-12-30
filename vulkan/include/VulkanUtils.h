@@ -3,6 +3,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include <glm/glm.hpp>
+#include <stdexcept>
 #include <string>
 
 #define VK_CHECK(x)                                                 \
@@ -20,6 +21,13 @@ namespace vulkan {
 std::string VkErrorMessages(const VkResult result);
 
 enum class QueueFamilyType { Compute, Graphics };
+
+struct VulkanRenderingCommands {
+  PFN_vkCmdBeginRendering vkCmdBeginRendering = nullptr;
+  PFN_vkCmdEndRendering vkCmdEndRendering = nullptr;
+};
+
+VulkanRenderingCommands LoadDynamicRenderingCommands(VkDevice device);
 
 }  // namespace vulkan
 }  // namespace core

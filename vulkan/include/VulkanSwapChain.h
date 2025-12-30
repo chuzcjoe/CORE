@@ -27,11 +27,8 @@ class VulkanSwapChain {
 
   void CreateFrameBuffers(VulkanRenderPass& render_pass);
 
-  void TransitionImageLayout(uint32_t image_index, VkImageLayout old_layout,
-                             VkImageLayout new_layout) const;
-
-  void CmdTransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
-                                VkImageLayout old_layout, VkImageLayout new_layout) const;
+  void TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
+                             VkImageLayout new_layout);
 
   VkExtent2D swapchain_extent;
   std::vector<VkFramebuffer> swapchain_framebuffers;
@@ -57,6 +54,8 @@ class VulkanSwapChain {
 
   bool enable_depth_buffer_ = false;
   core::vulkan::VulkanImage depth_image_;
+
+  std::vector<VkImageLayout> swapchain_image_layouts_;
 
 #if defined(__APPLE__)
   GLFWwindow* window_;
