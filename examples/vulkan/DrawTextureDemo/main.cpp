@@ -42,7 +42,7 @@ int main() {
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
   std::unique_ptr<core::GraphicTexture> texture =
-      std::make_unique<core::GraphicTexture>(&context, render_pass);
+      std::make_unique<core::GraphicTexture>(&context, &render_pass);
   texture->Init("examples/data/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 

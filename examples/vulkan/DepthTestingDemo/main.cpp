@@ -44,7 +44,7 @@ int main() {
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format,
                                              kEnableDepthBuffer);  // enable depth buffer
   std::unique_ptr<core::GraphicDepth> texture =
-      std::make_unique<core::GraphicDepth>(&context, render_pass);
+      std::make_unique<core::GraphicDepth>(&context, &render_pass);
   texture->Init("examples/data/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 

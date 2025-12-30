@@ -17,7 +17,7 @@ namespace core {
 
 class GraphicTexture : public core::vulkan::VulkanGraphic {
  public:
-  GraphicTexture(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass& render_pass);
+  GraphicTexture(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
 
   void Init() override;
   void Init(const std::string& image_path);
