@@ -1,7 +1,41 @@
 #include "VulkanCommandBuffer.h"
 
+#include <iostream>
+
 namespace core {
 namespace vulkan {
+
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept
+    : context_(other.context_),
+      queue_family_type_(other.queue_family_type_),
+      command_pool_(other.command_pool_),
+      command_buffer_(other.command_buffer_) {
+  other.context_ = nullptr;
+  other.command_pool_ = VK_NULL_HANDLE;
+  other.command_buffer_ = VK_NULL_HANDLE;
+}
+
+VulkanCommandBuffer& VulkanCommandBuffer::operator=(VulkanCommandBuffer&& other) noexcept {
+  if (this == &other) return *this;
+
+  if (context_ && command_buffer_ != VK_NULL_HANDLE && command_pool_ != VK_NULL_HANDLE) {
+    vkFreeCommandBuffers(context_->logical_device, command_pool_, 1, &command_buffer_);
+  }
+  if (context_ && command_pool_ != VK_NULL_HANDLE) {
+    vkDestroyCommandPool(context_->logical_device, command_pool_, nullptr);
+  }
+
+  context_ = other.context_;
+  queue_family_type_ = other.queue_family_type_;
+  command_pool_ = other.command_pool_;
+  command_buffer_ = other.command_buffer_;
+
+  other.context_ = nullptr;
+  other.command_pool_ = VK_NULL_HANDLE;
+  other.command_buffer_ = VK_NULL_HANDLE;
+
+  return *this;
+}
 
 VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context)
     : context_(context), queue_family_type_(context_->queue_family_type()) {
@@ -27,21 +61,24 @@ VulkanCommandBuffer::VulkanCommandBuffer(VulkanContext* context)
 }
 
 VulkanCommandBuffer::~VulkanCommandBuffer() {
-  vkFreeCommandBuffers(context_->logical_device, command_pool_, 1, &command_buffer_);
-  vkDestroyCommandPool(context_->logical_device, command_pool_, nullptr);
+  if (context_ && command_buffer_ != VK_NULL_HANDLE && command_pool_ != VK_NULL_HANDLE) {
+    vkFreeCommandBuffers(context_->logical_device, command_pool_, 1, &command_buffer_);
+  }
+  if (context_ && command_pool_ != VK_NULL_HANDLE) {
+    vkDestroyCommandPool(context_->logical_device, command_pool_, nullptr);
+  }
 }
 
 void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo& submit_info) const {
-  vkEndCommandBuffer(command_buffer_);
+  VK_CHECK(vkEndCommandBuffer(command_buffer_));
 
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
   submit_info.pCommandBuffers = &command_buffer_;
 
-  VK_CHECK(vkQueueSubmit(queue_family_type_ == QueueFamilyType::Compute
-                             ? context_->compute_queue()
-                             : context_->graphics_queue(),
-                         1, &submit_info, fence));
+  VkQueue queue = queue_family_type_ == QueueFamilyType::Compute ? context_->compute_queue()
+                                                                 : context_->graphics_queue();
+  VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, fence));
 }
 
 void VulkanCommandBuffer::Submit(const VkFence& fence) const {

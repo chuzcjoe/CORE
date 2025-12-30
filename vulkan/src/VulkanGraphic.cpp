@@ -3,8 +3,12 @@
 namespace core {
 namespace vulkan {
 
-VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass& render_pass)
+VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass)
     : VulkanBase(context), render_pass_(render_pass) {}
+
+VulkanGraphic::VulkanGraphic(VulkanContext* context,
+                             const DynamicRenderingInfo& dynamic_rendering_info)
+    : VulkanBase(context), render_pass_(nullptr), dynamic_rendering_info_(dynamic_rendering_info) {}
 
 void VulkanGraphic::CreatePipeline() {
   // 1. shader stage
@@ -42,10 +46,24 @@ void VulkanGraphic::CreatePipeline() {
   input_assembly_state.primitiveRestartEnable = VK_FALSE;
 
   // 4. view port state
+  VkViewport viewport{};
+  viewport.x = 0.0f;
+  viewport.y = 0.0f;
+  viewport.width = 1.0f;
+  viewport.height = 1.0f;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  VkRect2D scissor{};
+  scissor.offset = {0, 0};
+  scissor.extent = {1, 1};
+
   VkPipelineViewportStateCreateInfo viewport_state{};
   viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
   viewport_state.viewportCount = 1;
   viewport_state.scissorCount = 1;
+  viewport_state.pViewports = &viewport;
+  viewport_state.pScissors = &scissor;
 
   // 5. rasterization state
   VkPipelineRasterizationStateCreateInfo rasterize_state{};
@@ -114,7 +132,7 @@ void VulkanGraphic::CreatePipeline() {
   // create graphic pipeline
   VkGraphicsPipelineCreateInfo pipeline_info{};
   pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-  pipeline_info.stageCount = shader_stages.size();
+  pipeline_info.stageCount = static_cast<uint32_t>(shader_stages.size());
   pipeline_info.pStages = shader_stages.data();
   pipeline_info.pVertexInputState = &vertex_input_state;
   pipeline_info.pInputAssemblyState = &input_assembly_state;
@@ -125,8 +143,38 @@ void VulkanGraphic::CreatePipeline() {
   pipeline_info.pColorBlendState = &color_blending_state;
   pipeline_info.pDynamicState = &dynamic_state;
   pipeline_info.layout = pipeline_layout;
-  pipeline_info.renderPass = render_pass_.GetRenderPass();
-  pipeline_info.subpass = 0;
+
+  // Must outlive vkCreateGraphicsPipelines() when used via pipeline_info.pNext.
+  VkPipelineRenderingCreateInfo rendering_ci{};
+
+  if (render_pass_) {
+    // Traditional render-pass path
+    pipeline_info.pNext = nullptr;
+    pipeline_info.renderPass = render_pass_->GetRenderPass();
+    pipeline_info.subpass = 0;
+  } else {
+    // Dynamic rendering path
+    if (dynamic_rendering_info_.color_formats.empty()) {
+      throw std::runtime_error("Dynamic rendering requires at least one color format");
+    }
+
+    if (dynamic_rendering_info_.color_formats.size() != 1) {
+      throw std::runtime_error("Dynamic rendering currently supports exactly one color format");
+    }
+
+    rendering_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    rendering_ci.pNext = nullptr;
+    rendering_ci.viewMask = 0;
+    rendering_ci.colorAttachmentCount = 1;
+    rendering_ci.pColorAttachmentFormats = dynamic_rendering_info_.color_formats.data();
+    rendering_ci.depthAttachmentFormat = dynamic_rendering_info_.depth_format;
+    rendering_ci.stencilAttachmentFormat = dynamic_rendering_info_.stencil_format;
+
+    pipeline_info.pNext = &rendering_ci;
+    pipeline_info.renderPass = VK_NULL_HANDLE;
+    pipeline_info.subpass = 0;
+  }
+
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_info.basePipelineIndex = -1;
 

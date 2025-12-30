@@ -9,7 +9,7 @@
 namespace core {
 
 GraphicModel::GraphicModel(core::vulkan::VulkanContext* context,
-                           core::vulkan::VulkanRenderPass& render_pass)
+                           core::vulkan::VulkanRenderPass* render_pass)
     : core::vulkan::VulkanGraphic(context, render_pass), sampler_(context) {}
 
 void GraphicModel::Init() {

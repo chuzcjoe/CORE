@@ -10,6 +10,41 @@ namespace vulkan {
 
 static const std::vector<const char*> kValidationLayerName = {"VK_LAYER_KHRONOS_validation"};
 
+static bool SupportsDynamicRendering(VkPhysicalDevice device) {
+  VkPhysicalDeviceProperties props{};
+  vkGetPhysicalDeviceProperties(device, &props);
+
+  const bool api_13 =
+      VK_VERSION_MAJOR(props.apiVersion) > 1 ||
+      (VK_VERSION_MAJOR(props.apiVersion) == 1 && VK_VERSION_MINOR(props.apiVersion) >= 3);
+
+  bool has_khr_dynamic_rendering = false;
+  if (!api_13) {
+    uint32_t ext_count = 0;
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, nullptr);
+    std::vector<VkExtensionProperties> exts(ext_count);
+    vkEnumerateDeviceExtensionProperties(device, nullptr, &ext_count, exts.data());
+    for (const auto& ext : exts) {
+      if (std::string(ext.extensionName) == VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME) {
+        has_khr_dynamic_rendering = true;
+        break;
+      }
+    }
+  }
+
+  if (!api_13 && !has_khr_dynamic_rendering) {
+    return false;
+  }
+
+  VkPhysicalDeviceDynamicRenderingFeaturesKHR dyn{};
+  dyn.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+  VkPhysicalDeviceFeatures2 features2{};
+  features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  features2.pNext = &dyn;
+  vkGetPhysicalDeviceFeatures2(device, &features2);
+  return dyn.dynamicRendering == VK_TRUE;
+}
+
 const char* toStringMessageSeverity(VkDebugUtilsMessageSeverityFlagBitsEXT s) {
   switch (s) {
     case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
@@ -187,7 +222,7 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
 
   for (const auto& device : devices) {
     FindQueueFamilies(device, queue_family_type);
-    if (queue_family_indices_.is_complete()) {
+    if (queue_family_indices_.is_complete() && SupportsDynamicRendering(device)) {
       physical_device = device;
       break;
     }
@@ -226,16 +261,16 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
   uint32_t queue_family_count = 0;
   vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, nullptr);
 
-  std::vector<VkQueueFamilyProperties> queueFamilies(queue_family_count);
-  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queueFamilies.data());
+  std::vector<VkQueueFamilyProperties> queue_families(queue_family_count);
+  vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
 
   uint32_t i = 0;
-  for (const auto& queueFamily : queueFamilies) {
-    if (queueFamily.queueFlags & compute_flag) {
+  for (const auto& queue_family : queue_families) {
+    if (queue_family.queueFlags & compute_flag) {
       queue_family_indices_.compute_family = i;
       break;
     }
-    if (queueFamily.queueFlags & graphics_flag) {
+    if (queue_family.queueFlags & graphics_flag) {
       queue_family_indices_.graphics_family = i;
       VkBool32 present_support = false;
       vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &present_support);
@@ -276,17 +311,29 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
     queue_infos.emplace_back(queue_info);
   }
 
+  VkPhysicalDeviceDynamicRenderingFeaturesKHR dyn{};
+  dyn.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR;
+  VkPhysicalDeviceFeatures2 features2{};
+  features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+  features2.pNext = &dyn;
+  vkGetPhysicalDeviceFeatures2(physical_device, &features2);
+  if (dyn.dynamicRendering != VK_TRUE) {
+    throw std::runtime_error("Selected GPU does not support dynamic rendering");
+  }
+  dyn.dynamicRendering = VK_TRUE;  // enable feature at device creation
+
   // TODO: support more queue family types
-  VkDeviceCreateInfo deviceInfo{};
-  deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-  deviceInfo.pQueueCreateInfos = queue_infos.data();
-  deviceInfo.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
+  VkDeviceCreateInfo device_create_info{};
+  device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+  device_create_info.pQueueCreateInfos = queue_infos.data();
+  device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
+  device_create_info.pNext = &dyn;
 
   const auto extensions = GetRequiredDeviceExtensions();
-  deviceInfo.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
-  deviceInfo.ppEnabledExtensionNames = extensions.data();
+  device_create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
+  device_create_info.ppEnabledExtensionNames = extensions.data();
 
-  VK_CHECK(vkCreateDevice(physical_device, &deviceInfo, nullptr, &logical_device));
+  VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &logical_device));
 
   if (queue_family_indices_.compute_family.has_value()) {
     vkGetDeviceQueue(logical_device, queue_family_indices_.compute_family.value(), 0,
@@ -318,6 +365,9 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
   // more extensions
   extensions.emplace_back("VK_KHR_swapchain");
   extensions.emplace_back("VK_KHR_16bit_storage");
+
+  // TODO: need to check if dynamic rendering is supported
+  extensions.emplace_back("VK_KHR_dynamic_rendering");
 
   // check if required extensions are supported
   uint32_t extensionCount = 0;

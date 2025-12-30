@@ -29,8 +29,8 @@ class VulkanBase {
 
   virtual void Init();
 
-  VkPipelineLayout pipeline_layout;
-  VkPipeline pipeline;
+  VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+  VkPipeline pipeline = VK_NULL_HANDLE;
 
  protected:
   virtual std::vector<BindingInfo> GetBindingInfo() const = 0;

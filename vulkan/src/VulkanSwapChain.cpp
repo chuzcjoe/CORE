@@ -1,5 +1,7 @@
 #include "VulkanSwapChain.h"
 
+#include "VulkanCommandBuffer.h"
+
 namespace core {
 namespace vulkan {
 
@@ -52,9 +54,10 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   }
 
   vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count, nullptr);
-  swapchain_images_.resize(image_count);
+  swapchain_images.resize(image_count);
+  swapchain_image_layouts_.resize(image_count, VK_IMAGE_LAYOUT_UNDEFINED);
   result = vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count,
-                                   swapchain_images_.data());
+                                   swapchain_images.data());
   if (result != VK_SUCCESS) {
     throw std::runtime_error("get swap chain images failed");
   }
@@ -69,7 +72,7 @@ void VulkanSwapChain::UnInit() {
   for (auto framebuffer : swapchain_framebuffers) {
     vkDestroyFramebuffer(context_->logical_device, framebuffer, nullptr);
   }
-  for (auto imageview : swapchain_image_views_) {
+  for (auto imageview : swapchain_image_views) {
     vkDestroyImageView(context_->logical_device, imageview, nullptr);
   }
   if (swapchain) {
@@ -141,11 +144,11 @@ VkExtent2D VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 }
 
 void VulkanSwapChain::CreateImageViews() {
-  swapchain_image_views_.resize(swapchain_images_.size());
-  for (size_t i = 0; i < swapchain_images_.size(); ++i) {
+  swapchain_image_views.resize(swapchain_images.size());
+  for (size_t i = 0; i < swapchain_images.size(); ++i) {
     VkImageViewCreateInfo create_info{};
     create_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    create_info.image = swapchain_images_[i];
+    create_info.image = swapchain_images[i];
     create_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
     create_info.format = swapchain_image_format;
     create_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -159,7 +162,7 @@ void VulkanSwapChain::CreateImageViews() {
     create_info.subresourceRange.layerCount = 1;
 
     VK_CHECK(vkCreateImageView(context_->logical_device, &create_info, nullptr,
-                               &swapchain_image_views_[i]));
+                               &swapchain_image_views[i]));
   }
 }
 
@@ -178,11 +181,11 @@ void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
     CreateDepthResources(render_pass.depth_format);
   }
 
-  swapchain_framebuffers.resize(swapchain_image_views_.size());
+  swapchain_framebuffers.resize(swapchain_image_views.size());
 
-  for (size_t i = 0; i < swapchain_image_views_.size(); ++i) {
+  for (size_t i = 0; i < swapchain_image_views.size(); ++i) {
     std::vector<VkImageView> attachments;
-    attachments.push_back(swapchain_image_views_[i]);
+    attachments.push_back(swapchain_image_views[i]);
     if (enable_depth_buffer_) {
       attachments.push_back(depth_image_.image_view);
     }
@@ -199,6 +202,58 @@ void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
     VK_CHECK(vkCreateFramebuffer(context_->logical_device, &framebuffer_info, nullptr,
                                  &swapchain_framebuffers[i]));
   }
+}
+
+void VulkanSwapChain::TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
+                                            VkImageLayout new_layout) {
+  if (image_index >= swapchain_images.size()) {
+    throw std::out_of_range("swapchain image index out of range");
+  }
+
+  VkImageLayout old_layout = swapchain_image_layouts_[image_index];
+
+  VkImageMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+  barrier.oldLayout = old_layout;
+  barrier.newLayout = new_layout;
+  barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+  barrier.image = swapchain_images[image_index];
+  barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  barrier.subresourceRange.baseMipLevel = 0;
+  barrier.subresourceRange.levelCount = 1;
+  barrier.subresourceRange.baseArrayLayer = 0;
+  barrier.subresourceRange.layerCount = 1;
+
+  VkPipelineStageFlags source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+  VkPipelineStageFlags destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+  if (old_layout == VK_IMAGE_LAYOUT_UNDEFINED &&
+      new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    destination_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  } else if (old_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR &&
+             new_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL) {
+    barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    source_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    destination_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+  } else if (old_layout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL &&
+             new_layout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+    barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    barrier.dstAccessMask = 0;
+    source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+  } else {
+    throw std::invalid_argument("unsupported swapchain image layout transition!");
+  }
+
+  swapchain_image_layouts_[image_index] = new_layout;
+
+  vkCmdPipelineBarrier(command_buffer, source_stage, destination_stage, 0, 0, nullptr, 0, nullptr,
+                       1, &barrier);
 }
 
 }  // namespace vulkan

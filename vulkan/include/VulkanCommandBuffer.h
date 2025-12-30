@@ -12,6 +12,10 @@ namespace vulkan {
 class VulkanCommandBuffer {
  public:
   explicit VulkanCommandBuffer(VulkanContext* context);
+  VulkanCommandBuffer(const VulkanCommandBuffer&) = delete;
+  VulkanCommandBuffer& operator=(const VulkanCommandBuffer&) = delete;
+  VulkanCommandBuffer(VulkanCommandBuffer&& other) noexcept;
+  VulkanCommandBuffer& operator=(VulkanCommandBuffer&& other) noexcept;
   ~VulkanCommandBuffer();
 
   void Submit(const VkFence& fence, VkSubmitInfo& submit_info) const;

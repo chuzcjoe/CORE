@@ -19,18 +19,23 @@ struct SwapChainSupportDetails {
 class VulkanSwapChain {
  public:
   VulkanSwapChain() = delete;
-  explicit VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
-                           const bool enable_depth_buffer = false);
+  VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
+                  const bool enable_depth_buffer = false);
   ~VulkanSwapChain();
 
   void UnInit();
 
   void CreateFrameBuffers(VulkanRenderPass& render_pass);
 
+  void TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
+                             VkImageLayout new_layout);
+
   VkExtent2D swapchain_extent;
   std::vector<VkFramebuffer> swapchain_framebuffers;
   VkSwapchainKHR swapchain = VK_NULL_HANDLE;
   VkFormat swapchain_image_format;
+  std::vector<VkImage> swapchain_images;
+  std::vector<VkImageView> swapchain_image_views;
 
  private:
   SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
@@ -46,11 +51,11 @@ class VulkanSwapChain {
   VkSurfaceKHR surface_ = VK_NULL_HANDLE;
   VkSurfaceFormatKHR surface_format_;
   VkPresentModeKHR present_mode_;
-  std::vector<VkImage> swapchain_images_;
 
-  std::vector<VkImageView> swapchain_image_views_;
   bool enable_depth_buffer_ = false;
   core::vulkan::VulkanImage depth_image_;
+
+  std::vector<VkImageLayout> swapchain_image_layouts_;
 
 #if defined(__APPLE__)
   GLFWwindow* window_;
