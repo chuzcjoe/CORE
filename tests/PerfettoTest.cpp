@@ -1,3 +1,5 @@
+#ifdef CORE_ENABLE_TRACE
+
 #include <gtest/gtest.h>
 
 #include <chrono>
@@ -42,3 +44,5 @@ TEST(Perfetto, test1) {
 
   trace->StopTracing();
 }
+
+#endif  // CORE_ENABLE_TRACE

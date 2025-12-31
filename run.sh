@@ -4,10 +4,10 @@ set -x
 
 usage() {
   cat <<EOF
-Usage: $0 [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
+Usage: $0 [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>] [-enable_trace 0|1]
 
 Examples:
-  $0 -target macos -test_module vulkan -test_filter ComputeGaussianBlur.test
+  $0 -target macos -test_module vulkan -test_filter ComputeGaussianBlur.test -enable_trace 1
 
 Environment:
   ANDROID_NDK_ROOT (or NDK_ROOT) required when -target android
@@ -17,6 +17,7 @@ EOF
 target=macos
 test_module=""
 test_filter=""
+enable_trace=0 # Disable tracing by default
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -25,6 +26,7 @@ while [[ $# -gt 0 ]]; do
     -target|--target) target="$2"; shift 2 ;;
     -test_module|--test_module) test_module="$2"; shift 2 ;;
     -test_filter|--test_filter) test_filter="$2"; shift 2 ;;
+    -enable_trace|--enable_trace) enable_trace="$2"; shift 2 ;;
     *) echo "Unknown arg: $1"; usage; exit 1 ;;
   esac
 done
@@ -43,6 +45,9 @@ mkdir -p build/$target
 cd build/$target
 
 cmake_options=(-DCMAKE_BUILD_TYPE=Debug)
+if [ "$enable_trace" = "1" ]; then
+    cmake_options+=(-DENABLE_TRACE=1)
+fi
 
 if [ "$target" = "arm64-v8a" ] ; then
     cmake_options+=(-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
