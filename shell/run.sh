@@ -44,7 +44,8 @@ rm -rf build/$target
 mkdir -p build/$target
 cd build/$target
 
-cmake_options=(-DCMAKE_BUILD_TYPE=Debug)
+cmake_options=(-DCMAKE_BUILD_TYPE=Debug
+               -DBUILD_VARIANT=core)
 if [ "$enable_trace" = "1" ]; then
     cmake_options+=(-DENABLE_TRACE=1)
 fi
