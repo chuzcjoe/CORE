@@ -128,20 +128,17 @@ int main() {
                                        .signalSemaphoreCount = 1});
     // ========== Command buffer end ==========
     // present
-    VkPresentInfoKHR present_info{};
-    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = signal_semaphores;
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
-    present_info.swapchainCount = 1;
-    present_info.pSwapchains = swapchains;
-    present_info.pImageIndices = &image_index;
+    VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                  .waitSemaphoreCount = 1,
+                                  .pWaitSemaphores = signal_semaphores,
+                                  .swapchainCount = 1,
+                                  .pSwapchains = swapchains,
+                                  .pImageIndices = &image_index};
     vkQueuePresentKHR(context.present_queue(), &present_info);
   }
   vkDeviceWaitIdle(context.logical_device);
-  swap_chain->UnInit();  // ImageViews and FrameBuffers need to be released before context release
-  vkDestroySurfaceKHR(context.instance, window_surface,
-                      nullptr);  // Surface needs to be released before context release
+
   glfwDestroyWindow(window);
   glfwTerminate();
 
