@@ -19,6 +19,7 @@ class VulkanCommandBuffer {
   ~VulkanCommandBuffer();
 
   void Submit(const VkFence& fence, VkSubmitInfo& submit_info) const;
+  void Submit(const VkFence& fence, VkSubmitInfo&& submit_info) const;
   void Submit(const VkFence& fence) const;
 
   void Reset();
