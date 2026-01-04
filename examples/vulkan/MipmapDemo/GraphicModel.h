@@ -31,7 +31,8 @@ struct Vertex {
 
 class GraphicModel : public core::vulkan::VulkanGraphic {
  public:
-  GraphicModel(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
+  GraphicModel(core::vulkan::VulkanContext* context,
+               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
   void Init(const std::string& image_path, const std::string& model_path);
