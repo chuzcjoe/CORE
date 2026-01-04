@@ -133,4 +133,13 @@ if(APPLE)
         SOURCE_GLOBS "./opengl/GLCubeMapDemo/*.cpp"
         LIBRARIES glfw gl_glad opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
+
+    # 17. mipmap demo using vulkan
+    build_example(vk_mipmap_demo
+        SOURCE_GLOBS "./vulkan/MipmapDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/MipmapDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb tinyobjloader)
+
 endif()
