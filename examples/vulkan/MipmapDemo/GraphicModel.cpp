@@ -182,10 +182,12 @@ void GraphicModel::CreateBuffers() {
 }
 
 void GraphicModel::UpdateUniformBuffer(const int width, const int height,
-                                       const glm::mat4& view_matrix) {
+                                       const glm::mat4& view_matrix, const float rotation) {
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
-  uniform_buffer_.MapData([this, width, height, &view_matrix](void* data) {
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+  uniform_buffer_.MapData([this, width, height, &view_matrix, rotation](void* data) {
+    glm::mat4 model =
+        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
     uniform_data_.model = model;
     uniform_data_.view = view_matrix;
     uniform_data_.project =

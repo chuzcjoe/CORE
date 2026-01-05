@@ -140,6 +140,6 @@ if(APPLE)
         PUBLIC_INCLUDES ./vulkan/MipmapDemo
         PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
         DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan stb tinyobjloader)
+        LIBRARIES glfw vulkan stb tinyobjloader imgui)
 
 endif()

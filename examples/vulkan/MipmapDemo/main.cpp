@@ -1,5 +1,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <backends/imgui_impl_glfw.h>
+#include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
 
 #include "GraphicModel.h"
 #include "VulkanCamera.h"
@@ -9,21 +12,17 @@
 #include "VulkanUtils.h"
 
 void process_inputs(GLFWwindow* window);
-void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos);
 
 const uint32_t kWidth = 1000;
 const uint32_t kHeight = 1000;
 const bool kEnableDepthBuffer = true;
 const std::string kModelPath = "./examples/data/viking_room.obj";
 const std::string kTexturePath = "./examples/data/viking_room.png";
-const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.5f, 5.0f);
-const glm::vec3 kCameraFront = glm::vec3(0.0f, 0.0f, -1.0f);  // look toward -Z
-const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);      // Y-up
+const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.5f, 3.0f);
+const glm::vec3 kCameraFront = glm::vec3(0.0f, -1.0f, -3.0f);  // look toward -Z
+const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);       // Y-up
 const float kCameraSpeed = 0.03f;
-const float kMouseSensitivity = 0.1f;
-float laxt_x = kWidth / 2.0f;
-float last_y = kHeight / 2.0f;
-bool first_mouse = true;
+float model_rotation = -90.0f;
 
 std::unique_ptr<core::vulkan::VulkanCamera> camera =
     std::make_unique<core::vulkan::VulkanCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
@@ -39,9 +38,6 @@ int main() {
     throw std::runtime_error("failed to create window");
   }
 
-  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-  glfwSetCursorPosCallback(window, mouse_callback);
-
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
   std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
@@ -55,6 +51,43 @@ int main() {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface,
                                                                  kEnableDepthBuffer);
   }
+
+  // imgui setup
+  IMGUI_CHECKVERSION();
+  ImGui::CreateContext();
+  ImGuiIO& io = ImGui::GetIO();
+  (void)io;
+
+  ImGui::StyleColorsDark();
+  ImGui_ImplGlfw_InitForVulkan(window, true);
+  ImGui_ImplVulkan_InitInfo init_info = {};
+  init_info.ApiVersion = VK_API_VERSION_1_3;
+  init_info.Instance = context.instance;
+  init_info.PhysicalDevice = context.physical_device;
+  init_info.Device = context.logical_device;
+  init_info.QueueFamily = context.GetQueueFamilyIndices().graphics_family.value();
+  init_info.Queue = context.graphics_queue();
+  init_info.PipelineCache = VK_NULL_HANDLE;
+
+  // Let ImGui create its own descriptor pool (avoids VK_NULL_HANDLE issue)
+  init_info.DescriptorPool = VK_NULL_HANDLE;
+  init_info.DescriptorPoolSize = 128;  // >= IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
+
+  init_info.Allocator = VK_NULL_HANDLE;
+  init_info.MinImageCount = 2;
+  init_info.ImageCount = static_cast<uint32_t>(swap_chain->swapchain_images.size());
+
+  // Configure dynamic rendering pipeline for ImGui
+  VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{};
+  static VkFormat imgui_color_format;
+  imgui_color_format = swap_chain->swapchain_image_format;
+  pipeline_rendering_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+  pipeline_rendering_info.colorAttachmentCount = 1;
+  pipeline_rendering_info.pColorAttachmentFormats = &imgui_color_format;
+  init_info.PipelineInfoMain.PipelineRenderingCreateInfo = pipeline_rendering_info;
+
+  init_info.UseDynamicRendering = true;
+  ImGui_ImplVulkan_Init(&init_info);
 
 #if __APPLE__
   const auto dynamic_rendering_cmds =
@@ -78,6 +111,19 @@ int main() {
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_inputs(window);
+
+    // imgui
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    // UI to control model rotation
+    ImGui::Begin("Model Rotation Control");
+    ImGui::SliderFloat("rotation", &model_rotation, -180.0f, 180.0f);
+    ImGui::End();
+
+    ImGui::Render();
+
     // draw process
     vkWaitForFences(context.logical_device, 1, &(in_flight_fence.fence), VK_TRUE, UINT64_MAX);
     in_flight_fence.Reset();
@@ -86,7 +132,7 @@ int main() {
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
     const auto camera_view = camera->GetViewMatrix();
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
-                               swap_chain->swapchain_extent.height, camera_view);
+                               swap_chain->swapchain_extent.height, camera_view, model_rotation);
     // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
@@ -110,7 +156,10 @@ int main() {
         .pColorAttachments = &attachment_info};
 
     vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
+    model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
+                               swap_chain->swapchain_extent.height, camera_view, model_rotation);
     model->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer.buffer());
     vkCmdEndRendering(command_buffer.buffer());
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
@@ -139,6 +188,10 @@ int main() {
   }
   vkDeviceWaitIdle(context.logical_device);
 
+  ImGui_ImplVulkan_Shutdown();
+  ImGui_ImplGlfw_Shutdown();
+  ImGui::DestroyContext();
+
   glfwDestroyWindow(window);
   glfwTerminate();
 
@@ -155,31 +208,4 @@ void process_inputs(GLFWwindow* window) {
     camera->ProcessKeyboard(core::vulkan::CameraMovement::LEFT);
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
     camera->ProcessKeyboard(core::vulkan::CameraMovement::RIGHT);
-}
-
-void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
-  if (first_mouse) {
-    laxt_x = xpos;
-    last_y = ypos;
-    first_mouse = false;
-  }
-  float xoffset = xpos - laxt_x;
-  float yoffset = last_y - ypos;  // reversed since y-coordinates go from bottom to top
-  laxt_x = xpos;
-  last_y = ypos;
-
-  xoffset *= kMouseSensitivity;
-  yoffset *= kMouseSensitivity;
-
-  camera->yaw += xoffset;
-  camera->pitch += yoffset;
-
-  if (camera->pitch > 89.0f) camera->pitch = 89.0f;
-  if (camera->pitch < -89.0f) camera->pitch = -89.0f;
-
-  glm::vec3 front;
-  front.x = std::cos(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
-  front.y = std::sin(glm::radians(camera->pitch));
-  front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
-  camera->camera_front = glm::normalize(front);
 }
