@@ -55,38 +55,28 @@ int main() {
   // imgui setup
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
-  ImGuiIO& io = ImGui::GetIO();
-  (void)io;
 
   ImGui::StyleColorsDark();
   ImGui_ImplGlfw_InitForVulkan(window, true);
-  ImGui_ImplVulkan_InitInfo init_info = {};
-  init_info.ApiVersion = VK_API_VERSION_1_3;
-  init_info.Instance = context.instance;
-  init_info.PhysicalDevice = context.physical_device;
-  init_info.Device = context.logical_device;
-  init_info.QueueFamily = context.GetQueueFamilyIndices().graphics_family.value();
-  init_info.Queue = context.graphics_queue();
-  init_info.PipelineCache = VK_NULL_HANDLE;
-
-  // Let ImGui create its own descriptor pool (avoids VK_NULL_HANDLE issue)
-  init_info.DescriptorPool = VK_NULL_HANDLE;
-  init_info.DescriptorPoolSize = 128;  // >= IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
-
-  init_info.Allocator = VK_NULL_HANDLE;
-  init_info.MinImageCount = 2;
-  init_info.ImageCount = static_cast<uint32_t>(swap_chain->swapchain_images.size());
-
-  // Configure dynamic rendering pipeline for ImGui
-  VkPipelineRenderingCreateInfoKHR pipeline_rendering_info{};
-  static VkFormat imgui_color_format;
-  imgui_color_format = swap_chain->swapchain_image_format;
-  pipeline_rendering_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-  pipeline_rendering_info.colorAttachmentCount = 1;
-  pipeline_rendering_info.pColorAttachmentFormats = &imgui_color_format;
-  init_info.PipelineInfoMain.PipelineRenderingCreateInfo = pipeline_rendering_info;
-
-  init_info.UseDynamicRendering = true;
+  ImGui_ImplVulkan_InitInfo init_info = {
+      .ApiVersion = VK_API_VERSION_1_3,
+      .Instance = context.instance,
+      .PhysicalDevice = context.physical_device,
+      .Device = context.logical_device,
+      .QueueFamily = context.GetQueueFamilyIndices().graphics_family.value(),
+      .Queue = context.graphics_queue(),
+      .PipelineCache = VK_NULL_HANDLE,
+      .DescriptorPool = VK_NULL_HANDLE,
+      .DescriptorPoolSize = 128,  // >= IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
+      .Allocator = VK_NULL_HANDLE,
+      .MinImageCount = 2,
+      .ImageCount = static_cast<uint32_t>(swap_chain->swapchain_images.size()),
+      .PipelineInfoMain.PipelineRenderingCreateInfo =
+          VkPipelineRenderingCreateInfoKHR{
+              .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+              .colorAttachmentCount = 1,
+              .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)},
+      .UseDynamicRendering = true};
   ImGui_ImplVulkan_Init(&init_info);
 
 #if __APPLE__
