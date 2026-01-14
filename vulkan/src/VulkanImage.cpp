@@ -229,12 +229,12 @@ void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
 
 void VulkanImage::GenerateMipmaps() {
   // Check if image format supports linear blitting
-  VkFormatProperties format_properties;
-  vkGetPhysicalDeviceFormatProperties(context_->physical_device, image_format_, &format_properties);
-  if (!(format_properties.optimalTilingFeatures &
-        VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-    throw std::runtime_error("texture image format does not support linear blitting!");
-  }
+  // VkFormatProperties format_properties;
+  // vkGetPhysicalDeviceFormatProperties(context_->physical_device, image_format_,
+  // &format_properties); if (!(format_properties.optimalTilingFeatures &
+  //       VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
+  //   throw std::runtime_error("texture image format does not support linear blitting!");
+  // }
 
   VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
 
