@@ -206,6 +206,8 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
     throw std::runtime_error("failed to load texture image!");
   }
   VkDeviceSize image_size = texture_width * texture_height * 4;
+  uint32_t mip_levels =
+      static_cast<uint32_t>(std::floor(std::log2(std::max(texture_width, texture_height)))) + 1;
 
   core::vulkan::VulkanBuffer staging_buffer(
       context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -216,20 +218,22 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
 
   stbi_image_free(pixels);
 
-  texture_image_ =
-      core::vulkan::VulkanImage(context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
-                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  texture_image_ = core::vulkan::VulkanImage(
+      context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+          VK_IMAGE_USAGE_SAMPLED_BIT,
+      VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mip_levels);
 
   // Transition image layout and copy buffer to image
   // TODO: Use a single command buffer for all operations for higher throughput,
-  texture_image_.TransitionImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
+  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                       VK_FORMAT_R8G8B8A8_SRGB, mip_levels);
   staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
                              static_cast<uint32_t>(texture_height));
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                       VK_FORMAT_R8G8B8A8_SRGB);
+
+  // TODO: Implementing resizing in software and loading multiple levels from a file
+  texture_image_.GenerateMipmaps();
 }
 
 }  // namespace core
