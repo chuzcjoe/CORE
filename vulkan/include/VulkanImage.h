@@ -33,7 +33,7 @@ class VulkanImage {
 
  private:
   VulkanContext* context_ = nullptr;
-  VkFormat image_format_ = VK_NULL_HANDLE;
+  VkFormat image_format_;
   uint32_t mip_levels_ = 1;
 
  public:

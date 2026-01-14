@@ -218,11 +218,12 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
 
   stbi_image_free(pixels);
 
-  texture_image_ = core::vulkan::VulkanImage(
-      context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-          VK_IMAGE_USAGE_SAMPLED_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, mip_levels);
+  texture_image_ =
+      core::vulkan::VulkanImage(context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
+                                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+                                    VK_IMAGE_USAGE_SAMPLED_BIT,
+                                VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                                VK_IMAGE_TILING_OPTIMAL, mip_levels);
 
   // Transition image layout and copy buffer to image
   // TODO: Use a single command buffer for all operations for higher throughput,
