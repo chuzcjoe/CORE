@@ -66,7 +66,12 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   CreateImageViews();
 }
 
-VulkanSwapChain::~VulkanSwapChain() {}
+VulkanSwapChain::~VulkanSwapChain() {
+  UnInit();
+  if (context_ && surface_ != VK_NULL_HANDLE) {
+    vkDestroySurfaceKHR(context_->instance, surface_, nullptr);
+  }
+}
 
 void VulkanSwapChain::UnInit() {
   for (auto framebuffer : swapchain_framebuffers) {

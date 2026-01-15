@@ -20,7 +20,7 @@ VulkanSampler::VulkanSampler(VulkanContext* context) : context_(context) {
   sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
   sampler_info.mipLodBias = 0.0f;
   sampler_info.minLod = 0.0f;
-  sampler_info.maxLod = 0.0f;
+  sampler_info.maxLod = VK_LOD_CLAMP_NONE;
 
   VK_CHECK(vkCreateSampler(context_->logical_device, &sampler_info, nullptr, &sampler));
 }

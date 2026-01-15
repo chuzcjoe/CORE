@@ -81,6 +81,10 @@ void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo& submit_info
   VK_CHECK(vkQueueSubmit(queue, 1, &submit_info, fence));
 }
 
+void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo&& submit_info) const {
+  Submit(fence, submit_info);
+}
+
 void VulkanCommandBuffer::Submit(const VkFence& fence) const {
   vkEndCommandBuffer(command_buffer_);
 
