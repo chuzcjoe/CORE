@@ -89,6 +89,9 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
   }
 
   context_ = rhs.context_;
+  image_format_ = rhs.image_format_;
+  mip_levels_ = rhs.mip_levels_;
+
   image = rhs.image;
   rhs.image = VK_NULL_HANDLE;
 
