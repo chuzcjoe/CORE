@@ -37,6 +37,7 @@ void GraphicModel::Init() {
 }
 
 void GraphicModel::Init(const std::string& image_path, const std::string& model_path) {
+  printf("max usable sample count: %d\n", sampler_.GetMaxUsableSampleCount());
   CreateTextureImage(image_path);
   LoadModel(model_path);
   CreateBuffers();
