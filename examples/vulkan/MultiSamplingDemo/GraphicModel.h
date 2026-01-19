@@ -32,7 +32,8 @@ struct Vertex {
 class GraphicModel : public core::vulkan::VulkanGraphic {
  public:
   GraphicModel(core::vulkan::VulkanContext* context,
-               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
+               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+               const VkSampleCountFlagBits msaa_samples);
 
   void Init() override;
   void Init(const std::string& image_path, const std::string& model_path, const VkExtent2D& extent);
@@ -40,6 +41,9 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
                            const float rotation);
+
+  // MSAA image (needs to be accessed by Dynamic rendering)
+  core::vulkan::VulkanImage msaa_image;
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -85,8 +89,8 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
   core::vulkan::VulkanImage texture_image_;
   core::vulkan::VulkanSampler sampler_;
 
-  // MSAA image
-  core::vulkan::VulkanImage msaa_image_;
+  // msaa
+  VkSampleCountFlagBits msaa_samples_;
 };
 
 }  // namespace core

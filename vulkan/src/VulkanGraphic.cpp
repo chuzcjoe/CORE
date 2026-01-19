@@ -7,8 +7,12 @@ VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pa
     : VulkanBase(context), render_pass_(render_pass) {}
 
 VulkanGraphic::VulkanGraphic(VulkanContext* context,
-                             const DynamicRenderingInfo& dynamic_rendering_info)
-    : VulkanBase(context), render_pass_(nullptr), dynamic_rendering_info_(dynamic_rendering_info) {}
+                             const DynamicRenderingInfo& dynamic_rendering_info,
+                             const VkSampleCountFlagBits msaa_samples)
+    : VulkanBase(context),
+      render_pass_(nullptr),
+      dynamic_rendering_info_(dynamic_rendering_info),
+      msaa_samples_(msaa_samples) {}
 
 void VulkanGraphic::CreatePipeline() {
   // 1. shader stage
@@ -85,7 +89,7 @@ void VulkanGraphic::CreatePipeline() {
   VkPipelineMultisampleStateCreateInfo multisample_state{};
   multisample_state.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
   multisample_state.sampleShadingEnable = VK_FALSE;
-  multisample_state.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+  multisample_state.rasterizationSamples = msaa_samples_;
   multisample_state.minSampleShading = 1.0f;
   multisample_state.pSampleMask = nullptr;
   multisample_state.alphaToCoverageEnable = VK_FALSE;

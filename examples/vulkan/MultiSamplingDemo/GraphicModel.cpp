@@ -9,8 +9,11 @@
 namespace core {
 
 GraphicModel::GraphicModel(core::vulkan::VulkanContext* context,
-                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info), sampler_(context) {}
+                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+                           const VkSampleCountFlagBits msaa_samples)
+    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info, msaa_samples),
+      sampler_(context),
+      msaa_samples_(msaa_samples) {}
 
 void GraphicModel::Init() {
   core::vulkan::VulkanGraphic::Init();
@@ -38,7 +41,6 @@ void GraphicModel::Init() {
 
 void GraphicModel::Init(const std::string& image_path, const std::string& model_path,
                         const VkExtent2D& extent) {
-  printf("max usable sample count: %d\n", core::vulkan::GetMaxUsableSampleCount(context_));
   CreateTextureImage(image_path);
   CreateMSAAImage(extent);
   LoadModel(model_path);
@@ -241,12 +243,11 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
 }
 
 void GraphicModel::CreateMSAAImage(const VkExtent2D& extent) {
-  VkSampleCountFlagBits max_msaa_samples = core::vulkan::GetMaxUsableSampleCount(context_);
-  msaa_image_ = core::vulkan::VulkanImage(
-      context_, extent.width, extent.height, VK_FORMAT_R8G8B8A8_SRGB,
+  msaa_image = core::vulkan::VulkanImage(
+      context_, extent.width, extent.height, VK_FORMAT_B8G8R8A8_SRGB,
       VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, 1,
-      max_msaa_samples);
+      msaa_samples_);
 }
 
 }  // namespace core

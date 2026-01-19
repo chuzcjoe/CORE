@@ -52,6 +52,10 @@ int main() {
                                                                  kEnableDepthBuffer);
   }
 
+  // multi-sampling
+  VkSampleCountFlagBits msaa_samples = core::vulkan::GetMaxUsableSampleCount(&context);
+  printf("Using %d samples for MSAA\n", msaa_samples);
+
   // imgui setup
   IMGUI_CHECKVERSION();
   ImGui::CreateContext();
@@ -76,6 +80,7 @@ int main() {
               .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
               .colorAttachmentCount = 1,
               .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)},
+      .PipelineInfoMain.MSAASamples = msaa_samples,
       .UseDynamicRendering = true};
   ImGui_ImplVulkan_Init(&init_info);
 
@@ -91,11 +96,12 @@ int main() {
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
+
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
   std::unique_ptr<core::GraphicModel> model =
-      std::make_unique<core::GraphicModel>(&context, dynamic_rendering_info);
+      std::make_unique<core::GraphicModel>(&context, dynamic_rendering_info, msaa_samples);
   model->Init(kTexturePath, kModelPath, swap_chain->swapchain_extent);
 
   while (!glfwWindowShouldClose(window)) {
@@ -133,8 +139,11 @@ int main() {
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
     VkRenderingAttachmentInfo attachment_info{
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = swap_chain->swapchain_image_views[image_index],
+        .imageView = model->msaa_image.image_view,
         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
+        .resolveImageView = swap_chain->swapchain_image_views[image_index],
+        .resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
