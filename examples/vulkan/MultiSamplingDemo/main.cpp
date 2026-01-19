@@ -96,7 +96,7 @@ int main() {
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
   std::unique_ptr<core::GraphicModel> model =
       std::make_unique<core::GraphicModel>(&context, dynamic_rendering_info);
-  model->Init(kTexturePath, kModelPath);
+  model->Init(kTexturePath, kModelPath, swap_chain->swapchain_extent);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();

@@ -16,7 +16,8 @@ class VulkanImage {
   VulkanImage(VulkanContext* context, const uint32_t width, const uint32_t height,
               const VkFormat format, const VkImageUsageFlags usage, const VkImageAspectFlags aspect,
               const VkMemoryPropertyFlags properties,
-              const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL, const uint32_t mip_levels = 1);
+              const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL, const uint32_t mip_levels = 1,
+              const VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
   ~VulkanImage();
 
   VulkanImage& operator=(VulkanImage&&);
@@ -35,6 +36,7 @@ class VulkanImage {
   VulkanContext* context_ = nullptr;
   VkFormat image_format_;
   uint32_t mip_levels_ = 1;
+  VkSampleCountFlagBits samples_ = VK_SAMPLE_COUNT_1_BIT;
 
  public:
   uint32_t image_width;

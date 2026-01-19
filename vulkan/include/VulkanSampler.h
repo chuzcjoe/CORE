@@ -12,8 +12,6 @@ class VulkanSampler {
   explicit VulkanSampler(VulkanContext* context);
   ~VulkanSampler();
 
-  VkSampleCountFlagBits GetMaxUsableSampleCount() const;
-
  private:
   VulkanContext* context_ = nullptr;
 

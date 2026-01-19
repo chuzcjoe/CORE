@@ -35,7 +35,7 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
-  void Init(const std::string& image_path, const std::string& model_path);
+  void Init(const std::string& image_path, const std::string& model_path, const VkExtent2D& extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
@@ -55,6 +55,8 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
 
  private:
   void CreateTextureImage(const std::string& image_path);
+
+  void CreateMSAAImage(const VkExtent2D& extent);
 
   struct UniformBufferObject {
     glm::mat4 model;
@@ -82,6 +84,9 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
   // texture image
   core::vulkan::VulkanImage texture_image_;
   core::vulkan::VulkanSampler sampler_;
+
+  // MSAA image
+  core::vulkan::VulkanImage msaa_image_;
 };
 
 }  // namespace core

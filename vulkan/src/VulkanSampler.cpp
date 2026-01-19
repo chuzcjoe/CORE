@@ -31,33 +31,5 @@ VulkanSampler::~VulkanSampler() {
   }
 }
 
-VkSampleCountFlagBits VulkanSampler::GetMaxUsableSampleCount() const {
-  VkPhysicalDeviceProperties physical_device_properties{};
-  vkGetPhysicalDeviceProperties(context_->physical_device, &physical_device_properties);
-
-  VkSampleCountFlags counts = physical_device_properties.limits.framebufferColorSampleCounts &
-                              physical_device_properties.limits.framebufferDepthSampleCounts;
-  if (counts & VK_SAMPLE_COUNT_64_BIT) {
-    return VK_SAMPLE_COUNT_64_BIT;
-  }
-  if (counts & VK_SAMPLE_COUNT_32_BIT) {
-    return VK_SAMPLE_COUNT_32_BIT;
-  }
-  if (counts & VK_SAMPLE_COUNT_16_BIT) {
-    return VK_SAMPLE_COUNT_16_BIT;
-  }
-  if (counts & VK_SAMPLE_COUNT_8_BIT) {
-    return VK_SAMPLE_COUNT_8_BIT;
-  }
-  if (counts & VK_SAMPLE_COUNT_4_BIT) {
-    return VK_SAMPLE_COUNT_4_BIT;
-  }
-  if (counts & VK_SAMPLE_COUNT_2_BIT) {
-    return VK_SAMPLE_COUNT_2_BIT;
-  }
-
-  return VK_SAMPLE_COUNT_1_BIT;
-}
-
 }  // namespace vulkan
 }  // namespace core

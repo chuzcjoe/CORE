@@ -18,6 +18,8 @@
 namespace core {
 namespace vulkan {
 
+class VulkanContext;
+
 std::string VkErrorMessages(const VkResult result);
 
 enum class QueueFamilyType { Compute, Graphics };
@@ -28,6 +30,8 @@ struct VulkanRenderingCommands {
 };
 
 VulkanRenderingCommands LoadDynamicRenderingCommands(VkDevice device);
+
+VkSampleCountFlagBits GetMaxUsableSampleCount(const VulkanContext* context);
 
 }  // namespace vulkan
 }  // namespace core
