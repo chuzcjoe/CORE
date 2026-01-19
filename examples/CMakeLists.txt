@@ -142,4 +142,12 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan stb tinyobjloader imgui)
 
+    # 18. multi-sampling demo using vulkan
+    build_example(vk_multi_sampling_demo
+        SOURCE_GLOBS "./vulkan/MultiSamplingDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/MultiSamplingDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb tinyobjloader imgui)
+
 endif()

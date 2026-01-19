@@ -8,10 +8,12 @@ namespace vulkan {
 VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uint32_t height,
                          const VkFormat format, const VkImageUsageFlags usage,
                          const VkImageAspectFlags aspect, const VkMemoryPropertyFlags properties,
-                         const VkImageTiling tiling, const uint32_t mip_levels)
+                         const VkImageTiling tiling, const uint32_t mip_levels,
+                         const VkSampleCountFlagBits samples)
     : context_(context),
       image_format_(format),
       mip_levels_(mip_levels),
+      samples_(samples),
       image_width(width),
       image_height(height) {
   VkImageCreateInfo image_info{};
@@ -28,7 +30,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
       VK_IMAGE_LAYOUT_UNDEFINED;  // only two states: UNDEFINED and PREINITIALIZED
   image_info.usage = usage;
   image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+  image_info.samples = samples_;
   image_info.flags = 0;  // Optional
 
   VK_CHECK(vkCreateImage(context_->logical_device, &image_info, nullptr, &image));

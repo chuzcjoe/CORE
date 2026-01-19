@@ -20,7 +20,8 @@ struct DynamicRenderingInfo {
 class VulkanGraphic : public VulkanBase {
  public:
   VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
-  VulkanGraphic(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info);
+  VulkanGraphic(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info,
+                const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
 
  protected:
   void CreatePipeline() override;
@@ -40,6 +41,8 @@ class VulkanGraphic : public VulkanBase {
 
   VulkanRenderPass* render_pass_ = nullptr;
   DynamicRenderingInfo dynamic_rendering_info_{};
+
+  VkSampleCountFlagBits msaa_samples_ = VK_SAMPLE_COUNT_1_BIT;
 };
 
 }  // namespace vulkan
