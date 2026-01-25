@@ -25,4 +25,7 @@ if (APPLE)
             ${METAL_FRAMEWORK}
             ${FOUNDATION_FRAMEWORK}
             ${QUARTZCORE_FRAMEWORK})
+elseif(ANDROID)
+    target_link_libraries(core-tests PUBLIC
+            android log)
 endif()
