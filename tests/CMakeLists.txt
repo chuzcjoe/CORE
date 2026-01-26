@@ -4,6 +4,12 @@ if (NOT APPLE)
     list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/MetalTest.cpp")
 endif()
 
+# Exclude EGLTest.cpp and AHardwareBufferTest.cpp on non-Android platforms
+if (NOT ANDROID)
+    list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/EGLTest.cpp")
+    list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/AHardwareBufferTest.cpp")
+endif()
+
 add_executable(core-tests ${test_src})
 
 target_include_directories(core-tests PUBLIC vulkan/include)

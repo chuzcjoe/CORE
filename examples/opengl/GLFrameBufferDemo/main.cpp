@@ -167,7 +167,8 @@ int main() {
 
   texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
   texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
-  texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE, false);
+  texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE,
+                                GL_LINEAR, false);
 
   // clang-format off
   float cube_vertices[] = {
