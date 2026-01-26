@@ -29,5 +29,5 @@ elseif(ANDROID)
     target_link_libraries(core-tests PUBLIC
             gles_glad
             egl_glad
-            android log)
+            EGL android log)
 endif()
