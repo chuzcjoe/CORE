@@ -1,6 +1,9 @@
-set(GLAD_SOURCES src/glad_egl.c)
+find_library(EGL_LIBRARY EGL)
+message("EGL path: ${EGL_LIBRARY}")
 
-add_library(egl_glad ${GLAD_SOURCES})
+set(egl_glad_src src/glad_egl.c)
+
+add_library(egl_glad ${egl_glad_src})
 
 target_include_directories(egl_glad
     SYSTEM PUBLIC
@@ -8,4 +11,5 @@ target_include_directories(egl_glad
 
 target_link_libraries(egl_glad
     PUBLIC
-    EGL android)
+    ${EGL_LIBRARY}
+    android)
