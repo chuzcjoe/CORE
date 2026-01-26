@@ -27,5 +27,7 @@ if (APPLE)
             ${QUARTZCORE_FRAMEWORK})
 elseif(ANDROID)
     target_link_libraries(core-tests PUBLIC
+            gles_glad
+            egl
             android log)
 endif()
