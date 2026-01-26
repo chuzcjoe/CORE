@@ -21,11 +21,7 @@ void GLQuery::End() {
   }
 
   switch (query_type_) {
-#ifdef __ANDROID__
-    case GL_TIME_ELAPSED_EXT:
-#else
     case GL_TIME_ELAPSED:
-#endif
       unsigned time_ns = 0;
       glGetQueryObjectuiv(query_id_, GL_QUERY_RESULT, &time_ns);
       double time_ms = time_ns / 1e6;
