@@ -8,6 +8,7 @@ endif()
 if (NOT ANDROID)
     list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/EGLTest.cpp")
     list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/AHardwareBufferTest.cpp")
+    list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/GLESTest.cpp")
 endif()
 
 add_executable(core-tests ${test_src})
