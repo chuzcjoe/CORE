@@ -35,6 +35,7 @@ if (APPLE)
 elseif(ANDROID)
     target_link_libraries(core-tests PUBLIC
             gles_glad
+            io
             egl
             log)
 endif()

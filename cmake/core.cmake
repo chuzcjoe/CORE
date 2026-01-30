@@ -16,6 +16,7 @@ elseif(ANDROID)
   add_subdirectory(egl)
 endif()
 
+add_subdirectory(io)
 add_subdirectory(threadpool)
 add_subdirectory(tests)
 add_subdirectory(examples)

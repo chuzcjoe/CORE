@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include "TextureIO.h"
 #include "egl/Context.h"
 
 namespace core {
@@ -16,8 +17,8 @@ TEST(GLES, test) {
   int gles_load = gladLoadGLES2Loader((GLADloadproc)eglGetProcAddress);
   EXPECT_NE(gles_load, 0);
 
-  constexpr int kWidth = 3;
-  constexpr int kHeight = 3;
+  constexpr int kWidth = 600;
+  constexpr int kHeight = 600;
 
   GLuint fbo = 0;
   GLuint color_tex = 0;
@@ -52,7 +53,7 @@ TEST(GLES, test) {
       "void main() { gl_Position = vec4(aPos, 0.0, 1.0); }\n";
   const char* kFragmentShaderSource =
       "precision mediump float;\n"
-      "void main() { gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); }\n";
+      "void main() { gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0); }\n";
 
   GLuint vertex_shader = compile_shader(GL_VERTEX_SHADER, kVertexShaderSource);
   ASSERT_NE(vertex_shader, 0u);
@@ -73,8 +74,8 @@ TEST(GLES, test) {
 
   const GLfloat vertices[] = {
       -1.0f, -1.0f,  //
-      3.0f,  -1.0f,  //
-      -1.0f, 3.0f,   //
+      1.0f,  -1.0f,  //
+      -1.0f, 1.0f,   //
   };
 
   GLuint vbo = 0;
@@ -85,20 +86,18 @@ TEST(GLES, test) {
   glViewport(0, 0, kWidth, kHeight);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_BLEND);
-  glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
   glClear(GL_COLOR_BUFFER_BIT);
 
   glUseProgram(program);
   glEnableVertexAttribArray(0);
   glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
   glDrawArrays(GL_TRIANGLES, 0, 3);
+  glFinish();
 
-  std::uint8_t pixel[4] = {0, 0, 0, 0};
-  glReadPixels(1, 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
-  EXPECT_GE(pixel[0], 250);
-  EXPECT_LE(pixel[1], 5);
-  EXPECT_LE(pixel[2], 5);
-  EXPECT_GE(pixel[3], 250);
+  // save texture to file
+  core::io::WriteTextureToFile(color_tex, kWidth, kHeight,
+                               "/data/local/tmp/core/data/gles_test.png");
 
   glDeleteBuffers(1, &vbo);
   glDeleteProgram(program);

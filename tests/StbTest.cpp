@@ -2,10 +2,11 @@
 
 #include <string>
 
-#define STB_IMAGE_IMPLEMENTATION
+// remove #define STB_IMAGE_IMPLEMENTATION since it is defined in TextureIO.cpp used by GLESTest.cpp
 #include <stb_image.h>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
+// remove #define STB_IMAGE_WRITE_IMPLEMENTATION since it is defined in TextureIO.cpp used by
+// GLESTest.cpp
 #include <stb_image_write.h>
 
 #include "Mat.h"
