@@ -1,3 +1,0 @@
-/Users/zongchengchu/Documents/vulkan/CORE/build_apps/CMakeFiles/native_app.dir
-/Users/zongchengchu/Documents/vulkan/CORE/build_apps/CMakeFiles/edit_cache.dir
-/Users/zongchengchu/Documents/vulkan/CORE/build_apps/CMakeFiles/rebuild_cache.dir

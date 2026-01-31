@@ -6,3 +6,4 @@ tmp/
 imgui.*
 *.perf
 *.pftrace
+build_apps/
