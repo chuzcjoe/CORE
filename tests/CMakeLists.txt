@@ -8,13 +8,14 @@ endif()
 if (NOT ANDROID)
     list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/EGLTest.cpp")
     list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/AHardwareBufferTest.cpp")
+    list(REMOVE_ITEM test_src "${CMAKE_CURRENT_SOURCE_DIR}/GLESTest.cpp")
 endif()
 
 add_executable(core-tests ${test_src})
 
 target_include_directories(core-tests PUBLIC vulkan/include)
 
-target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat)
+target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat io)
 if (ENABLE_TRACE)
     target_link_libraries(core-tests PUBLIC trace)
     target_compile_definitions(core-tests PUBLIC CORE_ENABLE_TRACE)
