@@ -15,7 +15,7 @@ add_executable(core-tests ${test_src})
 
 target_include_directories(core-tests PUBLIC vulkan/include)
 
-target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat)
+target_link_libraries(core-tests PUBLIC gtest stb vulkan mat threadpool opencl mat io)
 if (ENABLE_TRACE)
     target_link_libraries(core-tests PUBLIC trace)
     target_compile_definitions(core-tests PUBLIC CORE_ENABLE_TRACE)
@@ -35,7 +35,6 @@ if (APPLE)
 elseif(ANDROID)
     target_link_libraries(core-tests PUBLIC
             gles_glad
-            io
             egl
             log)
 endif()

@@ -1,13 +1,8 @@
 #include <gtest/gtest.h>
+#include <stb_image.h>
+#include <stb_image_write.h>
 
 #include <string>
-
-// remove #define STB_IMAGE_IMPLEMENTATION since it is defined in TextureIO.cpp used by GLESTest.cpp
-#include <stb_image.h>
-
-// remove #define STB_IMAGE_WRITE_IMPLEMENTATION since it is defined in TextureIO.cpp used by
-// GLESTest.cpp
-#include <stb_image_write.h>
 
 #include "Mat.h"
 
