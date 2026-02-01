@@ -6,6 +6,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <memory>
 #include <thread>
 
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "NativeClear", __VA_ARGS__)
@@ -18,7 +19,7 @@ struct App {
   EGLSurface surface = EGL_NO_SURFACE;
   EGLContext context = EGL_NO_CONTEXT;
 
-  std::thread renderThread;
+  std::thread render_thread;
   std::atomic<bool> running{false};
 };
 
@@ -78,10 +79,10 @@ static void render_loop(App& app) {
   init_egl(app);
 
   while (app.running.load()) {
-    int w = ANativeWindow_getWidth(app.window);
-    int h = ANativeWindow_getHeight(app.window);
+    int width = ANativeWindow_getWidth(app.window);
+    int height = ANativeWindow_getHeight(app.window);
 
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, width, height);
     glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
@@ -102,7 +103,7 @@ static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* wind
   app->window = window;
   app->running = true;
 
-  app->renderThread = std::thread(render_loop, std::ref(*app));
+  app->render_thread = std::thread(render_loop, std::ref(*app));
 }
 
 static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow*) {
@@ -111,7 +112,7 @@ static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow*) {
   auto* app = static_cast<App*>(activity->instance);
   app->running = false;
 
-  if (app->renderThread.joinable()) app->renderThread.join();
+  if (app->render_thread.joinable()) app->render_thread.join();
 
   app->window = nullptr;
 }
@@ -121,8 +122,8 @@ static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow*) {
 extern "C" void ANativeActivity_onCreate(ANativeActivity* activity, void*, size_t) {
   LOGI("NativeActivity onCreate");
 
-  auto* app = new App();
-  activity->instance = app;
+  std::shared_ptr<App> app = std::make_shared<App>();
+  activity->instance = app.get();
 
   activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;
   activity->callbacks->onNativeWindowDestroyed = onNativeWindowDestroyed;
