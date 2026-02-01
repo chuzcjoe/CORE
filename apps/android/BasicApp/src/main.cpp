@@ -6,14 +6,12 @@
 
 #include <atomic>
 #include <chrono>
-#include <cmath>
 #include <thread>
 
-#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "NativeGLES", __VA_ARGS__)
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "NativeGLES", __VA_ARGS__)
+#define LOGI(...) __android_log_print(ANDROID_LOG_INFO, "NativeClear", __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, "NativeClear", __VA_ARGS__)
 
 struct App {
-  ANativeActivity* activity = nullptr;
   ANativeWindow* window = nullptr;
 
   EGLDisplay display = EGL_NO_DISPLAY;
@@ -23,6 +21,8 @@ struct App {
   std::thread renderThread;
   std::atomic<bool> running{false};
 };
+
+/* ================= EGL ================= */
 
 static void init_egl(App& app) {
   app.display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
@@ -65,27 +65,26 @@ static void destroy_egl(App& app) {
 
   eglTerminate(app.display);
 
-  app.context = EGL_NO_CONTEXT;
-  app.surface = EGL_NO_SURFACE;
   app.display = EGL_NO_DISPLAY;
+  app.surface = EGL_NO_SURFACE;
+  app.context = EGL_NO_CONTEXT;
 
   LOGI("EGL destroyed");
 }
 
+/* ================= Render ================= */
+
 static void render_loop(App& app) {
   init_egl(app);
 
-  auto start = std::chrono::steady_clock::now();
-
   while (app.running.load()) {
-    float t = std::chrono::duration<float>(std::chrono::steady_clock::now() - start).count();
+    int w = ANativeWindow_getWidth(app.window);
+    int h = ANativeWindow_getHeight(app.window);
 
-    glViewport(0, 0, ANativeWindow_getWidth(app.window), ANativeWindow_getHeight(app.window));
-
-    glClearColor(0.5f + 0.5f * std::sin(t), 0.5f + 0.5f * std::sin(t + 2.0f),
-                 0.5f + 0.5f * std::sin(t + 4.0f), 1.0f);
-
+    glViewport(0, 0, w, h);
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
+
     eglSwapBuffers(app.display, app.surface);
 
     std::this_thread::sleep_for(std::chrono::milliseconds(16));
@@ -93,6 +92,8 @@ static void render_loop(App& app) {
 
   destroy_egl(app);
 }
+
+/* ================= NativeActivity callbacks ================= */
 
 static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* window) {
   LOGI("Native window created");
@@ -104,7 +105,7 @@ static void onNativeWindowCreated(ANativeActivity* activity, ANativeWindow* wind
   app->renderThread = std::thread(render_loop, std::ref(*app));
 }
 
-static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* /*window*/) {
+static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow*) {
   LOGI("Native window destroyed");
 
   auto* app = static_cast<App*>(activity->instance);
@@ -115,13 +116,12 @@ static void onNativeWindowDestroyed(ANativeActivity* activity, ANativeWindow* /*
   app->window = nullptr;
 }
 
-extern "C" void ANativeActivity_onCreate(ANativeActivity* activity, void* /*savedState*/,
-                                         size_t /*savedStateSize*/) {
+/* ================= Entry ================= */
+
+extern "C" void ANativeActivity_onCreate(ANativeActivity* activity, void*, size_t) {
   LOGI("NativeActivity onCreate");
 
   auto* app = new App();
-  app->activity = activity;
-
   activity->instance = app;
 
   activity->callbacks->onNativeWindowCreated = onNativeWindowCreated;

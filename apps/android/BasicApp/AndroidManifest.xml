@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.nativegles">
 
+    <uses-sdk android:minSdkVersion="30" android:targetSdkVersion="33" />
+
     <uses-feature
         android:glEsVersion="0x00030000"
         android:required="true" />
@@ -16,7 +18,7 @@
             android:configChanges="orientation|keyboardHidden|screenSize">
 
             <meta-data
-                android:name="android.app.native_app"
+                android:name="android.app.lib_name"
                 android:value="native_app" />
 
             <intent-filter>
