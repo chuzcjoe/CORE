@@ -41,7 +41,7 @@ if [ ! -f "debug.keystore" ]; then
       -keyalg RSA \
       -keysize 2048 \
       -validity 10000 \
-      -dname "CN=Android Debug,O=Android,C=US"
+      -dname "CN=Android Debug,O=Android,C=US" 
 fi
 
 mkdir -p build_apps
