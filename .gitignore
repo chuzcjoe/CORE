@@ -6,3 +6,5 @@ tmp/
 imgui.*
 *.perf
 *.pftrace
+build_apps/
+debug.keystore
