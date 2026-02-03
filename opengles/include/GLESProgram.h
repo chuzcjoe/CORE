@@ -1,0 +1,49 @@
+#pragma once
+
+#include <glad/glad.h>
+
+#include <iostream>
+
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
+#include "glm/gtc/type_ptr.hpp"
+
+namespace core {
+namespace opengles {
+
+class GLESProgram {
+ public:
+  GLESProgram(const char* vertex_shader_source, const char* fragment_shader_source);
+  ~GLESProgram();
+
+  void Use() const;
+
+  unsigned int GetProgramID() const { return program_id_; };
+
+  void SetUniform1f(const std::string& name, float value) const {
+    glUniform1f(glGetUniformLocation(program_id_, name.c_str()), value);
+  }
+
+  void SetUniform1i(const std::string& name, const int value) const {
+    glUniform1i(glGetUniformLocation(program_id_, name.c_str()), value);
+  }
+
+  void SetUniform3f(const std::string& name, const float v1, const float v2, const float v3) const {
+    glUniform3f(glGetUniformLocation(program_id_, name.c_str()), v1, v2, v3);
+  }
+
+  void SetUniformVec3f(const std::string& name, const glm::vec3& vec) const {
+    glUniform3f(glGetUniformLocation(program_id_, name.c_str()), vec.x, vec.y, vec.z);
+  }
+
+  void SetUniformMat4f(const std::string& name, const glm::mat4& mat) const {
+    glUniformMatrix4fv(glGetUniformLocation(program_id_, name.c_str()), 1, GL_FALSE,
+                       glm::value_ptr(mat));
+  }
+
+ private:
+  unsigned int program_id_;
+};
+
+}  // namespace opengles
+}  // namespace core
