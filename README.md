@@ -92,7 +92,7 @@ For Android arm64-v8a:
 ## 6.2 OpenCL
 **CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
 
-For MacOS:
+For MacOS: 
 - ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
 
 For Android arm64-v8a:
