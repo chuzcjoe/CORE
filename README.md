@@ -50,6 +50,10 @@ After downloading the NDK, set the environment variable **ANDROID_NDK_ROOT** poi
 export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 ```
 
+For Linux setup:
+1. Download Vulkan SDK from https://vulkan.lunarg.com/sdk/home#linux
+2. Export Vulkan related environment variables by following this tutorial: https://vulkan.lunarg.com/doc/sdk/1.4.341.1/linux/getting_started.html
+
 ## 3.2 Host(MacOS) + Target(MacOS)
 ```
 ./run.sh -target macos
