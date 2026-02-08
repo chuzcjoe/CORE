@@ -50,6 +50,10 @@ After downloading the NDK, set the environment variable **ANDROID_NDK_ROOT** poi
 export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
 ```
 
+For Linux setup:
+1. Download Vulkan SDK from https://vulkan.lunarg.com/sdk/home#linux
+2. Export Vulkan related environment variables by following this tutorial: https://vulkan.lunarg.com/doc/sdk/1.4.341.1/linux/getting_started.html
+
 ## 3.2 Host(MacOS) + Target(MacOS)
 ```
 ./run.sh -target macos
@@ -92,7 +96,7 @@ For Android arm64-v8a:
 ## 6.2 OpenCL
 **CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
 
-For MacOS:
+For MacOS: 
 - ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
 
 For Android arm64-v8a:
