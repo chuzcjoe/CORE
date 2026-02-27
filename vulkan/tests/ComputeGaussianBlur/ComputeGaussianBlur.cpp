@@ -1,5 +1,7 @@
 #include "ComputeGaussianBlur.h"
 
+#include <filesystem>
+
 namespace core {
 namespace vulkan {
 
@@ -29,6 +31,11 @@ void ComputeGaussianBlur::Init() {
   CreateStorageBufferDescriptorSet(3, gaussian_kernel_);
 
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
+
+  // Save cache if file doesn't exist
+  if (!std::filesystem::exists(GetPipelineCache())) {
+    SavePipelineCache(GetPipelineCache());
+  }
 }
 
 void ComputeGaussianBlur::Run(const VkCommandBuffer command_buffer) {
@@ -60,6 +67,16 @@ const std::vector<uint32_t>& ComputeGaussianBlur::LoadShaderCode() const {
 #include "ComputeGaussianBlur.comp.spv"
       ;
   return shader_code;
+}
+
+const std::string ComputeGaussianBlur::GetPipelineCache() const {
+  const std::string cache_dir = PIPELINE_CACHE_DIR;
+  if (cache_dir.empty()) {
+    return "";
+  }
+  std::string pipeline_cache = cache_dir + "/gaussian_blur.cache";
+  printf("Using pipeline cache file: %s\n", pipeline_cache.c_str());
+  return pipeline_cache;
 }
 
 }  // namespace vulkan

@@ -8,3 +8,4 @@ imgui.*
 *.pftrace
 build_apps/
 debug.keystore
+*.cache
