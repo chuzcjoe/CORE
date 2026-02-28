@@ -19,6 +19,8 @@ test_module=""
 test_filter=""
 enable_trace=0 # Disable tracing by default
 
+device_path="/data/local/tmp/core"
+
 # Parse args
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -53,7 +55,12 @@ fi
 if [ "$target" = "arm64-v8a" ] ; then
     cmake_options+=(-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
                     -DANDROID_ABI=$target
-                    -DANDROID_PLATFORM=android-34)
+                    -DANDROID_PLATFORM=android-34
+                    -DPIPELINE_CACHE_DIR="$device_path")
+elif [ "$target" = "macos" ]; then
+  project_root="$(cd ../.. && pwd)"
+  echo "project root: $project_root"
+  cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root")
 fi
 
 cmake "${cmake_options[@]}" ../..
@@ -86,7 +93,6 @@ if [ "$target" = "macos" ] ; then
     exit 1
 fi
 
-device_path="/data/local/tmp/core"
 if [ "$target" = "arm64-v8a" ]; then
     if [ "$test_module" = "vulkan" ]; then
       echo "run vulkan test"

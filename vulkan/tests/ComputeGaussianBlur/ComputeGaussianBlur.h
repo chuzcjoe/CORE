@@ -24,6 +24,7 @@ class ComputeGaussianBlur : public VulkanCompute {
  protected:
   std::vector<BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t>& LoadShaderCode() const override;
+  const std::string GetPipelineCache() const override;
 
  private:
   VulkanBuffer uniform_buffer_;

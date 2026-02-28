@@ -26,7 +26,7 @@ TEST(ComputeGaussianBlur, test) {
   core::vulkan::VulkanQueryPool query_pool(&context, VK_QUERY_TYPE_TIMESTAMP);
   core::Mat<float, 1> mat(3000, 4000);
   mat.Fill(1);
-  core::Timer t;
+  core::Timer timer;
   const VkDeviceSize buffer_size = mat.rows() * mat.cols() * sizeof(float);
 
   // Create buffers
@@ -42,10 +42,13 @@ TEST(ComputeGaussianBlur, test) {
       [&mat](void* data) { memcpy(data, mat.data(), mat.total() * sizeof(float)); });
 
   // Create and run compute sum pipeline
+  timer.start();
   std::unique_ptr<core::vulkan::ComputeGaussianBlur> compute_blur =
       std::make_unique<core::vulkan::ComputeGaussianBlur>(&context, input_buffer, dst_buffer,
                                                           mat.cols(), mat.rows());
   compute_blur->Init();
+  timer.end();
+  printf("Create compute blur pipeline: %fms\n", timer.time());
 
   fence.Reset();
 
@@ -71,7 +74,7 @@ TEST(ComputeGaussianBlur, test) {
   core::Mat<float, 1> mat_blur(3000, 4000);
   std::vector<float> gaussian_kernel = {0.0625f, 0.125f,  0.0625f, 0.125f, 0.25f,
                                         0.125f,  0.0625f, 0.125f,  0.0625f};
-  t.start();
+  timer.start();
   for (int row = 0; row < mat.rows(); ++row) {
     for (int col = 0; col < mat.cols(); ++col) {
       if (row == 0 || row == (mat.rows() - 1) || col == 0 || col == (mat.cols() - 1)) {
@@ -89,8 +92,8 @@ TEST(ComputeGaussianBlur, test) {
       *mat_blur(row, col) = sum;
     }
   }
-  t.end();
-  printf("CPU time: %fms\n", t.time());
+  timer.end();
+  printf("CPU time: %fms\n", timer.time());
 
   // check data
   core::Mat<float, 1> blur_cpu(3000, 4000);

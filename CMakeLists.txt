@@ -12,6 +12,10 @@ set(ANDROID_STL "c++_shared")
 find_package(Vulkan REQUIRED)
 message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}")
 
+# Set pipeline cache
+message(STATUS "Using pipeline cache dir: ${PIPELINE_CACHE_DIR}")
+add_definitions(-DPIPELINE_CACHE_DIR="${PIPELINE_CACHE_DIR}")
+
 # cmake
 include(cmake/example.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/${BUILD_VARIANT}.cmake)
