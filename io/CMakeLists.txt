@@ -11,11 +11,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
         PUBLIC
         mat
         stb
+        glm
         gl_glad)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     target_link_libraries(io
         PUBLIC
         mat
         stb
+        glm
         gles_glad)
 endif()
