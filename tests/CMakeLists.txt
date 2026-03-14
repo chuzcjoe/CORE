@@ -28,6 +28,7 @@ if (APPLE)
     target_link_libraries(core-tests PUBLIC 
             glfw
             opencl
+            io
             metal_cpp
             ${METAL_FRAMEWORK}
             ${FOUNDATION_FRAMEWORK}
