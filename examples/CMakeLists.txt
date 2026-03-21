@@ -150,4 +150,12 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan stb tinyobjloader imgui)
 
+    # 19. cubemap demo using vulkan
+    build_example(vk_cubemap_demo
+        SOURCE_GLOBS "./vulkan/CubeMapDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/CubeMapDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb tinyobjloader imgui)
+
 endif()
