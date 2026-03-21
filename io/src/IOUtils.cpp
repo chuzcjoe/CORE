@@ -17,5 +17,59 @@ glm::vec3 FaceCoordsToXYZ(int i, int j, int face_id, int face_size) {
   return glm::vec3();
 }
 
+Bitmap ConvertBitmapToVerticalCross(const Bitmap& src) {
+  if (src.type != BitmapType::BitmapType_2D) return Bitmap();
+
+  const int face_size = src.width / 4;
+
+  const int w = face_size * 3;
+  const int h = face_size * 4;
+
+  Bitmap result(w, h, src.depth, src.format);
+
+  const glm::ivec2 kFaceOffsets[] = {glm::ivec2(face_size, face_size * 3),
+                                     glm::ivec2(0, face_size),
+                                     glm::ivec2(face_size, face_size),
+                                     glm::ivec2(face_size * 2, face_size),
+                                     glm::ivec2(face_size, 0),
+                                     glm::ivec2(face_size, face_size * 2)};
+
+  const int clamp_width = src.width - 1;
+  const int clamp_height = src.height - 1;
+
+  for (int face = 0; face != 6; face++) {
+    for (int i = 0; i != face_size; i++) {
+      for (int j = 0; j != face_size; j++) {
+        const glm::vec3 P = FaceCoordsToXYZ(i, j, face, face_size);
+        const float R = std::hypot(P.x, P.y);
+        const float theta = std::atan2(P.y, P.x);
+        const float phi = std::atan2(P.z, R);
+        //	float point source coordinates
+        const float Uf = float(2.0f * face_size * (theta + M_PI) / M_PI);
+        const float Vf = float(2.0f * face_size * (M_PI / 2.0f - phi) / M_PI);
+        // 4-samples for bilinear interpolation
+        const int U1 = std::clamp(int(std::floor(Uf)), 0, clamp_width);
+        const int V1 = std::clamp(int(std::floor(Vf)), 0, clamp_height);
+        const int U2 = std::clamp(U1 + 1, 0, clamp_width);
+        const int V2 = std::clamp(V1 + 1, 0, clamp_height);
+        // fractional part
+        const float s = Uf - U1;
+        const float t = Vf - V1;
+        // fetch 4-samples
+        const glm::vec4 A = src.GetPixel(U1, V1);
+        const glm::vec4 B = src.GetPixel(U2, V1);
+        const glm::vec4 C = src.GetPixel(U1, V2);
+        const glm::vec4 D = src.GetPixel(U2, V2);
+        // bilinear interpolation
+        const glm::vec4 color =
+            A * (1 - s) * (1 - t) + B * (s) * (1 - t) + C * (1 - s) * t + D * (s) * (t);
+        result.SetPixel(i + kFaceOffsets[face].x, j + kFaceOffsets[face].y, color);
+      }
+    };
+  }
+
+  return result;
+}
+
 }  // namespace io
 }  // namespace core

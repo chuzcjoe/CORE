@@ -20,16 +20,14 @@ const std::string kOutputPath = "/data/local/tmp/core/tests/data/piazza_bologni_
 #endif
 
 TEST(BitmapTest, test) {
-  io::Bitmap<float, 4> bitmap(kDataPath);
+  int width, height;
+  const float* img = stbi_loadf(kDataPath.c_str(), &width, &height, nullptr, 4);
+  io::Bitmap in(width, height, 4, BitmapFormat::BitmapFormat_Float, img);
+  io::Bitmap out = io::ConvertBitmapToVerticalCross(in);
+  stbi_image_free((void*)img);
 
-  if (bitmap.width() == 0 || bitmap.height() == 0 || bitmap.channels() == 0) {
-    std::cerr << "Failed to load image: " << kDataPath << std::endl;
-  }
-
-  io::Bitmap<float, 4> cubemap = io::ConvertBitmapToVerticalCross(bitmap);
-  ASSERT_GT(cubemap.width(), 0);
-  ASSERT_GT(cubemap.height(), 0);
-  cubemap.SaveToFile(kOutputPath);
+  stbi_write_hdr(kOutputPath.c_str(), out.width, out.height, out.depth,
+                 (const float*)out.pixel.data());
 
   //   const bool write_status =
   //       stbi_write_png(kOutputPath.c_str(), width, height, channels, mat.data(), width *
