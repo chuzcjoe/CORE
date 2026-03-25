@@ -9,7 +9,8 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
                          const VkFormat format, const VkImageUsageFlags usage,
                          const VkImageAspectFlags aspect, const VkMemoryPropertyFlags properties,
                          const VkImageTiling tiling, const uint32_t mip_levels,
-                         const VkSampleCountFlagBits samples)
+                         const VkSampleCountFlagBits samples, const VkImageCreateFlags flags,
+                         const uint32_t layers)
     : context_(context),
       image_format_(format),
       mip_levels_(mip_levels),
@@ -23,7 +24,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.extent.height = image_height;
   image_info.extent.depth = 1;  // 2D image has depth 1
   image_info.mipLevels = mip_levels_;
-  image_info.arrayLayers = 1;
+  image_info.arrayLayers = layers;
   image_info.format = image_format_;
   image_info.tiling = tiling;
   image_info.initialLayout =
@@ -31,7 +32,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.usage = usage;
   image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   image_info.samples = samples_;
-  image_info.flags = 0;  // Optional
+  image_info.flags = flags;  // Optional
 
   VK_CHECK(vkCreateImage(context_->logical_device, &image_info, nullptr, &image));
 
@@ -112,7 +113,7 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
 void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
                                         const VkImageLayout new_layout,
                                         [[maybe_unused]] const VkFormat format,
-                                        const uint32_t mip_levels) {
+                                        const uint32_t mip_levels, const uint32_t layers) {
   VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
 
   VkImageMemoryBarrier barrier{};
@@ -126,7 +127,7 @@ void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = mip_levels;
   barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange.layerCount = layers;
 
   VkPipelineStageFlags source_stage;
   VkPipelineStageFlags destination_stage;

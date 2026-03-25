@@ -17,13 +17,15 @@ class VulkanImage {
               const VkFormat format, const VkImageUsageFlags usage, const VkImageAspectFlags aspect,
               const VkMemoryPropertyFlags properties,
               const VkImageTiling tiling = VK_IMAGE_TILING_OPTIMAL, const uint32_t mip_levels = 1,
-              const VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT);
+              const VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT,
+              const VkImageCreateFlags flags = 0, const uint32_t layers = 1);
   ~VulkanImage();
 
   VulkanImage& operator=(VulkanImage&&);
 
   void TransitionImageLayout(const VkImageLayout old_layout, const VkImageLayout new_layout,
-                             [[maybe_unused]] const VkFormat format, const uint32_t mip_levels = 1);
+                             [[maybe_unused]] const VkFormat format, const uint32_t mip_levels = 1,
+                             const uint32_t layers = 1);
 
   void TransitionDepthImageLayout(const VkImageLayout old_layout, const VkImageLayout new_layout,
                                   [[maybe_unused]] const VkFormat format);
