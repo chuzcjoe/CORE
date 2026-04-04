@@ -24,13 +24,14 @@ class GraphicCubeMap : public core::vulkan::VulkanGraphic {
                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
+  void Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
                            const float rotation);
 
  protected:
-  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
+  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_FRONT_BIT; }
   VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
   VkBool32 SetDepthTesting() const override { return VK_TRUE; }
   VkBool32 SetDepthWriting() const override { return VK_TRUE; }
@@ -43,6 +44,8 @@ class GraphicCubeMap : public core::vulkan::VulkanGraphic {
 
  private:
   void CreateTextureImage(const std::string& image_path);
+
+  void CreateBuffers();
 
   struct UniformBufferObject {
     glm::mat4 model;
@@ -57,6 +60,130 @@ class GraphicCubeMap : public core::vulkan::VulkanGraphic {
   core::vulkan::VulkanBuffer uniform_buffer_;
   core::vulkan::VulkanImage cube_map_image_;
   core::vulkan::VulkanSampler sampler_;
+
+  std::vector<float> skybox_vertices_ = {
+      // positions (x, y, z)
+
+      // +X
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+
+      // -X
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+
+      // +Y
+      -1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+
+      // -Y
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+
+      // +Z
+      -1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+
+      // -Z
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      1.0f,
+      -1.0f,
+      -1.0f,
+      1.0f,
+      -1.0f,
+  };
 };
 
 }  // namespace core

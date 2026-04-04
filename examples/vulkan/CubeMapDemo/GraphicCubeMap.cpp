@@ -9,9 +9,19 @@ GraphicCubeMap::GraphicCubeMap(core::vulkan::VulkanContext* context,
 void GraphicCubeMap::Init() {
   core::vulkan::VulkanGraphic::Init();
   // TODO: create descriptor set for cube map
+  CreateCombinedImageSamplerDescriptorSet(0, cube_map_image_.image_view, sampler_.sampler);
+  vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
+
+  // Prepare vertex buffer
+  vertex_buffer_staging_.MapData([this](void* data) {
+    memcpy(data, skybox_vertices_.data(), sizeof(float) * skybox_vertices_.size());
+  });
+  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
 }
 
 void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
+  const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
+  const VkDeviceSize offsets[] = {0};
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   VkViewport viewport{};
@@ -27,6 +37,12 @@ void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   scissor.offset = {0, 0};
   scissor.extent = extent;
   vkCmdSetScissor(command_buffer, 0, 1, &scissor);
+
+  vkCmdBindVertexBuffers(command_buffer, 0, 1, vertex_buffers, offsets);
+  vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
+                          &descriptor_set_, 0, nullptr);
+  // 36 vertices
+  vkCmdDraw(command_buffer, 36, 1, 0, 0);
 }
 
 const std::vector<core::vulkan::BindingInfo> GraphicCubeMap::GetBindingInfo() const {
@@ -51,7 +67,7 @@ const std::vector<uint32_t> GraphicCubeMap::LoadFragmentShader() const {
 std::vector<VkVertexInputBindingDescription> GraphicCubeMap::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription binding_description{};
   binding_description.binding = 0;
-  binding_description.stride = sizeof(Vertex);
+  binding_description.stride = sizeof(float) * 3;  // only position
   binding_description.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
   return {binding_description};
@@ -63,9 +79,27 @@ std::vector<VkVertexInputAttributeDescription> GraphicCubeMap::GetVertexAttribut
   attribute_description.binding = 0;
   attribute_description.location = 0;
   attribute_description.format = VK_FORMAT_R32G32B32_SFLOAT;
-  attribute_description.offset = offsetof(Vertex, pos);
+  attribute_description.offset = 0;
 
   return {attribute_description};
+}
+
+void GraphicCubeMap::Init(const std::string& image_path) {
+  CreateTextureImage(image_path);
+  Init();
+}
+
+void GraphicCubeMap::CreateBuffers() {
+  const VkDeviceSize vertex_buffer_size = skybox_vertices_.size() * sizeof(float);
+
+  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
+      context_, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
+      context_, vertex_buffer_size,
+      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 }
 
 void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {

@@ -63,7 +63,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   view_info.subresourceRange.baseMipLevel = 0;
   view_info.subresourceRange.levelCount = mip_levels_;
   view_info.subresourceRange.baseArrayLayer = 0;
-  view_info.subresourceRange.layerCount = 1;
+  view_info.subresourceRange.layerCount = layers;
 
   VK_CHECK(vkCreateImageView(context_->logical_device, &view_info, nullptr, &image_view));
 }
