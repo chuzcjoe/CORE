@@ -26,7 +26,8 @@ class VulkanBuffer {
 
   void CopyToBuffer(VulkanBuffer& dst_buffer);
 
-  void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height);
+  void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
+                   const uint32_t layers = 1);
 
   void MapData(const std::function<void(void*)>& func);
 

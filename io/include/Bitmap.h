@@ -1,158 +1,106 @@
 #pragma once
 
-#include <stb_image.h>
-#include <stb_image_write.h>
+#include <string.h>
 
-#include <algorithm>
-#include <cctype>
-#include <cstdint>
-#include <cstring>
-#include <stdexcept>
-#include <string>
-#include <type_traits>
 #include <vector>
+
+#include "glm/glm.hpp"
+
+enum class BitmapType { BitmapType_2D, BitmapType_Cube };
+
+enum class BitmapFormat {
+  BitmapFormat_Uint8,
+  BitmapFormat_Float,
+};
 
 namespace core {
 namespace io {
 
-namespace detail {
-
-inline std::string BitmapFileExtension(const std::string& filename) {
-  const size_t dot_pos = filename.find_last_of('.');
-  if (dot_pos == std::string::npos) return "";
-  std::string extension = filename.substr(dot_pos + 1);
-  for (char& ch : extension) {
-    ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
-  }
-  return extension;
-}
-
-template <typename T>
-inline constexpr bool kIsSupportedBitmapType =
-    std::is_same_v<T, float> || std::is_same_v<T, uint8_t>;
-
-inline int WriteSDRBitmap(const std::string& filename, const int width, const int height,
-                          const int channels, const uint8_t* data) {
-  const std::string extension = BitmapFileExtension(filename);
-  if (extension == "bmp" || extension == "jpg" || extension == "jpeg") {
-    throw std::runtime_error("Unsupported bitmap file format for SDR data: " + extension);
-  }
-  return stbi_write_png(filename.c_str(), width, height, channels, data, width * channels);
-}
-
-}  // namespace detail
-
-template <typename T, int Channels>
-class Bitmap {
- public:
-  static_assert(Channels > 0, "Bitmap channel count must be positive");
-  static_assert(detail::kIsSupportedBitmapType<T>,
-                "Bitmap supports only float and uint8_t pixel data");
-  static_assert(std::is_trivially_copyable_v<T>, "Bitmap pixel data must be trivially copyable");
-
+struct Bitmap {
   Bitmap() = default;
 
-  explicit Bitmap(const std::string& filename) {
-    if (filename.empty()) {
-      throw std::invalid_argument("Bitmap filename cannot be empty");
-    }
-
-    T* data = nullptr;
-    if constexpr (std::is_same_v<T, float>) {
-      data = stbi_loadf(filename.c_str(), &width_, &height_, nullptr, Channels);
-    } else {
-      data = stbi_load(filename.c_str(), &width_, &height_, nullptr, Channels);
-    }
-
-    if (data == nullptr) {
-      throw std::runtime_error("Failed to load bitmap");
-    }
-
-    const size_t pixel_count = PixelCount(width_, height_);
-    pixels_.resize(pixel_count);
-    std::memcpy(pixels_.data(), data, pixel_count * sizeof(T));
-    stbi_image_free(data);
+  Bitmap(int w, int h, int d, BitmapFormat fmt)
+      : width(w), height(h), depth(d), format(fmt), pixel(w * h * d * GetBytesPerComponent(fmt)) {
+    InitGetSetFuncs();
   }
 
-  Bitmap(const int width, const int height, const T* data) : width_(width), height_(height) {
-    if (data == nullptr) {
-      throw std::invalid_argument("Bitmap source data cannot be null");
-    }
-
-    const size_t pixel_count = PixelCount(width_, height_);
-    pixels_.resize(pixel_count);
-    std::memcpy(pixels_.data(), data, pixel_count * sizeof(T));
+  Bitmap(int w, int h, int depth, BitmapFormat fmt, const void* ptr)
+      : width(w),
+        height(h),
+        depth(depth),
+        format(fmt),
+        pixel(w * h * depth * GetBytesPerComponent(fmt)) {
+    InitGetSetFuncs();
+    memcpy(pixel.data(), ptr, pixel.size());
   }
 
-  Bitmap(const int width, const int height) : width_(width), height_(height) {
-    pixels_.resize(PixelCount(width_, height_), T{0});
+  int width = 0;
+  int height = 0;
+  int depth = 1;
+  BitmapFormat format = BitmapFormat::BitmapFormat_Uint8;
+  BitmapType type = BitmapType::BitmapType_2D;
+  std::vector<uint8_t> pixel;
+
+  static int GetBytesPerComponent(BitmapFormat fmt) {
+    if (fmt == BitmapFormat::BitmapFormat_Uint8) return 1;
+    if (fmt == BitmapFormat::BitmapFormat_Float) return 4;
+    return 0;
   }
 
-  ~Bitmap() = default;
+  void SetPixel(int x, int y, const glm::vec4& c) { (*this.*SetPixelFunc)(x, y, c); }
 
-  T GetPixel(const int row, const int col, const int channel) const {
-    return pixels_[PixelIndex(row, col, channel)];
-  }
-
-  void SetPixel(const int row, const int col, const int channel, const T value) {
-    pixels_[PixelIndex(row, col, channel)] = value;
-  }
-
-  void SaveToFile(const std::string& filename) const {
-    if (filename.empty()) {
-      throw std::invalid_argument("Bitmap filename cannot be empty");
-    }
-
-    int write_status = 0;
-    const std::string extension = detail::BitmapFileExtension(filename);
-    if constexpr (std::is_same_v<T, float>) {
-      if (extension == "hdr") {
-        write_status = stbi_write_hdr(filename.c_str(), width_, height_, Channels, pixels_.data());
-      } else {
-        std::vector<uint8_t> ldr_pixels(pixels_.size());
-        for (size_t index = 0; index < pixels_.size(); ++index) {
-          const float clamped = std::clamp(pixels_[index], 0.0f, 1.0f);
-          ldr_pixels[index] = static_cast<uint8_t>(clamped * 255.0f + 0.5f);
-        }
-        write_status =
-            detail::WriteSDRBitmap(filename, width_, height_, Channels, ldr_pixels.data());
-      }
-    } else {
-      if (extension == "hdr") {
-        std::vector<float> hdr_pixels(pixels_.size());
-        for (size_t index = 0; index < pixels_.size(); ++index) {
-          hdr_pixels[index] = static_cast<float>(pixels_[index]) / 255.0f;
-        }
-        write_status =
-            stbi_write_hdr(filename.c_str(), width_, height_, Channels, hdr_pixels.data());
-      } else {
-        write_status = detail::WriteSDRBitmap(filename, width_, height_, Channels, pixels_.data());
-      }
-    }
-
-    if (write_status == 0) {
-      throw std::runtime_error("Failed to save bitmap");
-    }
-  }
-
-  int width() const { return width_; }
-  int height() const { return height_; }
-  int channels() const { return Channels; }
-  std::vector<T>& data() { return pixels_; }
-  const std::vector<T>& data() const { return pixels_; }
+  glm::vec4 GetPixel(int x, int y) const { return ((*this.*GetPixelFunc)(x, y)); }
 
  private:
-  static size_t PixelCount(const int width, const int height) {
-    return static_cast<size_t>(width) * static_cast<size_t>(height) * static_cast<size_t>(Channels);
+  using SetPixel_t = void (Bitmap::*)(int, int, const glm::vec4&);
+  using GetPixel_t = glm::vec4 (Bitmap::*)(int, int) const;
+  SetPixel_t SetPixelFunc;
+  GetPixel_t GetPixelFunc;
+
+  void InitGetSetFuncs() {
+    switch (format) {
+      case BitmapFormat::BitmapFormat_Uint8:
+        SetPixelFunc = &Bitmap::SetPixelUnsignedByte;
+        GetPixelFunc = &Bitmap::GetPixelUnsignedByte;
+        break;
+      case BitmapFormat::BitmapFormat_Float:
+        SetPixelFunc = &Bitmap::SetPixelFloat;
+        GetPixelFunc = &Bitmap::GetPixelFloat;
+        break;
+    }
   }
 
-  int PixelIndex(const int row, const int col, const int channel) const {
-    return (row * width_ + col) * Channels + channel;
+  void SetPixelFloat(int x, int y, const glm::vec4& c) {
+    const int offset = depth * (y * width + x);
+    float* data = reinterpret_cast<float*>(pixel.data());
+    if (depth > 0) data[offset + 0] = c.x;
+    if (depth > 1) data[offset + 1] = c.y;
+    if (depth > 2) data[offset + 2] = c.z;
+    if (depth > 3) data[offset + 3] = c.w;
   }
 
-  std::vector<T> pixels_;
-  int width_ = 0;
-  int height_ = 0;
+  glm::vec4 GetPixelFloat(int x, int y) const {
+    const int offset = depth * (y * width + x);
+    const float* data = reinterpret_cast<const float*>(pixel.data());
+    return glm::vec4(depth > 0 ? data[offset + 0] : 0.0f, depth > 1 ? data[offset + 1] : 0.0f,
+                     depth > 2 ? data[offset + 2] : 0.0f, depth > 3 ? data[offset + 3] : 0.0f);
+  }
+
+  void SetPixelUnsignedByte(int x, int y, const glm::vec4& c) {
+    const int offset = depth * (y * width + x);
+    if (depth > 0) pixel[offset + 0] = uint8_t(c.x * 255.0f);
+    if (depth > 1) pixel[offset + 1] = uint8_t(c.y * 255.0f);
+    if (depth > 2) pixel[offset + 2] = uint8_t(c.z * 255.0f);
+    if (depth > 3) pixel[offset + 3] = uint8_t(c.w * 255.0f);
+  }
+
+  glm::vec4 GetPixelUnsignedByte(int x, int y) const {
+    const int offset = depth * (y * width + x);
+    return glm::vec4(depth > 0 ? float(pixel[offset + 0]) / 255.0f : 0.0f,
+                     depth > 1 ? float(pixel[offset + 1]) / 255.0f : 0.0f,
+                     depth > 2 ? float(pixel[offset + 2]) / 255.0f : 0.0f,
+                     depth > 3 ? float(pixel[offset + 3]) / 255.0f : 0.0f);
+  }
 };
 
 }  // namespace io

@@ -9,10 +9,12 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
                          const VkFormat format, const VkImageUsageFlags usage,
                          const VkImageAspectFlags aspect, const VkMemoryPropertyFlags properties,
                          const VkImageTiling tiling, const uint32_t mip_levels,
-                         const VkSampleCountFlagBits samples)
+                         const VkSampleCountFlagBits samples, const VkImageCreateFlags flags,
+                         const uint32_t layers)
     : context_(context),
       image_format_(format),
       mip_levels_(mip_levels),
+      array_layers_(layers),
       samples_(samples),
       image_width(width),
       image_height(height) {
@@ -23,7 +25,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.extent.height = image_height;
   image_info.extent.depth = 1;  // 2D image has depth 1
   image_info.mipLevels = mip_levels_;
-  image_info.arrayLayers = 1;
+  image_info.arrayLayers = layers;
   image_info.format = image_format_;
   image_info.tiling = tiling;
   image_info.initialLayout =
@@ -31,7 +33,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.usage = usage;
   image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   image_info.samples = samples_;
-  image_info.flags = 0;  // Optional
+  image_info.flags = flags;  // Optional
 
   VK_CHECK(vkCreateImage(context_->logical_device, &image_info, nullptr, &image));
 
@@ -52,7 +54,14 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   VkImageViewCreateInfo view_info{};
   view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view_info.image = image;
-  view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  if ((flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && array_layers_ >= 6) {
+    view_info.viewType =
+        array_layers_ == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+  } else if (array_layers_ > 1) {
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  } else {
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  }
   view_info.format = image_format_;
   view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
   view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -62,7 +71,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   view_info.subresourceRange.baseMipLevel = 0;
   view_info.subresourceRange.levelCount = mip_levels_;
   view_info.subresourceRange.baseArrayLayer = 0;
-  view_info.subresourceRange.layerCount = 1;
+  view_info.subresourceRange.layerCount = layers;
 
   VK_CHECK(vkCreateImageView(context_->logical_device, &view_info, nullptr, &image_view));
 }
@@ -93,6 +102,7 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
   context_ = rhs.context_;
   image_format_ = rhs.image_format_;
   mip_levels_ = rhs.mip_levels_;
+  array_layers_ = rhs.array_layers_;
 
   image = rhs.image;
   rhs.image = VK_NULL_HANDLE;
@@ -112,7 +122,7 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
 void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
                                         const VkImageLayout new_layout,
                                         [[maybe_unused]] const VkFormat format,
-                                        const uint32_t mip_levels) {
+                                        const uint32_t mip_levels, const uint32_t layers) {
   VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
 
   VkImageMemoryBarrier barrier{};
@@ -126,7 +136,7 @@ void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
   barrier.subresourceRange.baseMipLevel = 0;
   barrier.subresourceRange.levelCount = mip_levels;
   barrier.subresourceRange.baseArrayLayer = 0;
-  barrier.subresourceRange.layerCount = 1;
+  barrier.subresourceRange.layerCount = layers;
 
   VkPipelineStageFlags source_stage;
   VkPipelineStageFlags destination_stage;
