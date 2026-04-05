@@ -1,5 +1,11 @@
 #include "GraphicCubeMap.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 namespace core {
 
 GraphicCubeMap::GraphicCubeMap(core::vulkan::VulkanContext* context,
@@ -8,8 +14,9 @@ GraphicCubeMap::GraphicCubeMap(core::vulkan::VulkanContext* context,
 
 void GraphicCubeMap::Init() {
   core::vulkan::VulkanGraphic::Init();
-  // TODO: create descriptor set for cube map
-  CreateCombinedImageSamplerDescriptorSet(0, cube_map_image_.image_view, sampler_.sampler);
+
+  CreateUniformBufferDescriptorSet(0, uniform_buffer_);
+  CreateCombinedImageSamplerDescriptorSet(1, cube_map_image_.image_view, sampler_.sampler);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
   // Prepare vertex buffer
@@ -17,6 +24,13 @@ void GraphicCubeMap::Init() {
     memcpy(data, skybox_vertices_.data(), sizeof(float) * skybox_vertices_.size());
   });
   vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+
+  // uniform buffer
+  uniform_buffer_.MapData([this](void* data) {
+    uniform_data_.view = glm::mat4(1.0f);
+    uniform_data_.project = glm::mat4(1.0f);
+    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+  });
 }
 
 void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -45,7 +59,7 @@ void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDraw(command_buffer, 36, 1, 0, 0);
 }
 
-const std::vector<core::vulkan::BindingInfo> GraphicCubeMap::GetBindingInfo() const {
+std::vector<core::vulkan::BindingInfo> GraphicCubeMap::GetBindingInfo() const {
   return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
           {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}};
 }
@@ -86,6 +100,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicCubeMap::GetVertexAttribut
 
 void GraphicCubeMap::Init(const std::string& image_path) {
   CreateTextureImage(image_path);
+  CreateBuffers();
   Init();
 }
 
@@ -100,18 +115,37 @@ void GraphicCubeMap::CreateBuffers() {
       context_, vertex_buffer_size,
       VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  uniform_buffer_ = core::vulkan::VulkanBuffer(
+      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+}
+
+void GraphicCubeMap::UpdateUniformBuffer(const int width, const int height,
+                                         const glm::mat4& view_matrix) {
+  // TODO: maintain a persistent mapping pointer to avoid mapping every time
+  uniform_buffer_.MapData([this, width, height, &view_matrix](void* data) {
+    // Keep the skybox centered on the camera by discarding translation.
+    uniform_data_.view = glm::mat4(glm::mat3(view_matrix));
+    uniform_data_.project =
+        glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 100.0f);
+    uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
+
+    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+  });
 }
 
 void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
-  int texture_width, texture_height, texture_channels;
+  int texture_width, texture_height;
+  const int kTextureChannels = 4;
   const float* pixels =
-      stbi_loadf(image_path.c_str(), &texture_width, &texture_height, nullptr, &texture_channels);
+      stbi_loadf(image_path.c_str(), &texture_width, &texture_height, nullptr, kTextureChannels);
   if (!pixels) {
     throw std::runtime_error("failed to load cube map image!");
   }
 
   // Load and process cubemap
-  core::io::Bitmap in(texture_width, texture_height, texture_channels,
+  core::io::Bitmap in(texture_width, texture_height, kTextureChannels,
                       BitmapFormat::BitmapFormat_Float, pixels);
   core::io::Bitmap out = core::io::ConvertVerticalCrossToCubeMapFaces(in);
   printf("Processed cube map image: width=%d, height=%d, channels=%d\n", out.width, out.height,
@@ -127,7 +161,7 @@ void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
     memcpy(data, out.pixel.data(), static_cast<size_t>(image_size));
   });
 
-  stbi_image_free(pixels);
+  stbi_image_free((void*)pixels);
 
   cube_map_image_ =
       core::vulkan::VulkanImage(context_, out.width, out.height, VK_FORMAT_R32G32B32A32_SFLOAT,
@@ -143,8 +177,7 @@ void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_FORMAT_R32G32B32A32_SFLOAT, 1, 6);
   staging_buffer.CopyToImage(cube_map_image_, static_cast<uint32_t>(out.width),
-                             static_cast<uint32_t>(out.height), static_cast<uint32_t>(out.depth),
-                             6);
+                             static_cast<uint32_t>(out.height), 6);
   cube_map_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                         VK_FORMAT_R32G32B32A32_SFLOAT, 1, 6);

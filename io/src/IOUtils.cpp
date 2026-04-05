@@ -85,11 +85,11 @@ Bitmap ConvertVerticalCrossToCubeMapFaces(const Bitmap& src) {
       ------
       | +Y |
    ----------------
-   | -X | -Z | +X |
+   | -X | +Z | +X |
    ----------------
       | -Y |
       ------
-      | +Z |
+      | -Z |
       ------
   */
 
@@ -135,7 +135,7 @@ Bitmap ConvertVerticalCrossToCubeMapFaces(const Bitmap& src) {
           // CUBE_MAP_NEGATIVE_Z
           case 5:
             x = 2 * face_width - (i + 1);
-            y = cubemap.height - (j + 1);
+            y = src.height - (j + 1);
             break;
         }
 

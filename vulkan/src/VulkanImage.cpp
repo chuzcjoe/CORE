@@ -14,6 +14,7 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
     : context_(context),
       image_format_(format),
       mip_levels_(mip_levels),
+      array_layers_(layers),
       samples_(samples),
       image_width(width),
       image_height(height) {
@@ -53,7 +54,14 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   VkImageViewCreateInfo view_info{};
   view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
   view_info.image = image;
-  view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  if ((flags & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT) != 0 && array_layers_ >= 6) {
+    view_info.viewType =
+        array_layers_ == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_CUBE_ARRAY;
+  } else if (array_layers_ > 1) {
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+  } else {
+    view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  }
   view_info.format = image_format_;
   view_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
   view_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -94,6 +102,7 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
   context_ = rhs.context_;
   image_format_ = rhs.image_format_;
   mip_levels_ = rhs.mip_levels_;
+  array_layers_ = rhs.array_layers_;
 
   image = rhs.image;
   rhs.image = VK_NULL_HANDLE;

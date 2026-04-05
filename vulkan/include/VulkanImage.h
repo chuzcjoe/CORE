@@ -38,6 +38,7 @@ class VulkanImage {
   VulkanContext* context_ = nullptr;
   VkFormat image_format_;
   uint32_t mip_levels_ = 1;
+  uint32_t array_layers_ = 1;
   VkSampleCountFlagBits samples_ = VK_SAMPLE_COUNT_1_BIT;
 
  public:

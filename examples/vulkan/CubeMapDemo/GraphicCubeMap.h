@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Bitmap.h"
+#include "IOUtils.h"
 #include "VulkanGraphic.h"
 #include "VulkanImage.h"
 #include "VulkanRenderPass.h"
@@ -27,14 +28,13 @@ class GraphicCubeMap : public core::vulkan::VulkanGraphic {
   void Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
-                           const float rotation);
+  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix);
 
  protected:
-  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_FRONT_BIT; }
+  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
   VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
-  VkBool32 SetDepthTesting() const override { return VK_TRUE; }
-  VkBool32 SetDepthWriting() const override { return VK_TRUE; }
+  VkBool32 SetDepthTesting() const override { return VK_FALSE; }
+  VkBool32 SetDepthWriting() const override { return VK_FALSE; }
 
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
@@ -48,7 +48,6 @@ class GraphicCubeMap : public core::vulkan::VulkanGraphic {
   void CreateBuffers();
 
   struct UniformBufferObject {
-    glm::mat4 model;
     glm::mat4 view;
     glm::mat4 project;
   } uniform_data_;
