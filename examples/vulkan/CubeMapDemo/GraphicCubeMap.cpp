@@ -136,22 +136,24 @@ void GraphicCubeMap::UpdateUniformBuffer(const int width, const int height,
 }
 
 void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
-  int texture_width, texture_height;
-  const int kTextureChannels = 4;
-  const float* pixels =
-      stbi_loadf(image_path.c_str(), &texture_width, &texture_height, nullptr, kTextureChannels);
+  int texture_width = 0;
+  int texture_height = 0;
+  int texture_channels = 0;
+  const int kTextureChannels = STBI_rgb_alpha;
+  stbi_uc* pixels = stbi_load(image_path.c_str(), &texture_width, &texture_height,
+                              &texture_channels, kTextureChannels);
   if (!pixels) {
     throw std::runtime_error("failed to load cube map image!");
   }
 
   // Load and process cubemap
   core::io::Bitmap in(texture_width, texture_height, kTextureChannels,
-                      BitmapFormat::BitmapFormat_Float, pixels);
+                      BitmapFormat::BitmapFormat_Uint8, pixels);
   core::io::Bitmap out = core::io::ConvertVerticalCrossToCubeMapFaces(in);
   printf("Processed cube map image: width=%d, height=%d, channels=%d\n", out.width, out.height,
          out.depth);
 
-  VkDeviceSize image_size = out.width * out.height * out.depth * sizeof(float);
+  VkDeviceSize image_size = out.width * out.height * out.depth;
 
   core::vulkan::VulkanBuffer staging_buffer(
       context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -161,10 +163,10 @@ void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
     memcpy(data, out.pixel.data(), static_cast<size_t>(image_size));
   });
 
-  stbi_image_free((void*)pixels);
+  stbi_image_free(pixels);
 
   cube_map_image_ =
-      core::vulkan::VulkanImage(context_, out.width, out.height, VK_FORMAT_R32G32B32A32_SFLOAT,
+      core::vulkan::VulkanImage(context_, out.width, out.height, VK_FORMAT_R8G8B8A8_SRGB,
                                 VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
                                     VK_IMAGE_USAGE_SAMPLED_BIT,
                                 VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
@@ -175,12 +177,12 @@ void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
 
   cube_map_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                        VK_FORMAT_R32G32B32A32_SFLOAT, 1, 6);
+                                        VK_FORMAT_R8G8B8A8_SRGB, 1, 6);
   staging_buffer.CopyToImage(cube_map_image_, static_cast<uint32_t>(out.width),
                              static_cast<uint32_t>(out.height), 6);
   cube_map_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                        VK_FORMAT_R32G32B32A32_SFLOAT, 1, 6);
+                                        VK_FORMAT_R8G8B8A8_SRGB, 1, 6);
 }
 
 }  // namespace core

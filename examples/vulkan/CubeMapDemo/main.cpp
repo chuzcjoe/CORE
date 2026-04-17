@@ -11,10 +11,10 @@
 void process_inputs(GLFWwindow* window);
 void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos);
 
-const uint32_t kWidth = 1000;
+const uint32_t kWidth = 2000;
 const uint32_t kHeight = 1000;
 const bool kEnableDepthBuffer = true;
-const std::string kTexturePath = "./examples/data/piazza_bologni_1k_cubmap.hdr";
+const std::string kTexturePath = "./examples/data/street_vertical_cross.png";
 const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.5f, 3.0f);
 const glm::vec3 kCameraFront = glm::vec3(0.0f, -1.0f, -3.0f);  // look toward -Z
 const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);       // Y-up
