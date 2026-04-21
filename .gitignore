@@ -2,6 +2,13 @@
 build/
 .vscode/
 *.png
+*.jpg
+*.jpeg
+*.bmp
+*.hdr
+*.bin
+*.raw
+*.obj
 tmp/
 imgui.*
 *.perf
