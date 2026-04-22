@@ -9,6 +9,12 @@ elseif (BUILD_VARIANT STREQUAL vulkan_tutorial)
 endif()
 set(ANDROID_STL "c++_shared")
 
+# Inject Vulkan paths from environment (CI-friendly)
+if(DEFINED ENV{Vulkan_INCLUDE_DIR} AND DEFINED ENV{Vulkan_LIBRARY})
+    set(Vulkan_INCLUDE_DIR $ENV{Vulkan_INCLUDE_DIR})
+    set(Vulkan_LIBRARY $ENV{Vulkan_LIBRARY})
+endif()
+
 find_package(Vulkan REQUIRED)
 message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}")
 
