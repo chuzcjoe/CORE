@@ -29,6 +29,10 @@ jobs:
           echo "VULKAN_SDK=$(brew --prefix molten-vk)" >> $GITHUB_ENV
           echo "$(brew --prefix molten-vk)/bin" >> $GITHUB_PATH
           echo "DYLD_LIBRARY_PATH=$(brew --prefix molten-vk)/lib" >> $GITHUB_ENV
+          VULKAN_PREFIX=$(brew --prefix molten-vk)
+          echo "VULKAN_PREFIX=$VULKAN_PREFIX" >> $GITHUB_ENV
+          echo "Vulkan_INCLUDE_DIR=$VULKAN_PREFIX/include" >> $GITHUB_ENV
+          echo "Vulkan_LIBRARY=$VULKAN_PREFIX/lib/libvulkan.dylib" >> $GITHUB_ENV
 
       # -------------------------
       # Verify Vulkan tools
