@@ -90,7 +90,6 @@ if [ "$target" = "macos" ] ; then
             ./build/$target/tests/core-tests --gtest_filter="$test_filter"
         fi
     fi
-    exit 1
 fi
 
 if [ "$target" = "arm64-v8a" ]; then
