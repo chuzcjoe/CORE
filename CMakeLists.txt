@@ -10,7 +10,7 @@ endif()
 set(ANDROID_STL "c++_shared")
 
 find_package(Vulkan REQUIRED)
-message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}")
+message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}, ${Vulkan_INCLUDE_DIRS}")
 
 # Set pipeline cache
 message(STATUS "Using pipeline cache dir: ${PIPELINE_CACHE_DIR}")
