@@ -12,6 +12,32 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+      
+      # -------------------------
+      # Install base tools
+      # -------------------------
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install cmake ninja molten-vk shaderc
+
+      # -------------------------
+      # Set Vulkan environment
+      # -------------------------
+      - name: Set Vulkan env
+        run: |
+          echo "VULKAN_SDK=$(brew --prefix molten-vk)" >> $GITHUB_ENV
+          echo "$(brew --prefix molten-vk)/bin" >> $GITHUB_PATH
+          echo "DYLD_LIBRARY_PATH=$(brew --prefix molten-vk)/lib" >> $GITHUB_ENV
+
+      # -------------------------
+      # Verify Vulkan tools
+      # -------------------------
+      - name: Check Vulkan tools
+        run: |
+          echo "VULKAN_SDK=$VULKAN_SDK"
+          which glslc || true
+          glslc --version || true
 
       # -------------------------
       # Android SDK + NDK
