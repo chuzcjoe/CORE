@@ -1,0 +1,37 @@
+name: Core CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # -------------------------
+      # Android SDK + NDK
+      # -------------------------
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK
+        run: |
+          sdkmanager "ndk;26.1.10909125"
+
+      - name: Accept licenses
+        run: yes | sdkmanager --licenses
+
+      # -------------------------
+      # Environment setup
+      # -------------------------
+      - name: Set environment variables
+        run: |
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+
+      - name: Build
+        run: ./scripts/run.sh
