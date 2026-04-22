@@ -26,11 +26,11 @@ jobs:
       # -------------------------
       - name: Set Vulkan env
         run: |
-          sudo mkdir -p /opt/tmp
-          cd /opt/tmp
           curl -L -O https://sdk.lunarg.com/sdk/download/1.4.341.1/mac/vulkansdk-macos-1.4.341.1.zip
           unzip vulkansdk-macos-1.4.341.1.zip
-          sudo /opt/tmp/vulkansdk-macOS-1.4.341.1.app/Contents/MacOS/vulkansdk-macOS-1.4.341.1 --root "installation path" --accept-licenses --default-answer --confirm-command install
+          sudo "$(pwd)/vulkansdk-macOS-1.4.341.1.app/Contents/MacOS/vulkansdk-macOS-1.4.341.1" \
+            --root "$(pwd)/installation_path" \
+            --accept-licenses --default-answer --confirm-command install
 
       # -------------------------
       # Verify Vulkan tools
