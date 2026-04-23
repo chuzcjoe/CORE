@@ -1,6 +1,7 @@
 # CORE: Compute and Open Rendering Engine
 
 [![CI](https://github.com/chuzcjoe/core/actions/workflows/macos.yml/badge.svg)](https://github.com/chuzcjoe/core/actions/workflows/macos.yml)
+[![CI](https://github.com/chuzcjoe/core/actions/workflows/android.yml/badge.svg)](https://github.com/chuzcjoe/core/actions/workflows/android.yml)
 
 **CORE** is a cross-platform C++ framework that abstracts away the boilerplate of modern GPU setup, letting developers focus on what matters. It combines high-performance GPU computing with powerful real-time rendering capabilities, offering a clean, unified interface for both compute workloads and graphics pipelines.
 
