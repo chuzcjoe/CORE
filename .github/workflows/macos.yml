@@ -1,4 +1,4 @@
-name: macos compile
+name: macos
 
 on:
   push:
