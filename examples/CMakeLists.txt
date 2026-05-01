@@ -1,26 +1,8 @@
-# Compile shaders
-set(GLSLC ${Vulkan_GLSLC_EXECUTABLE})
-message(STATUS "Using vulkan glslc: ${GLSLC}")
+include(${CMAKE_SOURCE_DIR}/cmake/vulkan_shaders.cmake)
 
-file(GLOB_RECURSE shader_src "vulkan/*/*.comp" 
-                                "vulkan/*/*.vert" 
-                                "vulkan/*/*.frag")
-
-foreach(shader ${shader_src})
-    get_filename_component(shader_name ${shader} NAME)
-    set(shader_spv "${CMAKE_CURRENT_BINARY_DIR}/shaders/${shader_name}.spv")
-    add_custom_command(
-        OUTPUT ${shader_spv}
-        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/shaders
-        COMMAND ${GLSLC} --target-env=vulkan1.1 -mfmt=c ${shader} -o ${shader_spv}
-        DEPENDS ${shader}
-        COMMENT "Compiling shader ${shader_name} to SPIR-V"
-        VERBATIM
-    )
-    list(APPEND shader_spv_files ${shader_spv})
-endforeach(shader)
-
-add_custom_target(vulkan_example_shaders DEPENDS ${shader_spv_files})
+add_vulkan_shader_target(vulkan_example_shaders
+    SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vulkan
+    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 # only add glfw/draw triangle for macos
 if(APPLE)
