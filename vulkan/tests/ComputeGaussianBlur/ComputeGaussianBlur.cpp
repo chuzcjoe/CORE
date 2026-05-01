@@ -2,6 +2,9 @@
 
 #include <filesystem>
 
+#include "ComputeGaussianBlur.slang.spv.h"
+#include "VulkanUtils.h"
+
 namespace core {
 namespace vulkan {
 
@@ -61,11 +64,11 @@ std::vector<BindingInfo> ComputeGaussianBlur::GetBindingInfo() const {
 }
 
 const std::vector<uint32_t>& ComputeGaussianBlur::LoadShaderCode() const {
-  // Load and return the SPIR-V code for the compute shader
-  // This is a placeholder; actual implementation will read from a file or embedded resource
-  static const std::vector<uint32_t> shader_code =
-#include "ComputeGaussianBlur.comp.spv"
-      ;
+  static const std::vector<uint32_t> shader_code = [] {
+    std::vector<uint32_t> code(ComputeGaussianBlur_slang_spv_len / sizeof(uint32_t));
+    memcpy(code.data(), ComputeGaussianBlur_slang_spv, ComputeGaussianBlur_slang_spv_len);
+    return code;
+  }();
   return shader_code;
 }
 
