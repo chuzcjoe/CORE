@@ -140,4 +140,12 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan stb tinyobjloader imgui io)
 
+    # 20. galaxy rotation demo using vulkan
+    build_example(vk_galaxy_demo
+        SOURCE_GLOBS "./vulkan/GalaxyDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/GalaxyDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan)
+
 endif()

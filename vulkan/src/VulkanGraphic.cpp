@@ -104,10 +104,7 @@ void VulkanGraphic::CreatePipeline() {
   dynamic_state.dynamicStateCount = static_cast<uint32_t>(dynamic_state_enables.size());
 
   // 8. color blending state
-  VkPipelineColorBlendAttachmentState color_blend_attachment{};
-  color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  color_blend_attachment.blendEnable = VK_FALSE;
+  VkPipelineColorBlendAttachmentState color_blend_attachment = SetColorBlendAttachment();
 
   // 9. depth testing state
   VkPipelineDepthStencilStateCreateInfo depth_stencil{};
