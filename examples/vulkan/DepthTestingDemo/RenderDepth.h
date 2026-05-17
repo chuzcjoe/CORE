@@ -1,45 +1,30 @@
 #pragma once
 
 #include <chrono>
-#include <unordered_map>
 #include <vector>
 
-#include "VulkanGraphic.h"
 #include "VulkanImage.h"
+#include "VulkanRender.h"
 #include "VulkanRenderPass.h"
 #include "VulkanSampler.h"
 #include "VulkanUtils.h"
 
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/hash.hpp"
 
 namespace core {
 
-struct Vertex {
-  glm::vec3 pos;
-  glm::vec3 color;
-  glm::vec2 tex_coord;
-
-  bool operator==(const Vertex& other) const {
-    return pos == other.pos && color == other.color && tex_coord == other.tex_coord;
-  }
-};
-
-class GraphicModel : public core::vulkan::VulkanGraphic {
+class RenderDepth : public core::vulkan::VulkanRender {
  public:
-  GraphicModel(core::vulkan::VulkanContext* context,
-               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
+  RenderDepth(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
 
   void Init() override;
-  void Init(const std::string& image_path, const std::string& model_path);
+  void Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
-                           const float rotation);
+  void UpdateUniformBuffer(const int width, const int height);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -56,20 +41,32 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
  private:
   void CreateTextureImage(const std::string& image_path);
 
+  struct Vertex {
+    glm::vec3 pos;
+    glm::vec3 color;
+    glm::vec2 tex_coord;
+  };
+
   struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 project;
   } uniform_data_;
 
-  void LoadModel(const std::string& model_path);
   void CreateBuffers();
 
-  // vertex
-  std::vector<Vertex> vertices_;
-  // index
-  std::vector<uint32_t> indices_;
+  // pos, color, text_coord
+  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+                                         {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+                                         {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 
+                                         {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+                                         {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+                                         {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+  // index buffer
+  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
   core::vulkan::VulkanBuffer vertex_buffer_staging_;
   core::vulkan::VulkanBuffer vertex_buffer_local_;
 
@@ -85,13 +82,3 @@ class GraphicModel : public core::vulkan::VulkanGraphic {
 };
 
 }  // namespace core
-
-namespace std {
-template <>
-struct hash<core::Vertex> {
-  size_t operator()(core::Vertex const& vertex) const {
-    return ((hash<glm::vec3>()(vertex.pos) ^ (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-           (hash<glm::vec2>()(vertex.tex_coord) << 1);
-  }
-};
-}  // namespace std

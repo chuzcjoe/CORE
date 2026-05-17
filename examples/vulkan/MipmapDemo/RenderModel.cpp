@@ -1,4 +1,4 @@
-#include "GraphicModel.h"
+#include "RenderModel.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -8,15 +8,12 @@
 
 namespace core {
 
-GraphicModel::GraphicModel(core::vulkan::VulkanContext* context,
-                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
-                           const VkSampleCountFlagBits msaa_samples)
-    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info, msaa_samples),
-      sampler_(context),
-      msaa_samples_(msaa_samples) {}
+RenderModel::RenderModel(core::vulkan::VulkanContext* context,
+                         const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info), sampler_(context) {}
 
-void GraphicModel::Init() {
-  core::vulkan::VulkanGraphic::Init();
+void RenderModel::Init() {
+  core::vulkan::VulkanRender::Init();
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateCombinedImageSamplerDescriptorSet(1, texture_image_.image_view, sampler_.sampler);
@@ -39,16 +36,14 @@ void GraphicModel::Init() {
   index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
-void GraphicModel::Init(const std::string& image_path, const std::string& model_path,
-                        const VkExtent2D& extent) {
+void RenderModel::Init(const std::string& image_path, const std::string& model_path) {
   CreateTextureImage(image_path);
-  CreateMSAAImage(extent);
   LoadModel(model_path);
   CreateBuffers();
   Init();
 }
 
-void GraphicModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
+void RenderModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
   const VkDeviceSize offsets[] = {0};
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -74,26 +69,26 @@ void GraphicModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
-std::vector<core::vulkan::BindingInfo> GraphicModel::GetBindingInfo() const {
+std::vector<core::vulkan::BindingInfo> RenderModel::GetBindingInfo() const {
   return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
           {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}};
 }
 
-const std::vector<uint32_t> GraphicModel::LoadVertexShader() const {
+const std::vector<uint32_t> RenderModel::LoadVertexShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "MSAA.vert.spv"
+#include "Mipmap.vert.spv"
       ;
   return shader_code;
 }
 
-const std::vector<uint32_t> GraphicModel::LoadFragmentShader() const {
+const std::vector<uint32_t> RenderModel::LoadFragmentShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "MSAA.frag.spv"
+#include "Mipmap.frag.spv"
       ;
   return shader_code;
 }
 
-std::vector<VkVertexInputBindingDescription> GraphicModel::GetVertexBindingDescriptions() const {
+std::vector<VkVertexInputBindingDescription> RenderModel::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription binding_description{};
   binding_description.binding = 0;
   binding_description.stride = sizeof(Vertex);
@@ -102,8 +97,7 @@ std::vector<VkVertexInputBindingDescription> GraphicModel::GetVertexBindingDescr
   return {binding_description};
 }
 
-std::vector<VkVertexInputAttributeDescription> GraphicModel::GetVertexAttributeDescriptions()
-    const {
+std::vector<VkVertexInputAttributeDescription> RenderModel::GetVertexAttributeDescriptions() const {
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions(3);
   attribute_descriptions[0].binding = 0;
   attribute_descriptions[0].location = 0;
@@ -122,7 +116,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicModel::GetVertexAttributeD
   return attribute_descriptions;
 }
 
-void GraphicModel::LoadModel(const std::string& model_path) {
+void RenderModel::LoadModel(const std::string& model_path) {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
@@ -159,7 +153,7 @@ void GraphicModel::LoadModel(const std::string& model_path) {
   printf("Loaded model vertices: %zu, indices: %zu\n", vertices_.size(), indices_.size());
 }
 
-void GraphicModel::CreateBuffers() {
+void RenderModel::CreateBuffers() {
   const VkDeviceSize vertex_buffer_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize index_buffer_size = sizeof(indices_[0]) * indices_.size();
 
@@ -186,8 +180,8 @@ void GraphicModel::CreateBuffers() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicModel::UpdateUniformBuffer(const int width, const int height,
-                                       const glm::mat4& view_matrix, const float rotation) {
+void RenderModel::UpdateUniformBuffer(const int width, const int height,
+                                      const glm::mat4& view_matrix, const float rotation) {
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
   uniform_buffer_.MapData([this, width, height, &view_matrix, rotation](void* data) {
     glm::mat4 model =
@@ -203,7 +197,7 @@ void GraphicModel::UpdateUniformBuffer(const int width, const int height,
   });
 }
 
-void GraphicModel::CreateTextureImage(const std::string& image_path) {
+void RenderModel::CreateTextureImage(const std::string& image_path) {
   int texture_width, texture_height, texture_channels;
   stbi_uc* pixels = stbi_load(image_path.c_str(), &texture_width, &texture_height,
                               &texture_channels, STBI_rgb_alpha);
@@ -240,14 +234,6 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
 
   // TODO: Implementing resizing in software and loading multiple levels from a file
   texture_image_.GenerateMipmaps();
-}
-
-void GraphicModel::CreateMSAAImage(const VkExtent2D& extent) {
-  msaa_image = core::vulkan::VulkanImage(
-      context_, extent.width, extent.height, VK_FORMAT_B8G8R8A8_SRGB,
-      VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, 1,
-      msaa_samples_);
 }
 
 }  // namespace core

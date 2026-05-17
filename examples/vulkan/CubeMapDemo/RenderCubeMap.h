@@ -4,8 +4,8 @@
 
 #include "Bitmap.h"
 #include "IOUtils.h"
-#include "VulkanGraphic.h"
 #include "VulkanImage.h"
+#include "VulkanRender.h"
 #include "VulkanRenderPass.h"
 #include "VulkanSampler.h"
 #include "VulkanUtils.h"
@@ -19,10 +19,10 @@
 
 namespace core {
 
-class GraphicCubeMap : public core::vulkan::VulkanGraphic {
+class RenderCubeMap : public core::vulkan::VulkanRender {
  public:
-  GraphicCubeMap(core::vulkan::VulkanContext* context,
-                 const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
+  RenderCubeMap(core::vulkan::VulkanContext* context,
+                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
   void Init(const std::string& image_path);

@@ -1,4 +1,4 @@
-#include "GraphicCubeMap.h"
+#include "RenderCubeMap.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -8,12 +8,12 @@
 
 namespace core {
 
-GraphicCubeMap::GraphicCubeMap(core::vulkan::VulkanContext* context,
-                               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info), sampler_(context) {}
+RenderCubeMap::RenderCubeMap(core::vulkan::VulkanContext* context,
+                             const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info), sampler_(context) {}
 
-void GraphicCubeMap::Init() {
-  core::vulkan::VulkanGraphic::Init();
+void RenderCubeMap::Init() {
+  core::vulkan::VulkanRender::Init();
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateCombinedImageSamplerDescriptorSet(1, cube_map_image_.image_view, sampler_.sampler);
@@ -33,7 +33,7 @@ void GraphicCubeMap::Init() {
   });
 }
 
-void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
+void RenderCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
   const VkDeviceSize offsets[] = {0};
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -59,26 +59,26 @@ void GraphicCubeMap::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDraw(command_buffer, 36, 1, 0, 0);
 }
 
-std::vector<core::vulkan::BindingInfo> GraphicCubeMap::GetBindingInfo() const {
+std::vector<core::vulkan::BindingInfo> RenderCubeMap::GetBindingInfo() const {
   return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
           {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}};
 }
 
-const std::vector<uint32_t> GraphicCubeMap::LoadVertexShader() const {
+const std::vector<uint32_t> RenderCubeMap::LoadVertexShader() const {
   static const std::vector<uint32_t> shader_code =
 #include "CubeMap.vert.spv"
       ;
   return shader_code;
 }
 
-const std::vector<uint32_t> GraphicCubeMap::LoadFragmentShader() const {
+const std::vector<uint32_t> RenderCubeMap::LoadFragmentShader() const {
   static const std::vector<uint32_t> shader_code =
 #include "CubeMap.frag.spv"
       ;
   return shader_code;
 }
 
-std::vector<VkVertexInputBindingDescription> GraphicCubeMap::GetVertexBindingDescriptions() const {
+std::vector<VkVertexInputBindingDescription> RenderCubeMap::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription binding_description{};
   binding_description.binding = 0;
   binding_description.stride = sizeof(float) * 3;  // only position
@@ -87,7 +87,7 @@ std::vector<VkVertexInputBindingDescription> GraphicCubeMap::GetVertexBindingDes
   return {binding_description};
 }
 
-std::vector<VkVertexInputAttributeDescription> GraphicCubeMap::GetVertexAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> RenderCubeMap::GetVertexAttributeDescriptions()
     const {
   VkVertexInputAttributeDescription attribute_description{};
   attribute_description.binding = 0;
@@ -98,13 +98,13 @@ std::vector<VkVertexInputAttributeDescription> GraphicCubeMap::GetVertexAttribut
   return {attribute_description};
 }
 
-void GraphicCubeMap::Init(const std::string& image_path) {
+void RenderCubeMap::Init(const std::string& image_path) {
   CreateTextureImage(image_path);
   CreateBuffers();
   Init();
 }
 
-void GraphicCubeMap::CreateBuffers() {
+void RenderCubeMap::CreateBuffers() {
   const VkDeviceSize vertex_buffer_size = skybox_vertices_.size() * sizeof(float);
 
   vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
@@ -121,8 +121,8 @@ void GraphicCubeMap::CreateBuffers() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicCubeMap::UpdateUniformBuffer(const int width, const int height,
-                                         const glm::mat4& view_matrix) {
+void RenderCubeMap::UpdateUniformBuffer(const int width, const int height,
+                                        const glm::mat4& view_matrix) {
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
   uniform_buffer_.MapData([this, width, height, &view_matrix](void* data) {
     // Keep the skybox centered on the camera by discarding translation.
@@ -135,7 +135,7 @@ void GraphicCubeMap::UpdateUniformBuffer(const int width, const int height,
   });
 }
 
-void GraphicCubeMap::CreateTextureImage(const std::string& image_path) {
+void RenderCubeMap::CreateTextureImage(const std::string& image_path) {
   int texture_width = 0;
   int texture_height = 0;
   int texture_channels = 0;

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "GraphicTriangle.h"
+#include "RenderTriangle.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
@@ -54,8 +54,8 @@ int main() {
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
-  std::unique_ptr<core::GraphicTriangle> triangle =
-      std::make_unique<core::GraphicTriangle>(&context, dynamic_rendering_info);
+  std::unique_ptr<core::RenderTriangle> triangle =
+      std::make_unique<core::RenderTriangle>(&context, dynamic_rendering_info);
   triangle->Init();
 
   while (!glfwWindowShouldClose(window)) {

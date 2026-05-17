@@ -1,7 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "GraphicDepth.h"
+#include "RenderDepth.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
@@ -43,8 +43,8 @@ int main() {
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format,
                                              kEnableDepthBuffer);  // enable depth buffer
-  std::unique_ptr<core::GraphicDepth> texture =
-      std::make_unique<core::GraphicDepth>(&context, &render_pass);
+  std::unique_ptr<core::RenderDepth> texture =
+      std::make_unique<core::RenderDepth>(&context, &render_pass);
   texture->Init("examples/data/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 

@@ -5,7 +5,7 @@
 #include <iostream>
 #include <memory>
 
-#include "GraphicGalaxy.h"
+#include "RenderGalaxy.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
@@ -55,7 +55,7 @@ int main() {
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
 
-  auto galaxy = std::make_unique<core::GraphicGalaxy>(&context, dynamic_rendering_info, kStarCount);
+  auto galaxy = std::make_unique<core::RenderGalaxy>(&context, dynamic_rendering_info, kStarCount);
   galaxy->Init();
 
   while (!glfwWindowShouldClose(window)) {

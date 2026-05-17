@@ -1,7 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "GraphicCubeMap.h"
+#include "RenderCubeMap.h"
 #include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
@@ -70,8 +70,8 @@ int main() {
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
-  std::unique_ptr<core::GraphicCubeMap> model =
-      std::make_unique<core::GraphicCubeMap>(&context, dynamic_rendering_info);
+  std::unique_ptr<core::RenderCubeMap> model =
+      std::make_unique<core::RenderCubeMap>(&context, dynamic_rendering_info);
   model->Init(kTexturePath);
 
   while (!glfwWindowShouldClose(window)) {

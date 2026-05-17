@@ -1,4 +1,4 @@
-#include "GraphicGalaxy.h"
+#include "RenderGalaxy.h"
 
 #include <cmath>
 #include <cstring>
@@ -6,16 +6,16 @@
 
 namespace core {
 
-GraphicGalaxy::GraphicGalaxy(core::vulkan::VulkanContext* context,
-                             const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
-                             uint32_t star_count)
-    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info), star_count_(star_count) {
+RenderGalaxy::RenderGalaxy(core::vulkan::VulkanContext* context,
+                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+                           uint32_t star_count)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info), star_count_(star_count) {
   GenerateStars();
   CreateBuffers();
 }
 
-void GraphicGalaxy::Init() {
-  core::vulkan::VulkanGraphic::Init();
+void RenderGalaxy::Init() {
+  core::vulkan::VulkanRender::Init();
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
@@ -44,7 +44,7 @@ void GraphicGalaxy::Init() {
   });
 }
 
-void GraphicGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
+void RenderGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   VkViewport viewport{};
@@ -71,7 +71,7 @@ void GraphicGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
                    0);
 }
 
-VkPipelineColorBlendAttachmentState GraphicGalaxy::SetColorBlendAttachment() const {
+VkPipelineColorBlendAttachmentState RenderGalaxy::SetColorBlendAttachment() const {
   // Additive blending so stars accumulate glow
   VkPipelineColorBlendAttachmentState s{};
   s.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
@@ -86,25 +86,25 @@ VkPipelineColorBlendAttachmentState GraphicGalaxy::SetColorBlendAttachment() con
   return s;
 }
 
-std::vector<core::vulkan::BindingInfo> GraphicGalaxy::GetBindingInfo() const {
+std::vector<core::vulkan::BindingInfo> RenderGalaxy::GetBindingInfo() const {
   return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT}};
 }
 
-const std::vector<uint32_t> GraphicGalaxy::LoadVertexShader() const {
+const std::vector<uint32_t> RenderGalaxy::LoadVertexShader() const {
   static const std::vector<uint32_t> shader_code =
 #include "Galaxy.vert.spv"
       ;
   return shader_code;
 }
 
-const std::vector<uint32_t> GraphicGalaxy::LoadFragmentShader() const {
+const std::vector<uint32_t> RenderGalaxy::LoadFragmentShader() const {
   static const std::vector<uint32_t> shader_code =
 #include "Galaxy.frag.spv"
       ;
   return shader_code;
 }
 
-std::vector<VkVertexInputBindingDescription> GraphicGalaxy::GetVertexBindingDescriptions() const {
+std::vector<VkVertexInputBindingDescription> RenderGalaxy::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription quad_binding{};
   quad_binding.binding = 0;
   quad_binding.stride = sizeof(glm::vec2);
@@ -118,7 +118,7 @@ std::vector<VkVertexInputBindingDescription> GraphicGalaxy::GetVertexBindingDesc
   return {quad_binding, instance_binding};
 }
 
-std::vector<VkVertexInputAttributeDescription> GraphicGalaxy::GetVertexAttributeDescriptions()
+std::vector<VkVertexInputAttributeDescription> RenderGalaxy::GetVertexAttributeDescriptions()
     const {
   std::vector<VkVertexInputAttributeDescription> attrs(4);
   attrs[0].binding = 0;
@@ -143,7 +143,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicGalaxy::GetVertexAttribute
   return attrs;
 }
 
-void GraphicGalaxy::GenerateStars() {
+void RenderGalaxy::GenerateStars() {
   instances_.reserve(star_count_);
 
   std::mt19937 rng(42);
@@ -234,7 +234,7 @@ void GraphicGalaxy::GenerateStars() {
   }
 }
 
-void GraphicGalaxy::CreateBuffers() {
+void RenderGalaxy::CreateBuffers() {
   const VkDeviceSize quad_size = sizeof(quad_corners_[0]) * quad_corners_.size();
   const VkDeviceSize idx_size = sizeof(quad_indices_[0]) * quad_indices_.size();
   const VkDeviceSize inst_size = sizeof(InstanceData) * instances_.size();
@@ -265,7 +265,7 @@ void GraphicGalaxy::CreateBuffers() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicGalaxy::UpdateUniformBuffer(uint32_t width, uint32_t height) {
+void RenderGalaxy::UpdateUniformBuffer(uint32_t width, uint32_t height) {
   auto current_time = std::chrono::high_resolution_clock::now();
   const float time =
       std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time_)

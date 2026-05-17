@@ -4,30 +4,30 @@
 #include <chrono>
 #include <vector>
 
-#include "VulkanGraphic.h"
-#include "VulkanRenderPass.h"
+#include "VulkanBuffer.h"
+#include "VulkanRender.h"
 #include "VulkanUtils.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace core {
 
-class GraphicTriangle : public core::vulkan::VulkanGraphic {
+class RenderGalaxy : public core::vulkan::VulkanRender {
  public:
-  GraphicTriangle(core::vulkan::VulkanContext* context,
-                  core::vulkan::VulkanRenderPass* render_pass);
-
-  GraphicTriangle(core::vulkan::VulkanContext* context,
-                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
+  RenderGalaxy(core::vulkan::VulkanContext* context,
+               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+               uint32_t star_count);
 
   void Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height);
+  void UpdateUniformBuffer(uint32_t width, uint32_t height);
 
  protected:
-  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
+  // Points/sprites — no triangle culling
+  VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
   VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
+  VkPipelineColorBlendAttachmentState SetColorBlendAttachment() const override;
 
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
@@ -36,36 +36,41 @@ class GraphicTriangle : public core::vulkan::VulkanGraphic {
   std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
-  struct Vertex {
-    glm::vec2 pos;
+  struct InstanceData {
+    glm::vec3 pos;
     glm::vec3 color;
+    float size;
   };
 
   struct UniformBufferObject {
     glm::mat4 model;
     glm::mat4 view;
     glm::mat4 project;
+    float time;
+    float aspect;
+    float pad0;
+    float pad1;
   } uniform_data_;
 
-  void CreateVertexBuffer();
+  void GenerateStars();
+  void CreateBuffers();
 
-  // pos, color
-  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}};
-  // index buffer
-  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0};
-  core::vulkan::VulkanBuffer vertex_buffer_staging_;
-  core::vulkan::VulkanBuffer vertex_buffer_local_;
+  uint32_t star_count_;
+  std::vector<InstanceData> instances_;
 
+  // Unit quad — 4 corners, indices form 2 triangles
+  const std::vector<glm::vec2> quad_corners_ = {
+      {-1.0f, -1.0f}, {1.0f, -1.0f}, {1.0f, 1.0f}, {-1.0f, 1.0f}};
+  const std::vector<uint16_t> quad_indices_ = {0, 1, 2, 2, 3, 0};
+
+  core::vulkan::VulkanBuffer quad_buffer_staging_;
+  core::vulkan::VulkanBuffer quad_buffer_local_;
   core::vulkan::VulkanBuffer index_buffer_staging_;
   core::vulkan::VulkanBuffer index_buffer_local_;
-
-  // uniform buffer
+  core::vulkan::VulkanBuffer instance_buffer_staging_;
+  core::vulkan::VulkanBuffer instance_buffer_local_;
   core::vulkan::VulkanBuffer uniform_buffer_;
 
-  // start time, we need it to calculate the rotation angle
   inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =
       std::chrono::high_resolution_clock::now();
 };

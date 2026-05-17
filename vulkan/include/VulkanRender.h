@@ -17,11 +17,11 @@ struct DynamicRenderingInfo {
   VkFormat stencil_format = VK_FORMAT_UNDEFINED;
 };
 
-class VulkanGraphic : public VulkanBase {
+class VulkanRender : public VulkanBase {
  public:
-  VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
-  VulkanGraphic(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info,
-                const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
+  VulkanRender(VulkanContext* context, VulkanRenderPass* render_pass);
+  VulkanRender(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info,
+               const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
 
  protected:
   void CreatePipeline() override;
