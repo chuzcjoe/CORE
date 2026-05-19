@@ -148,4 +148,12 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan)
 
+    # 21. physics simulation demo using vulkan
+    build_example(vk_physics_demo
+        SOURCE_GLOBS "./vulkan/PhysicsDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/PhysicsDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan)
+
 endif()
