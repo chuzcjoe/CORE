@@ -8,6 +8,7 @@
 #include "Physics.h"
 #include "RenderCube.h"
 #include "RenderFloor.h"
+#include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanImage.h"
 #include "VulkanSwapChain.h"
@@ -22,9 +23,27 @@
 // Demo: a cube spawns mid-air, falls under gravity onto a checkerboard floor,
 // bounces with restitution and friction, tumbles, and auto-resets once it
 // settles. Dynamic rendering with a manually-managed depth attachment.
+// WASD moves the camera; mouse-look rotates the view.
 const uint32_t kWidth = 1280;
 const uint32_t kHeight = 800;
 const VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+// Camera setup — positioned to view the spawn region with the floor below.
+const glm::vec3 kCameraPos = glm::vec3(6.0f, 4.5f, 8.0f);
+const glm::vec3 kCameraFront = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f) - kCameraPos);
+const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+const float kCameraSpeed = 0.05f;
+const float kMouseSensitivity = 0.1f;
+
+std::unique_ptr<core::vulkan::VulkanCamera> camera =
+    std::make_unique<core::vulkan::VulkanCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
+
+float last_x = kWidth / 2.0f;
+float last_y = kHeight / 2.0f;
+bool first_mouse = true;
+
+void process_inputs(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 int main() {
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
@@ -36,6 +55,9 @@ int main() {
     glfwTerminate();
     throw std::runtime_error("failed to create window");
   }
+
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+  glfwSetCursorPosCallback(window, mouse_callback);
 
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
@@ -86,9 +108,7 @@ int main() {
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-      glfwSetWindowShouldClose(window, true);
-    }
+    process_inputs(window);
 
     const auto now = std::chrono::high_resolution_clock::now();
     const float dt =
@@ -111,8 +131,7 @@ int main() {
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
 
-    const glm::mat4 view = glm::lookAt(glm::vec3(6.0f, 4.5f, 8.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-                                       glm::vec3(0.0f, 1.0f, 0.0f));
+    const glm::mat4 view = camera->GetViewMatrix();
     const glm::mat4 project =
         glm::perspective(glm::radians(45.0f),
                          static_cast<float>(swap_chain->swapchain_extent.width) /
@@ -187,4 +206,43 @@ int main() {
   glfwDestroyWindow(window);
   glfwTerminate();
   return EXIT_SUCCESS;
+}
+
+void process_inputs(GLFWwindow* window) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) glfwSetWindowShouldClose(window, true);
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+    camera->ProcessKeyboard(core::vulkan::CameraMovement::FORWARD);
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+    camera->ProcessKeyboard(core::vulkan::CameraMovement::BACKWARD);
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+    camera->ProcessKeyboard(core::vulkan::CameraMovement::LEFT);
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+    camera->ProcessKeyboard(core::vulkan::CameraMovement::RIGHT);
+}
+
+void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
+  if (first_mouse) {
+    last_x = static_cast<float>(xpos);
+    last_y = static_cast<float>(ypos);
+    first_mouse = false;
+  }
+  float xoffset = static_cast<float>(xpos) - last_x;
+  float yoffset = last_y - static_cast<float>(ypos);  // Y inverted (screen y grows downward)
+  last_x = static_cast<float>(xpos);
+  last_y = static_cast<float>(ypos);
+
+  xoffset *= kMouseSensitivity;
+  yoffset *= kMouseSensitivity;
+
+  camera->yaw += xoffset;
+  camera->pitch += yoffset;
+
+  if (camera->pitch > 89.0f) camera->pitch = 89.0f;
+  if (camera->pitch < -89.0f) camera->pitch = -89.0f;
+
+  glm::vec3 front;
+  front.x = std::cos(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
+  front.y = std::sin(glm::radians(camera->pitch));
+  front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
+  camera->camera_front = glm::normalize(front);
 }
