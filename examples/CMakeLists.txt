@@ -162,6 +162,6 @@ if(APPLE)
         PUBLIC_INCLUDES ./vulkan/CarControlDemo
         PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
         DEPENDS vulkan_example_shaders
-        LIBRARIES glfw vulkan)
+        LIBRARIES glfw vulkan stb)
 
 endif()

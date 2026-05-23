@@ -1,9 +1,12 @@
 #pragma once
 
+#include <string>
 #include <vector>
 
 #include "VulkanBuffer.h"
+#include "VulkanImage.h"
 #include "VulkanRender.h"
+#include "VulkanSampler.h"
 #include "VulkanUtils.h"
 
 #define GLM_FORCE_RADIANS
@@ -12,13 +15,16 @@
 
 namespace core {
 
-// Big checkerboard ground plane at y=0 that fades into the horizon color.
+// Big ground plane at y=0, textured with a tiled diffuse map and faded out
+// toward the horizon so the plane's edge doesn't read as a hard seam against
+// the skybox.
 class RenderGround : public core::vulkan::VulkanRender {
  public:
   RenderGround(core::vulkan::VulkanContext* context,
                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
+  void Init(const std::string& texture_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project);
@@ -41,9 +47,10 @@ class RenderGround : public core::vulkan::VulkanRender {
     glm::mat4 project;
   };
 
+  void CreateTextureImage(const std::string& texture_path);
   void CreateBuffers();
 
-  static constexpr float kHalf = 40.0f;
+  static constexpr float kHalf = 80.0f;
   const std::vector<glm::vec3> vertices_ = {
       {-kHalf, 0.0f, -kHalf},
       {kHalf, 0.0f, -kHalf},
@@ -57,6 +64,9 @@ class RenderGround : public core::vulkan::VulkanRender {
   core::vulkan::VulkanBuffer index_buffer_staging_;
   core::vulkan::VulkanBuffer index_buffer_local_;
   core::vulkan::VulkanBuffer uniform_buffer_;
+
+  core::vulkan::VulkanImage texture_image_;
+  core::vulkan::VulkanSampler sampler_;
 };
 
 }  // namespace core

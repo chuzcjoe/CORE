@@ -1,13 +1,16 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <memory>
+#include <string>
 
 #include "RenderCar.h"
 #include "RenderGround.h"
+#include "RenderSkybox.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanImage.h"
 #include "VulkanSwapChain.h"
@@ -26,6 +29,13 @@
 const uint32_t kWidth = 1280;
 const uint32_t kHeight = 800;
 const VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
+const std::string kGroundTexturePath = "./examples/data/asphalt.jpg";
+// Skybox face order is Vulkan cubemap layer order: +X, -X, +Y, -Y, +Z, -Z.
+const std::array<std::string, 6> kSkyboxFacePaths = {
+    "./examples/data/skybox/right.jpg", "./examples/data/skybox/left.jpg",
+    "./examples/data/skybox/top.jpg",   "./examples/data/skybox/bottom.jpg",
+    "./examples/data/skybox/front.jpg", "./examples/data/skybox/back.jpg",
+};
 
 constexpr float kDriveSpeed = 8.0f;                // world units per second
 constexpr float kTurnRate = glm::radians(110.0f);  // radians per second while driving
@@ -99,9 +109,11 @@ int main() {
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
   dynamic_rendering_info.depth_format = kDepthFormat;
 
+  auto skybox = std::make_unique<core::RenderSkybox>(&context, dynamic_rendering_info);
   auto ground = std::make_unique<core::RenderGround>(&context, dynamic_rendering_info);
   auto car = std::make_unique<core::RenderCar>(&context, dynamic_rendering_info);
-  ground->Init();
+  skybox->Init(kSkyboxFacePaths);
+  ground->Init(kGroundTexturePath);
   car->Init();
 
   // Mutable car state.
@@ -165,6 +177,7 @@ int main() {
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
 
+    skybox->UpdateUniformBuffer(view, project);
     ground->UpdateUniformBuffer(view, project);
     car->UpdateUniformBuffer(model, view, project);
 
@@ -199,6 +212,9 @@ int main() {
         .pDepthAttachment = &depth_attachment};
 
     vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
+    // Skybox first (depth disabled) so subsequent depth-tested geometry can
+    // overdraw it normally.
+    skybox->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     ground->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     car->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRendering(command_buffer.buffer());

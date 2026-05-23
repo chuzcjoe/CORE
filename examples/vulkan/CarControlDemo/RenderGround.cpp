@@ -1,19 +1,23 @@
 #include "RenderGround.h"
 
 #include <cstring>
+#include <stdexcept>
+
+// stb_image's implementation lives in RenderSkybox.cpp; include the header
+// here without the implementation define.
+#include <stb_image.h>
 
 namespace core {
 
 RenderGround::RenderGround(core::vulkan::VulkanContext* context,
                            const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {
-  CreateBuffers();
-}
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info), sampler_(context) {}
 
 void RenderGround::Init() {
   core::vulkan::VulkanRender::Init();
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
+  CreateCombinedImageSamplerDescriptorSet(1, texture_image_.image_view, sampler_.sampler);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
   vertex_buffer_staging_.MapData([this](void* data) {
@@ -28,6 +32,12 @@ void RenderGround::Init() {
     UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f)};
     memcpy(data, &init, sizeof(UniformBufferObject));
   });
+}
+
+void RenderGround::Init(const std::string& texture_path) {
+  CreateTextureImage(texture_path);
+  CreateBuffers();
+  Init();
 }
 
 void RenderGround::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -65,7 +75,8 @@ void RenderGround::UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& p
 }
 
 std::vector<core::vulkan::BindingInfo> RenderGround::GetBindingInfo() const {
-  return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT}};
+  return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
+          {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}};
 }
 
 const std::vector<uint32_t> RenderGround::LoadVertexShader() const {
@@ -98,6 +109,35 @@ std::vector<VkVertexInputAttributeDescription> RenderGround::GetVertexAttributeD
   a.format = VK_FORMAT_R32G32B32_SFLOAT;
   a.offset = 0;
   return {a};
+}
+
+void RenderGround::CreateTextureImage(const std::string& texture_path) {
+  int w = 0;
+  int h = 0;
+  int c = 0;
+  stbi_uc* pixels = stbi_load(texture_path.c_str(), &w, &h, &c, STBI_rgb_alpha);
+  if (!pixels) {
+    throw std::runtime_error("failed to load ground texture: " + texture_path);
+  }
+  const VkDeviceSize image_size = static_cast<VkDeviceSize>(w) * h * 4;
+
+  core::vulkan::VulkanBuffer staging_buffer(
+      context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  staging_buffer.MapData(
+      [&](void* data) { memcpy(data, pixels, static_cast<size_t>(image_size)); });
+  stbi_image_free(pixels);
+
+  texture_image_ = core::vulkan::VulkanImage(
+      context_, static_cast<uint32_t>(w), static_cast<uint32_t>(h), VK_FORMAT_R8G8B8A8_SRGB,
+      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+  texture_image_.TransitionImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
+  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                       VK_FORMAT_R8G8B8A8_SRGB);
 }
 
 void RenderGround::CreateBuffers() {
