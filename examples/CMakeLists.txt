@@ -156,4 +156,12 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan)
 
+    # 22. third-person car control demo using vulkan
+    build_example(vk_car_control_demo
+        SOURCE_GLOBS "./vulkan/CarControlDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/CarControlDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan)
+
 endif()
