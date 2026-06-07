@@ -4,8 +4,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "VulkanGraphic.h"
 #include "VulkanImage.h"
+#include "VulkanRender.h"
 #include "VulkanRenderPass.h"
 #include "VulkanSampler.h"
 #include "VulkanUtils.h"
@@ -29,9 +29,9 @@ struct Vertex {
   }
 };
 
-class GraphicModel : public core::vulkan::VulkanGraphic {
+class RenderModel : public core::vulkan::VulkanRender {
  public:
-  GraphicModel(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
+  RenderModel(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
 
   void Init() override;
   void Init(const std::string& image_path, const std::string& model_path);

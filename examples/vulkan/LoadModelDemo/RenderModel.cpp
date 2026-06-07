@@ -1,4 +1,4 @@
-#include "GraphicModel.h"
+#include "RenderModel.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -8,12 +8,12 @@
 
 namespace core {
 
-GraphicModel::GraphicModel(core::vulkan::VulkanContext* context,
-                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanGraphic(context, dynamic_rendering_info), sampler_(context) {}
+RenderModel::RenderModel(core::vulkan::VulkanContext* context,
+                         core::vulkan::VulkanRenderPass* render_pass)
+    : core::vulkan::VulkanRender(context, render_pass), sampler_(context) {}
 
-void GraphicModel::Init() {
-  core::vulkan::VulkanGraphic::Init();
+void RenderModel::Init() {
+  core::vulkan::VulkanRender::Init();
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateCombinedImageSamplerDescriptorSet(1, texture_image_.image_view, sampler_.sampler);
@@ -36,14 +36,14 @@ void GraphicModel::Init() {
   index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
-void GraphicModel::Init(const std::string& image_path, const std::string& model_path) {
+void RenderModel::Init(const std::string& image_path, const std::string& model_path) {
   CreateTextureImage(image_path);
   LoadModel(model_path);
   CreateBuffers();
   Init();
 }
 
-void GraphicModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
+void RenderModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
   const VkDeviceSize offsets[] = {0};
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -69,26 +69,26 @@ void GraphicModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
-std::vector<core::vulkan::BindingInfo> GraphicModel::GetBindingInfo() const {
+std::vector<core::vulkan::BindingInfo> RenderModel::GetBindingInfo() const {
   return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT},
           {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}};
 }
 
-const std::vector<uint32_t> GraphicModel::LoadVertexShader() const {
+const std::vector<uint32_t> RenderModel::LoadVertexShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "Mipmap.vert.spv"
+#include "Model.vert.spv"
       ;
   return shader_code;
 }
 
-const std::vector<uint32_t> GraphicModel::LoadFragmentShader() const {
+const std::vector<uint32_t> RenderModel::LoadFragmentShader() const {
   static const std::vector<uint32_t> shader_code =
-#include "Mipmap.frag.spv"
+#include "Model.frag.spv"
       ;
   return shader_code;
 }
 
-std::vector<VkVertexInputBindingDescription> GraphicModel::GetVertexBindingDescriptions() const {
+std::vector<VkVertexInputBindingDescription> RenderModel::GetVertexBindingDescriptions() const {
   VkVertexInputBindingDescription binding_description{};
   binding_description.binding = 0;
   binding_description.stride = sizeof(Vertex);
@@ -97,8 +97,7 @@ std::vector<VkVertexInputBindingDescription> GraphicModel::GetVertexBindingDescr
   return {binding_description};
 }
 
-std::vector<VkVertexInputAttributeDescription> GraphicModel::GetVertexAttributeDescriptions()
-    const {
+std::vector<VkVertexInputAttributeDescription> RenderModel::GetVertexAttributeDescriptions() const {
   std::vector<VkVertexInputAttributeDescription> attribute_descriptions(3);
   attribute_descriptions[0].binding = 0;
   attribute_descriptions[0].location = 0;
@@ -117,7 +116,7 @@ std::vector<VkVertexInputAttributeDescription> GraphicModel::GetVertexAttributeD
   return attribute_descriptions;
 }
 
-void GraphicModel::LoadModel(const std::string& model_path) {
+void RenderModel::LoadModel(const std::string& model_path) {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
@@ -154,7 +153,7 @@ void GraphicModel::LoadModel(const std::string& model_path) {
   printf("Loaded model vertices: %zu, indices: %zu\n", vertices_.size(), indices_.size());
 }
 
-void GraphicModel::CreateBuffers() {
+void RenderModel::CreateBuffers() {
   const VkDeviceSize vertex_buffer_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize index_buffer_size = sizeof(indices_[0]) * indices_.size();
 
@@ -181,13 +180,11 @@ void GraphicModel::CreateBuffers() {
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 }
 
-void GraphicModel::UpdateUniformBuffer(const int width, const int height,
-                                       const glm::mat4& view_matrix, const float rotation) {
+void RenderModel::UpdateUniformBuffer(const int width, const int height,
+                                      const glm::mat4& view_matrix) {
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
-  uniform_buffer_.MapData([this, width, height, &view_matrix, rotation](void* data) {
-    glm::mat4 model =
-        glm::rotate(glm::mat4(1.0f), glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-    model = glm::rotate(model, glm::radians(rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+  uniform_buffer_.MapData([this, width, height, &view_matrix](void* data) {
+    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     uniform_data_.model = model;
     uniform_data_.view = view_matrix;
     uniform_data_.project =
@@ -198,7 +195,7 @@ void GraphicModel::UpdateUniformBuffer(const int width, const int height,
   });
 }
 
-void GraphicModel::CreateTextureImage(const std::string& image_path) {
+void RenderModel::CreateTextureImage(const std::string& image_path) {
   int texture_width, texture_height, texture_channels;
   stbi_uc* pixels = stbi_load(image_path.c_str(), &texture_width, &texture_height,
                               &texture_channels, STBI_rgb_alpha);
@@ -206,8 +203,6 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
     throw std::runtime_error("failed to load texture image!");
   }
   VkDeviceSize image_size = texture_width * texture_height * 4;
-  uint32_t mip_levels =
-      static_cast<uint32_t>(std::floor(std::log2(std::max(texture_width, texture_height)))) + 1;
 
   core::vulkan::VulkanBuffer staging_buffer(
       context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -220,21 +215,18 @@ void GraphicModel::CreateTextureImage(const std::string& image_path) {
 
   texture_image_ =
       core::vulkan::VulkanImage(context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
-                                VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-                                    VK_IMAGE_USAGE_SAMPLED_BIT,
-                                VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-                                VK_IMAGE_TILING_OPTIMAL, mip_levels);
+                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   // Transition image layout and copy buffer to image
   // TODO: Use a single command buffer for all operations for higher throughput,
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
-                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       VK_FORMAT_R8G8B8A8_SRGB, mip_levels);
+  texture_image_.TransitionImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
   staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
                              static_cast<uint32_t>(texture_height));
-
-  // TODO: Implementing resizing in software and loading multiple levels from a file
-  texture_image_.GenerateMipmaps();
+  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                       VK_FORMAT_R8G8B8A8_SRGB);
 }
 
 }  // namespace core

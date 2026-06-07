@@ -1,38 +1,56 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "RenderCubeMap.h"
+#include <chrono>
+#include <cstdlib>
+#include <memory>
+
+#include "Physics.h"
+#include "RenderCube.h"
+#include "RenderFloor.h"
 #include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanImage.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
 #include "VulkanUtils.h"
 
-void process_inputs(GLFWwindow* window);
-void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos);
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "glm/glm.hpp"
+#include "glm/gtc/matrix_transform.hpp"
 
-const uint32_t kWidth = 2000;
-const uint32_t kHeight = 1000;
-const bool kEnableDepthBuffer = true;
-const std::string kTexturePath = "./examples/data/street_vertical_cross.png";
-const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.5f, 3.0f);
-const glm::vec3 kCameraFront = glm::vec3(0.0f, -1.0f, -3.0f);  // look toward -Z
-const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);       // Y-up
-const float kCameraSpeed = 0.03f;
+// Demo: a cube spawns mid-air, falls under gravity onto a checkerboard floor,
+// bounces with restitution and friction, tumbles, and auto-resets once it
+// settles. Dynamic rendering with a manually-managed depth attachment.
+// WASD moves the camera; mouse-look rotates the view.
+const uint32_t kWidth = 1280;
+const uint32_t kHeight = 800;
+const VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
+
+// Camera setup — positioned to view the spawn region with the floor below.
+const glm::vec3 kCameraPos = glm::vec3(6.0f, 4.5f, 8.0f);
+const glm::vec3 kCameraFront = glm::normalize(glm::vec3(0.0f, 1.0f, 0.0f) - kCameraPos);
+const glm::vec3 kCameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+const float kCameraSpeed = 0.05f;
 const float kMouseSensitivity = 0.1f;
-float laxt_x = kWidth / 2.0f;
-float last_y = kHeight / 2.0f;
-bool first_mouse = true;
 
 std::unique_ptr<core::vulkan::VulkanCamera> camera =
     std::make_unique<core::vulkan::VulkanCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
+
+float last_x = kWidth / 2.0f;
+float last_y = kHeight / 2.0f;
+bool first_mouse = true;
+
+void process_inputs(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
 int main() {
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
   GLFWwindow* window;
   glfwInit();
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-  window = glfwCreateWindow(kWidth, kHeight, "Vulkan", nullptr, nullptr);
+  window = glfwCreateWindow(kWidth, kHeight, "Physics Demo", nullptr, nullptr);
   if (!window) {
     glfwTerminate();
     throw std::runtime_error("failed to create window");
@@ -51,9 +69,18 @@ int main() {
   }
 
   if (window_surface != VK_NULL_HANDLE) {
-    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface,
-                                                                 kEnableDepthBuffer);
+    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
+
+  // Manually-managed depth image — the swapchain's internal depth buffer is
+  // only wired up for the traditional render-pass path, so for dynamic
+  // rendering we own the depth attachment here.
+  core::vulkan::VulkanImage depth_image(
+      &context, swap_chain->swapchain_extent.width, swap_chain->swapchain_extent.height,
+      kDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+  depth_image.TransitionDepthImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, kDepthFormat);
 
 #if __APPLE__
   const auto dynamic_rendering_cmds =
@@ -63,30 +90,57 @@ int main() {
 #endif
 
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
-  core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
-  // Dynamic rendering
+
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
-  std::unique_ptr<core::RenderCubeMap> model =
-      std::make_unique<core::RenderCubeMap>(&context, dynamic_rendering_info);
-  model->Init(kTexturePath);
+  dynamic_rendering_info.depth_format = kDepthFormat;
+
+  auto floor = std::make_unique<core::RenderFloor>(&context, dynamic_rendering_info);
+  auto cube = std::make_unique<core::RenderCube>(&context, dynamic_rendering_info);
+  floor->Init();
+  cube->Init();
+
+  core::PhysicsBody body;
+  auto last_time = std::chrono::high_resolution_clock::now();
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
     process_inputs(window);
 
-    // draw process
+    const auto now = std::chrono::high_resolution_clock::now();
+    const float dt =
+        std::chrono::duration<float, std::chrono::seconds::period>(now - last_time).count();
+    last_time = now;
+
+    // Fixed-step the physics so visual behaviour is independent of FPS.
+    constexpr float kFixedDt = 1.0f / 240.0f;
+    static float accumulator = 0.0f;
+    accumulator = std::min(accumulator + dt, 0.25f);
+    while (accumulator >= kFixedDt) {
+      body.Step(kFixedDt);
+      accumulator -= kFixedDt;
+    }
+
     vkWaitForFences(context.logical_device, 1, &(in_flight_fence.fence), VK_TRUE, UINT64_MAX);
     in_flight_fence.Reset();
+
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
-    const auto camera_view = camera->GetViewMatrix();
 
-    // ========== Command buffer begin ==========
+    const glm::mat4 view = camera->GetViewMatrix();
+    const glm::mat4 project =
+        glm::perspective(glm::radians(45.0f),
+                         static_cast<float>(swap_chain->swapchain_extent.width) /
+                             static_cast<float>(swap_chain->swapchain_extent.height),
+                         0.1f, 100.0f);
+
+    floor->UpdateUniformBuffer(view, project);
+    cube->UpdateUniformBuffer(body.ModelMatrix(), view, project);
+
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -94,55 +148,63 @@ int main() {
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    VkRenderingAttachmentInfo attachment_info{
+
+    VkRenderingAttachmentInfo color_attachment{
         .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
         .imageView = swap_chain->swapchain_image_views[image_index],
         .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+        .clearValue = {{{0.08f, 0.10f, 0.14f, 1.0f}}}};
+    VkRenderingAttachmentInfo depth_attachment{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = depth_image.image_view,
+        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .clearValue = {.depthStencil = {1.0f, 0}}};
     VkRenderingInfo rendering_info{
         .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
         .renderArea = {.offset = {0, 0}, .extent = swap_chain->swapchain_extent},
         .layerCount = 1,
         .colorAttachmentCount = 1,
-        .pColorAttachments = &attachment_info};
+        .pColorAttachments = &color_attachment,
+        .pDepthAttachment = &depth_attachment};
 
     vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
-    model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
-                               swap_chain->swapchain_extent.height, camera_view);
-    model->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    floor->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    cube->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     vkCmdEndRendering(command_buffer.buffer());
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
+    VkSubmitInfo submit_info{};
+    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     VkSemaphore wait_semaphores[] = {image_available_semaphore.semaphore};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    submit_info.waitSemaphoreCount = 1;
+    submit_info.pWaitSemaphores = wait_semaphores;
+    submit_info.pWaitDstStageMask = wait_stages;
     VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
-    command_buffer.Submit(in_flight_fence.fence,
-                          VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                       .pWaitSemaphores = wait_semaphores,
-                                       .waitSemaphoreCount = 1,
-                                       .pSignalSemaphores = signal_semaphores,
-                                       .pWaitDstStageMask = wait_stages,
-                                       .signalSemaphoreCount = 1});
-    // ========== Command buffer end ==========
-    // present
+    submit_info.signalSemaphoreCount = 1;
+    submit_info.pSignalSemaphores = signal_semaphores;
+    command_buffer.Submit(in_flight_fence.fence, submit_info);
+
+    VkPresentInfoKHR present_info{};
+    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+    present_info.waitSemaphoreCount = 1;
+    present_info.pWaitSemaphores = signal_semaphores;
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
-    VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                  .waitSemaphoreCount = 1,
-                                  .pWaitSemaphores = signal_semaphores,
-                                  .swapchainCount = 1,
-                                  .pSwapchains = swapchains,
-                                  .pImageIndices = &image_index};
+    present_info.swapchainCount = 1;
+    present_info.pSwapchains = swapchains;
+    present_info.pImageIndices = &image_index;
     vkQueuePresentKHR(context.present_queue(), &present_info);
   }
   vkDeviceWaitIdle(context.logical_device);
 
   glfwDestroyWindow(window);
   glfwTerminate();
-
   return EXIT_SUCCESS;
 }
 
@@ -160,14 +222,14 @@ void process_inputs(GLFWwindow* window) {
 
 void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypos) {
   if (first_mouse) {
-    laxt_x = xpos;
-    last_y = ypos;
+    last_x = static_cast<float>(xpos);
+    last_y = static_cast<float>(ypos);
     first_mouse = false;
   }
-  float xoffset = xpos - laxt_x;
-  float yoffset = last_y - ypos;  // reversed since y-coordinates go from bottom to top
-  laxt_x = xpos;
-  last_y = ypos;
+  float xoffset = static_cast<float>(xpos) - last_x;
+  float yoffset = last_y - static_cast<float>(ypos);  // Y inverted (screen y grows downward)
+  last_x = static_cast<float>(xpos);
+  last_y = static_cast<float>(ypos);
 
   xoffset *= kMouseSensitivity;
   yoffset *= kMouseSensitivity;

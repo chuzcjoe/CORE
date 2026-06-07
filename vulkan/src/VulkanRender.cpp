@@ -1,20 +1,20 @@
-#include "VulkanGraphic.h"
+#include "VulkanRender.h"
 
 namespace core {
 namespace vulkan {
 
-VulkanGraphic::VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass)
+VulkanRender::VulkanRender(VulkanContext* context, VulkanRenderPass* render_pass)
     : VulkanBase(context), render_pass_(render_pass) {}
 
-VulkanGraphic::VulkanGraphic(VulkanContext* context,
-                             const DynamicRenderingInfo& dynamic_rendering_info,
-                             const VkSampleCountFlagBits msaa_samples)
+VulkanRender::VulkanRender(VulkanContext* context,
+                           const DynamicRenderingInfo& dynamic_rendering_info,
+                           const VkSampleCountFlagBits msaa_samples)
     : VulkanBase(context),
       render_pass_(nullptr),
       dynamic_rendering_info_(dynamic_rendering_info),
       msaa_samples_(msaa_samples) {}
 
-void VulkanGraphic::CreatePipeline() {
+void VulkanRender::CreatePipeline() {
   // 1. shader stage
   const auto vertex_shader_module = CreateShaderModule(LoadVertexShader());
   const auto fragment_shader_module = CreateShaderModule(LoadFragmentShader());
@@ -104,10 +104,7 @@ void VulkanGraphic::CreatePipeline() {
   dynamic_state.dynamicStateCount = static_cast<uint32_t>(dynamic_state_enables.size());
 
   // 8. color blending state
-  VkPipelineColorBlendAttachmentState color_blend_attachment{};
-  color_blend_attachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-  color_blend_attachment.blendEnable = VK_FALSE;
+  VkPipelineColorBlendAttachmentState color_blend_attachment = SetColorBlendAttachment();
 
   // 9. depth testing state
   VkPipelineDepthStencilStateCreateInfo depth_stencil{};

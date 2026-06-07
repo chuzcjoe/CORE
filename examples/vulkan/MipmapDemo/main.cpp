@@ -4,7 +4,7 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 
-#include "GraphicModel.h"
+#include "RenderModel.h"
 #include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
@@ -94,8 +94,8 @@ int main() {
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
-  std::unique_ptr<core::GraphicModel> model =
-      std::make_unique<core::GraphicModel>(&context, dynamic_rendering_info);
+  std::unique_ptr<core::RenderModel> model =
+      std::make_unique<core::RenderModel>(&context, dynamic_rendering_info);
   model->Init(kTexturePath, kModelPath);
 
   while (!glfwWindowShouldClose(window)) {

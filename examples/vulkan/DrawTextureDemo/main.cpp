@@ -1,7 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
-#include "GraphicTexture.h"
+#include "RenderTexture.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
@@ -41,8 +41,8 @@ int main() {
   core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
   core::vulkan::VulkanFence in_flight_fence(&context);
   core::vulkan::VulkanRenderPass render_pass(&context, swap_chain->swapchain_image_format);
-  std::unique_ptr<core::GraphicTexture> texture =
-      std::make_unique<core::GraphicTexture>(&context, &render_pass);
+  std::unique_ptr<core::RenderTexture> texture =
+      std::make_unique<core::RenderTexture>(&context, &render_pass);
   texture->Init("examples/data/core.png");
   swap_chain->CreateFrameBuffers(render_pass);
 

@@ -17,11 +17,11 @@ struct DynamicRenderingInfo {
   VkFormat stencil_format = VK_FORMAT_UNDEFINED;
 };
 
-class VulkanGraphic : public VulkanBase {
+class VulkanRender : public VulkanBase {
  public:
-  VulkanGraphic(VulkanContext* context, VulkanRenderPass* render_pass);
-  VulkanGraphic(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info,
-                const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
+  VulkanRender(VulkanContext* context, VulkanRenderPass* render_pass);
+  VulkanRender(VulkanContext* context, const DynamicRenderingInfo& dynamic_rendering_info,
+               const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
 
  protected:
   void CreatePipeline() override;
@@ -32,6 +32,13 @@ class VulkanGraphic : public VulkanBase {
   virtual VkFrontFace SetFrontFace() const { return VK_FRONT_FACE_CLOCKWISE; }
   virtual VkBool32 SetDepthTesting() const { return VK_FALSE; }
   virtual VkBool32 SetDepthWriting() const { return VK_FALSE; }
+  virtual VkPipelineColorBlendAttachmentState SetColorBlendAttachment() const {
+    VkPipelineColorBlendAttachmentState s{};
+    s.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    s.blendEnable = VK_FALSE;
+    return s;
+  }
 
   // Derived class needs to configure these explicitly
   virtual const std::vector<uint32_t> LoadVertexShader() const = 0;

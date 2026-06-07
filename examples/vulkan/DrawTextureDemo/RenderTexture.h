@@ -3,22 +3,21 @@
 #include <chrono>
 #include <vector>
 
-#include "VulkanGraphic.h"
 #include "VulkanImage.h"
+#include "VulkanRender.h"
 #include "VulkanRenderPass.h"
 #include "VulkanSampler.h"
 #include "VulkanUtils.h"
 
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace core {
 
-class GraphicDepth : public core::vulkan::VulkanGraphic {
+class RenderTexture : public core::vulkan::VulkanRender {
  public:
-  GraphicDepth(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
+  RenderTexture(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
 
   void Init() override;
   void Init(const std::string& image_path);
@@ -29,8 +28,6 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
   VkFrontFace SetFrontFace() const override { return VK_FRONT_FACE_COUNTER_CLOCKWISE; }
-  VkBool32 SetDepthTesting() const override { return VK_TRUE; }
-  VkBool32 SetDepthWriting() const override { return VK_TRUE; }
 
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
@@ -42,7 +39,7 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
   void CreateTextureImage(const std::string& image_path);
 
   struct Vertex {
-    glm::vec3 pos;
+    glm::vec2 pos;
     glm::vec3 color;
     glm::vec2 tex_coord;
   };
@@ -53,20 +50,15 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
     glm::mat4 project;
   } uniform_data_;
 
-  void CreateBuffers();
+  void CreateVertexBuffer();
 
   // pos, color, text_coord
-  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-                                         {{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-                                         {{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-                                         {{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-                                         {{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-                                         {{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-                                         {{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
-                                         {{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
+  const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+                                         {{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+                                         {{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f}},
+                                         {{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}};
   // index buffer
-  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0, 4, 5, 6, 6, 7, 4};
+  const std::vector<uint16_t> indices_ = {0, 1, 2, 2, 3, 0};
   core::vulkan::VulkanBuffer vertex_buffer_staging_;
   core::vulkan::VulkanBuffer vertex_buffer_local_;
 
@@ -79,6 +71,10 @@ class GraphicDepth : public core::vulkan::VulkanGraphic {
   // texture image
   core::vulkan::VulkanImage texture_image_;
   core::vulkan::VulkanSampler sampler_;
+
+  // start time, we need it to calculate the rotation angle
+  inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =
+      std::chrono::high_resolution_clock::now();
 };
 
 }  // namespace core
