@@ -122,11 +122,11 @@ int main() {
     VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
     command_buffer.Submit(in_flight_fence.fence,
                           VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                       .pWaitSemaphores = wait_semaphores,
                                        .waitSemaphoreCount = 1,
-                                       .pSignalSemaphores = signal_semaphores,
+                                       .pWaitSemaphores = wait_semaphores,
                                        .pWaitDstStageMask = wait_stages,
-                                       .signalSemaphoreCount = 1});
+                                       .signalSemaphoreCount = 1,
+                                       .pSignalSemaphores = signal_semaphores});
     // ========== Command buffer end ==========
     // present
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
