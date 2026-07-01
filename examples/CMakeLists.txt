@@ -164,4 +164,13 @@ if(APPLE)
         DEPENDS vulkan_example_shaders
         LIBRARIES glfw vulkan stb)
 
+    # 23. first-person shooter demo using vulkan
+    build_example(vk_fps_demo
+        SOURCE_GLOBS "./vulkan/FPSShooterDemo/*.cpp"
+        PUBLIC_INCLUDES ./vulkan/FPSShooterDemo
+        PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
+        DEPENDS vulkan_example_shaders
+        LIBRARIES glfw vulkan stb tinyobjloader
+        DEFINITIONS FPS_ASSET_DIR="${CMAKE_CURRENT_LIST_DIR}/vulkan/FPSShooterDemo/assets")
+
 endif()

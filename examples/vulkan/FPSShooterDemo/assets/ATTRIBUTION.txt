@@ -1,0 +1,14 @@
+Cerberus gun model
+==================
+
+Files:
+  cerberus.obj         - mesh (positions, normals, UVs; single material)
+  cerberus_albedo.png  - 2048x2048 albedo texture (converted from A.dds via ffmpeg)
+
+Author : Andrew Maximov (artisaverb.info)
+Source : "Cerberus" free PBR test asset, widely redistributed for graphics
+         demos. OBJ + DDS copies obtained from the open-source renderer repo
+         https://github.com/jian-ru/laugh_engine (models/cerberus.obj,
+         textures/Cerberus/A.dds).
+License: Released by the author as a free asset for the community
+         (portfolio/educational/demo use). Credit "Andrew Maximov".
