@@ -15,7 +15,9 @@ add_executable(core-tests ${test_src})
 
 target_include_directories(core-tests PUBLIC vulkan/include)
 
-target_link_libraries(core-tests PUBLIC gtest gtest_main stb vulkan mat threadpool opencl mat io)
+# gtest_main already links gtest PUBLIC, so gtest itself doesn't need to be
+# listed separately here.
+target_link_libraries(core-tests PUBLIC gtest_main stb vulkan mat threadpool opencl io)
 if (ENABLE_TRACE)
     target_link_libraries(core-tests PUBLIC trace)
     target_compile_definitions(core-tests PUBLIC CORE_ENABLE_TRACE)
@@ -25,10 +27,9 @@ if (APPLE)
     find_library(METAL_FRAMEWORK Metal)
     find_library(FOUNDATION_FRAMEWORK Foundation)
     find_library(QUARTZCORE_FRAMEWORK QuartzCore)
-    target_link_libraries(core-tests PUBLIC 
-            glfw
-            opencl
-            io
+    # glfw, opencl, io are already linked above (glfw transitively via
+    # vulkan); only metal_cpp and the frameworks are new here.
+    target_link_libraries(core-tests PUBLIC
             metal_cpp
             ${METAL_FRAMEWORK}
             ${FOUNDATION_FRAMEWORK}

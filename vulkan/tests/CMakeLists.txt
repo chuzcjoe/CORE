@@ -16,4 +16,6 @@ target_include_directories(vulkan_tests PUBLIC ComputeSum ComputeGaussianBlur
 
 add_dependencies(vulkan_tests vulkan_shaders)
 
-target_link_libraries(vulkan_tests PUBLIC gtest gtest_main stb vulkan mat timer)
+# gtest_main already links gtest PUBLIC, so gtest itself doesn't need to be
+# listed separately here.
+target_link_libraries(vulkan_tests PUBLIC gtest_main stb vulkan mat timer)
