@@ -247,6 +247,11 @@ void RenderModel::CreateMSAAImage(const VkExtent2D& extent) {
       VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
       VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, 1,
       msaa_samples_);
+  // Dynamic rendering requires the color attachment to already be in
+  // COLOR_ATTACHMENT_OPTIMAL when vkCmdBeginRendering references it; a fresh
+  // image starts in UNDEFINED, so transition it once up front.
+  msaa_image.TransitionImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_FORMAT_B8G8R8A8_SRGB);
 }
 
 }  // namespace core

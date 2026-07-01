@@ -62,6 +62,10 @@ int main() {
 
   ImGui::StyleColorsDark();
   ImGui_ImplGlfw_InitForVulkan(window, true);
+  // Field order must match ImGui_ImplVulkan_InitInfo's declaration order and
+  // avoid nested designators (e.g. `.PipelineInfoMain.Field = ...`), which is
+  // a C99 extension Clang accepts leniently on some toolchains but rejects
+  // under -Werror on others.
   ImGui_ImplVulkan_InitInfo init_info = {
       .ApiVersion = VK_API_VERSION_1_3,
       .Instance = context.instance,
@@ -69,19 +73,21 @@ int main() {
       .Device = context.logical_device,
       .QueueFamily = context.GetQueueFamilyIndices().graphics_family.value(),
       .Queue = context.graphics_queue(),
-      .PipelineCache = VK_NULL_HANDLE,
       .DescriptorPool = VK_NULL_HANDLE,
       .DescriptorPoolSize = 128,  // >= IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
-      .Allocator = VK_NULL_HANDLE,
       .MinImageCount = 2,
       .ImageCount = static_cast<uint32_t>(swap_chain->swapchain_images.size()),
-      .PipelineInfoMain.PipelineRenderingCreateInfo =
-          VkPipelineRenderingCreateInfoKHR{
-              .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
-              .colorAttachmentCount = 1,
-              .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)},
-      .PipelineInfoMain.MSAASamples = msaa_samples,
-      .UseDynamicRendering = true};
+      .PipelineCache = VK_NULL_HANDLE,
+      .PipelineInfoMain =
+          ImGui_ImplVulkan_PipelineInfo{
+              .MSAASamples = msaa_samples,
+              .PipelineRenderingCreateInfo =
+                  VkPipelineRenderingCreateInfoKHR{
+                      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+                      .colorAttachmentCount = 1,
+                      .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)}},
+      .UseDynamicRendering = true,
+      .Allocator = VK_NULL_HANDLE};
   ImGui_ImplVulkan_Init(&init_info);
 
 #if __APPLE__
@@ -94,7 +100,14 @@ int main() {
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
-  core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
+  // One render-finished (present) semaphore per swapchain image. A binary
+  // semaphore used for presentation cannot be reused until its image is
+  // re-acquired, so indexing by image avoids the swapchain semaphore-reuse
+  // validation error.
+  std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
+  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
   core::vulkan::VulkanFence in_flight_fence(&context);
 
   // Dynamic rendering
@@ -166,14 +179,14 @@ int main() {
 
     VkSemaphore wait_semaphores[] = {image_available_semaphore.semaphore};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
+    VkSemaphore signal_semaphores[] = {render_finished_semaphores[image_index]->semaphore};
     command_buffer.Submit(in_flight_fence.fence,
                           VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                       .pWaitSemaphores = wait_semaphores,
                                        .waitSemaphoreCount = 1,
-                                       .pSignalSemaphores = signal_semaphores,
+                                       .pWaitSemaphores = wait_semaphores,
                                        .pWaitDstStageMask = wait_stages,
-                                       .signalSemaphoreCount = 1});
+                                       .signalSemaphoreCount = 1,
+                                       .pSignalSemaphores = signal_semaphores});
     // ========== Command buffer end ==========
     // present
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};

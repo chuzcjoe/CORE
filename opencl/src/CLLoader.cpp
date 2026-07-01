@@ -64,7 +64,8 @@ int cl_init() {
 #ifdef _WIN32
   const char *paths[] = {"OpenCL.dll", NULL};
 #elif defined(__APPLE__)
-  const char *paths[] = {"/Library/Frameworks/OpenCL.framework/OpenCL", NULL};
+  const char *paths[] = {"/Library/Frameworks/OpenCL.framework/OpenCL",
+                         "/System/Library/Frameworks/OpenCL.framework/OpenCL", NULL};
 #else
   const char *paths[] = {"libOpenCL.so", "libOpenCL.so.0", "libOpenCL.so.1", "libOpenCL.so.2",
                          NULL};

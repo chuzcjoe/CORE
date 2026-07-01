@@ -58,6 +58,10 @@ int main() {
 
   ImGui::StyleColorsDark();
   ImGui_ImplGlfw_InitForVulkan(window, true);
+  // Field order must match ImGui_ImplVulkan_InitInfo's declaration order and
+  // avoid nested designators (e.g. `.PipelineInfoMain.Field = ...`), which is
+  // a C99 extension Clang accepts leniently on some toolchains but rejects
+  // under -Werror on others.
   ImGui_ImplVulkan_InitInfo init_info = {
       .ApiVersion = VK_API_VERSION_1_3,
       .Instance = context.instance,
@@ -65,18 +69,20 @@ int main() {
       .Device = context.logical_device,
       .QueueFamily = context.GetQueueFamilyIndices().graphics_family.value(),
       .Queue = context.graphics_queue(),
-      .PipelineCache = VK_NULL_HANDLE,
       .DescriptorPool = VK_NULL_HANDLE,
       .DescriptorPoolSize = 128,  // >= IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE
-      .Allocator = VK_NULL_HANDLE,
       .MinImageCount = 2,
       .ImageCount = static_cast<uint32_t>(swap_chain->swapchain_images.size()),
-      .PipelineInfoMain.PipelineRenderingCreateInfo =
-          VkPipelineRenderingCreateInfoKHR{
-              .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
-              .colorAttachmentCount = 1,
-              .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)},
-      .UseDynamicRendering = true};
+      .PipelineCache = VK_NULL_HANDLE,
+      .PipelineInfoMain =
+          ImGui_ImplVulkan_PipelineInfo{
+              .PipelineRenderingCreateInfo =
+                  VkPipelineRenderingCreateInfoKHR{
+                      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+                      .colorAttachmentCount = 1,
+                      .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)}},
+      .UseDynamicRendering = true,
+      .Allocator = VK_NULL_HANDLE};
   ImGui_ImplVulkan_Init(&init_info);
 
 #if __APPLE__
@@ -160,11 +166,11 @@ int main() {
     VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
     command_buffer.Submit(in_flight_fence.fence,
                           VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                       .pWaitSemaphores = wait_semaphores,
                                        .waitSemaphoreCount = 1,
-                                       .pSignalSemaphores = signal_semaphores,
+                                       .pWaitSemaphores = wait_semaphores,
                                        .pWaitDstStageMask = wait_stages,
-                                       .signalSemaphoreCount = 1});
+                                       .signalSemaphoreCount = 1,
+                                       .pSignalSemaphores = signal_semaphores});
     // ========== Command buffer end ==========
     // present
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
