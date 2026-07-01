@@ -76,6 +76,12 @@ target_include_directories(tinyobjloader
 # in this project.
 add_subdirectory(OpenCL-Headers)
 add_library(opencl-headers ALIAS Headers)
+# Pin the API level cl.h compiles against; without this it defaults to the
+# newest version (3.1) and emits a #pragma message on every translation
+# unit that includes it. The opencl/ module only calls pre-2.0 entry points
+# (e.g. clCreateCommandQueue) and Apple's runtime reports device version 1.2,
+# so target that explicitly.
+target_compile_definitions(Headers INTERFACE CL_TARGET_OPENCL_VERSION=120)
 
 if (ENABLE_TRACE)
   add_subdirectory(perfetto)
