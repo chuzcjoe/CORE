@@ -94,7 +94,14 @@ int main() {
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
-  core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
+  // One render-finished (present) semaphore per swapchain image. A binary
+  // semaphore used for presentation cannot be reused until its image is
+  // re-acquired, so indexing by image avoids the swapchain semaphore-reuse
+  // validation error.
+  std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
+  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
   core::vulkan::VulkanFence in_flight_fence(&context);
 
   // Dynamic rendering
@@ -166,7 +173,7 @@ int main() {
 
     VkSemaphore wait_semaphores[] = {image_available_semaphore.semaphore};
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
+    VkSemaphore signal_semaphores[] = {render_finished_semaphores[image_index]->semaphore};
     command_buffer.Submit(in_flight_fence.fence,
                           VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                                        .pWaitSemaphores = wait_semaphores,

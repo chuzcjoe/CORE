@@ -1,0 +1,21 @@
+[submodule "external/glfw"]
+	path = external/glfw
+	url = https://github.com/glfw/glfw.git
+[submodule "external/imgui/imgui"]
+	path = external/imgui/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "external/stb/stb"]
+	path = external/stb/stb
+	url = https://github.com/nothings/stb.git
+[submodule "external/tinyobjloader/tinyobjloader"]
+	path = external/tinyobjloader/tinyobjloader
+	url = https://github.com/tinyobjloader/tinyobjloader.git
+[submodule "external/gtest/googletest"]
+	path = external/gtest/googletest
+	url = https://github.com/google/googletest.git
+[submodule "external/OpenCL-Headers/OpenCL-Headers"]
+	path = external/OpenCL-Headers/OpenCL-Headers
+	url = https://github.com/KhronosGroup/OpenCL-Headers.git
+[submodule "external/glm/glm"]
+	path = external/glm/glm
+	url = https://github.com/g-truc/glm.git
