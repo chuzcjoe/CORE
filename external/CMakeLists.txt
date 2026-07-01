@@ -38,11 +38,25 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     add_subdirectory(egl_glad)
 endif()
 
-# googletest (submodule: external/gtest) ships a compatible CMakeLists.txt
-# that already defines a `gtest` target; skip the parts we don't use.
-set(BUILD_GMOCK OFF CACHE BOOL "" FORCE)
-set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
-add_subdirectory(gtest)
+# googletest (submodule: external/gtest) ships a CMakeLists.txt of its own,
+# but add_subdirectory()'ing it also pulls in its own
+# `target_compile_features(gtest PUBLIC cxx_std_17)` declaration, which
+# propagates a "must be at least C++17" requirement to every consumer.
+# CMake resolves that against this project's own C++20 requirement correctly
+# today, but only because CMAKE_CXX_STANDARD is forced at the root
+# CMakeLists.txt; to avoid relying on that resolution at all, bypass
+# googletest's build system entirely and compile just the two source files
+# this project needs, same as imgui/stb/tinyobjloader above. `gtest_main`
+# mirrors upstream's shape (a separate target providing main(), linking
+# `gtest` PUBLIC) so nothing downstream needs to change.
+add_library(gtest gtest/googletest/src/gtest-all.cc)
+target_include_directories(gtest
+    SYSTEM PUBLIC
+    gtest/googletest/include
+    gtest/googletest)
+
+add_library(gtest_main gtest/googletest/src/gtest_main.cc)
+target_link_libraries(gtest_main PUBLIC gtest)
 
 # stb (submodule: external/stb) ships no CMakeLists.txt upstream, so the
 # `stb` target is defined here directly; only a handful of its headers are
