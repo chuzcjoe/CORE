@@ -37,10 +37,11 @@ if(APPLE)
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 5. draw texture demo using opengl
+    # (glfw comes in transitively via `imgui`, which links it PUBLIC)
     build_example(gl_texture_demo
         SOURCE_GLOBS "./opengl/GLTextureDemo/*.cpp"
         PUBLIC_INCLUDES ./opengl/GLTextureDemo
-        LIBRARIES glfw opengl stb imgui
+        LIBRARIES opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 6. camera movement demo using opengl
@@ -107,16 +108,17 @@ if(APPLE)
         LIBRARIES core_metal stb)
 
     # 15. light demo using opengl
+    # (glfw comes in transitively via `imgui`, which links it PUBLIC)
     build_example(gl_light_demo
         SOURCE_GLOBS "./opengl/GLLightDemo/*.cpp"
         PUBLIC_INCLUDES ./opengl/GLLightDemo
-        LIBRARIES glfw opengl stb imgui
+        LIBRARIES opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 16. cubemap demo using opengl
     build_example(gl_cubemap_demo
         SOURCE_GLOBS "./opengl/GLCubeMapDemo/*.cpp"
-        LIBRARIES glfw opengl stb imgui
+        LIBRARIES opengl stb imgui
         DEFINITIONS GL_SILENCE_DEPRECATION)
 
     # 17. mipmap demo using vulkan
