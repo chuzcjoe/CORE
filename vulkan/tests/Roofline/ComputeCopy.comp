@@ -1,0 +1,20 @@
+#version 450
+
+layout(binding = 0) uniform UniformBufferObject {
+    int count;  // number of vec4 elements
+}
+ubo;
+
+layout(std430, binding = 1) readonly buffer src_in { vec4 src[]; };
+layout(std430, binding = 2) writeonly buffer dst_out { vec4 dst[]; };
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Pure-streaming workload for measuring peak memory bandwidth: coalesced
+// 16-byte loads/stores over buffers far larger than the GPU's caches, with
+// no arithmetic in between.
+void main() {
+    const uint gid = gl_GlobalInvocationID.x;
+    if (gid >= uint(ubo.count)) return;
+    dst[gid] = src[gid];
+}
