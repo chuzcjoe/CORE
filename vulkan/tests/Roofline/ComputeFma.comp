@@ -1,0 +1,74 @@
+#version 450
+
+layout(binding = 0) uniform UniformBufferObject {
+    int iterations;
+}
+ubo;
+
+layout(std430, binding = 1) writeonly buffer dst_out { float dst[]; };
+
+layout(local_size_x = 256, local_size_y = 1, local_size_z = 1) in;
+
+// Pure-ALU workload for measuring peak compute throughput: eight independent
+// FMA chains keep the pipeline full while each chain stays serially dependent
+// across iterations, and no memory is touched inside the loop.
+void main() {
+    const uint gid = gl_GlobalInvocationID.x;
+
+    // Per-thread seeds prevent constant folding.
+    float a0 = float(gid & 63u) * 1e-3 + 0.10;
+    float a1 = a0 + 0.11;
+    float a2 = a0 + 0.12;
+    float a3 = a0 + 0.13;
+    float a4 = a0 + 0.14;
+    float a5 = a0 + 0.15;
+    float a6 = a0 + 0.16;
+    float a7 = a0 + 0.17;
+    // Chains converge toward c / (1 - b) = 0.1, so values stay finite and
+    // never hit denormals or infinities regardless of iteration count.
+    const float b = 0.999999;
+    const float c = 1e-7;
+
+    // 4x unrolled: 32 FMAs (64 FLOP) per iteration. Must match
+    // ComputeFma::kFlopPerIteration on the C++ side.
+    for (int i = 0; i < ubo.iterations; ++i) {
+        a0 = fma(a0, b, c);
+        a1 = fma(a1, b, c);
+        a2 = fma(a2, b, c);
+        a3 = fma(a3, b, c);
+        a4 = fma(a4, b, c);
+        a5 = fma(a5, b, c);
+        a6 = fma(a6, b, c);
+        a7 = fma(a7, b, c);
+
+        a0 = fma(a0, b, c);
+        a1 = fma(a1, b, c);
+        a2 = fma(a2, b, c);
+        a3 = fma(a3, b, c);
+        a4 = fma(a4, b, c);
+        a5 = fma(a5, b, c);
+        a6 = fma(a6, b, c);
+        a7 = fma(a7, b, c);
+
+        a0 = fma(a0, b, c);
+        a1 = fma(a1, b, c);
+        a2 = fma(a2, b, c);
+        a3 = fma(a3, b, c);
+        a4 = fma(a4, b, c);
+        a5 = fma(a5, b, c);
+        a6 = fma(a6, b, c);
+        a7 = fma(a7, b, c);
+
+        a0 = fma(a0, b, c);
+        a1 = fma(a1, b, c);
+        a2 = fma(a2, b, c);
+        a3 = fma(a3, b, c);
+        a4 = fma(a4, b, c);
+        a5 = fma(a5, b, c);
+        a6 = fma(a6, b, c);
+        a7 = fma(a7, b, c);
+    }
+
+    // Publish the result so the compiler cannot eliminate the loop.
+    dst[gid] = a0 + a1 + a2 + a3 + a4 + a5 + a6 + a7;
+}

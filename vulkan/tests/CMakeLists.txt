@@ -5,13 +5,14 @@ add_vulkan_shader_target(vulkan_shaders
     OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
                                 
-file(GLOB test_src "ComputeSum/*.cpp" 
+file(GLOB test_src "ComputeSum/*.cpp"
                    "ComputeGaussianBlur/*.cpp"
+                   "Roofline/*.cpp"
                     "*.cpp")
 
 add_executable(vulkan_tests ${test_src})
 
-target_include_directories(vulkan_tests PUBLIC ComputeSum ComputeGaussianBlur
+target_include_directories(vulkan_tests PUBLIC ComputeSum ComputeGaussianBlur Roofline
                                     PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
 add_dependencies(vulkan_tests vulkan_shaders)
