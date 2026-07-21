@@ -12,7 +12,23 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     # glfw ships its own CMakeLists.txt that already defines a `glfw` target,
     # so the submodule is used as-is.
     add_subdirectory(glfw)
-    add_subdirectory(metal_cpp)
+
+    # metal-cpp (submodule: external/metal_cpp) is a header-only library that
+    # ships no CMakeLists.txt upstream, so the `metal_cpp` INTERFACE target is
+    # defined here directly. Headers are included as e.g. "Metal/Metal.hpp",
+    # so the submodule root is the include directory.
+    add_library(metal_cpp INTERFACE)
+    target_include_directories(metal_cpp
+        SYSTEM INTERFACE
+        metal_cpp)
+    # metal-cpp intentionally uses GNU anonymous structs/unions; with -Werror
+    # enabled, Clang/AppleClang needs these specific diagnostics disabled.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(metal_cpp
+            INTERFACE
+            -Wno-gnu-anonymous-struct
+            -Wno-nested-anon-types)
+    endif()
 
     # Dear ImGui (submodule: external/imgui) ships no CMakeLists.txt upstream,
     # so the `imgui` target is defined here directly against its sources.

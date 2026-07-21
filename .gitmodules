@@ -19,3 +19,7 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "external/metal_cpp"]
+	path = external/metal_cpp
+	url = https://github.com/bkaradzic/metal-cpp.git
+	branch = metal-cpp_26
