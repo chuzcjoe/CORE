@@ -18,5 +18,9 @@ endif()
 
 add_subdirectory(io)
 add_subdirectory(threadpool)
-add_subdirectory(tests)
-add_subdirectory(examples)
+
+# do not build tests/examples when this is included as a submodule
+if(CMAKE_SOURCE_DIR STREQUAL CORE_SOURCE_DIR)
+  add_subdirectory(tests)
+  add_subdirectory(examples)
+endif()

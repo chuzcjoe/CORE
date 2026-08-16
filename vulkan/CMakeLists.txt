@@ -23,4 +23,7 @@ else()
         glm)
 endif()
 
-add_subdirectory(tests)
+# do not build tests/examples when this is included as a submodule
+if(CMAKE_SOURCE_DIR STREQUAL CORE_SOURCE_DIR)
+    add_subdirectory(tests)
+endif()

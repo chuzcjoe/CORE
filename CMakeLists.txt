@@ -29,5 +29,5 @@ message(STATUS "Using pipeline cache dir: ${PIPELINE_CACHE_DIR}")
 add_definitions(-DPIPELINE_CACHE_DIR="${PIPELINE_CACHE_DIR}")
 
 # cmake
-include(cmake/example.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/${BUILD_VARIANT}.cmake)
+include("${CORE_SOURCE_DIR}/cmake/example.cmake")
+include("${CORE_SOURCE_DIR}/cmake/${BUILD_VARIANT}.cmake")
