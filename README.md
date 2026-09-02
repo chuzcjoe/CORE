@@ -59,17 +59,17 @@ For Linux setup:
 
 ## 3.2 Host(MacOS) + Target(MacOS)
 ```
-./run.sh -target macos
+./scripts/run.sh -t macos
 ```
 
 ## 3.3 Host(MacOS) + Target(Android arm64-v8a)
 ```
-./run.sh -target arm64-v8a
+./scripts/run.sh -t arm64-v8a
 ``` 
 
 # 4. Examples
 
-There are many examples under the `examples/` folder. If you build with command `./run.sh -target macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
+There are many examples under the `examples/` folder. If you build with command `./scripts/run.sh -t macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
 
 ```
 ./build/macos/examples/gl_light_demo
@@ -77,33 +77,31 @@ There are many examples under the `examples/` folder. If you build with command 
 
 # 5. Unit Test
 
-All unit tests are under `./tests` folder. To run a specific test:
+All unit tests are under the `./tests` folder. To run every test in the module:
 ```
-./run.sh -target macos -test_module tests -test_filter MatTest3.test
+./scripts/run.sh -t macos -r tests
 ```
-
-If **-test_filter** is not specified, all the tests will be run.
 
 # 6. Compute
 ```
-./run.sh [-target macos|arm64-v8a] [-test_module <name>] [-test_filter <Suite.Test>]
+./scripts/run.sh -t [macos|arm64-v8a] -r [vulkan|tests]
 ```
 
 ## 6.1 Vulkan
 For MacOS:
-- ./run.sh -target macos -test_module vulkan -test_filter ComputeSum.test (for macos)
+- `./scripts/run.sh -t macos -r vulkan`
 
 For Android arm64-v8a:
-- ./run.sh -target arm64-v8a -test_module vulkan -test_filter ComputeSum.test (for arm64-v8a)
+- `./scripts/run.sh -t arm64-v8a -r vulkan`
 
 ## 6.2 OpenCL
 **CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
 
 For MacOS: 
-- ./run.sh -target macos -test_module tests -test_filter OpenCL.GaussianBlur
+- `./scripts/run.sh -t macos -r tests`
 
 For Android arm64-v8a:
-- ./run.sh -target arm64-v8a -test_module tests -test_filter OpenCL.GaussianBlur
+- `./scripts/run.sh -t arm64-v8a -r tests`
 
 
 # 7. Graphics
@@ -114,7 +112,7 @@ It only takes about **100** lines of code. See example in `examples/vulkan/DrawT
 
 How to run this demo?
 ```
-./run.sh -target macos
+./scripts/run.sh -t macos
 ./build/macos/examples/vk_triangle_demo
 ```
 
@@ -123,4 +121,3 @@ See example in `examples/metal/`.
 
 ## 7.3 OpenGL
 See example in `examples/opengl/`.
-
