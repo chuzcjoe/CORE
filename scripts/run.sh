@@ -17,7 +17,7 @@ EOF
 
 target=macos
 run_module=""
-enable_trace=0 # Disable tracing by default
+enable_trace=0
 
 device_path="/data/local/tmp/core"
 
@@ -52,19 +52,42 @@ cd build/$target
 
 cmake_options=(-DCMAKE_BUILD_TYPE=Debug
                -DBUILD_VARIANT=core)
-if [ "$enable_trace" = "1" ]; then
-    cmake_options+=(-DENABLE_TRACE=1)
-fi
 
 if [ "$target" = "arm64-v8a" ] ; then
     cmake_options+=(-DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_ROOT/build/cmake/android.toolchain.cmake
                     -DANDROID_ABI=$target
                     -DANDROID_PLATFORM=android-34
-                    -DPIPELINE_CACHE_DIR="$device_path")
+                    -DPIPELINE_CACHE_DIR="$device_path"
+                    -DENABLE_EXTERNAL=1
+                    -DENABLE_VULKAN=1
+                    -DENABLE_OPENCL=1
+                    -DENABLE_MAT=1
+                    -DENABLE_TIMER=1
+                    -DENABLE_TRACE="$enable_trace"
+                    -DENABLE_OPENGL=0
+                    -DENABLE_METAL=0
+                    -DENABLE_EGL=1
+                    -DENABLE_IO=1
+                    -DENABLE_THREADPOOL=1
+                    -DENABLE_TESTS=1
+                    -DENABLE_EXAMPLES=1)
 elif [ "$target" = "macos" ]; then
   project_root="$(cd ../.. && pwd)"
   echo "project root: $project_root"
-  cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root")
+  cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root"
+                  -DENABLE_EXTERNAL=1
+                  -DENABLE_VULKAN=1
+                  -DENABLE_OPENCL=1
+                  -DENABLE_MAT=1
+                  -DENABLE_TIMER=1
+                  -DENABLE_TRACE="$enable_trace"
+                  -DENABLE_OPENGL=1
+                  -DENABLE_METAL=1
+                  -DENABLE_EGL=0
+                  -DENABLE_IO=1
+                  -DENABLE_THREADPOOL=1
+                  -DENABLE_TESTS=1
+                  -DENABLE_EXAMPLES=1)
 fi
 
 cmake "${cmake_options[@]}" ../..

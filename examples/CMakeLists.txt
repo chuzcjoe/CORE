@@ -73,7 +73,7 @@ if(APPLE)
         PUBLIC_INCLUDES ./vulkan/ComputeBarycentricRasterizer
         PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
         DEPENDS vulkan_example_shaders
-        LIBRARIES vulkan stb)
+        LIBRARIES vulkan stb mat)
 
     # 10. depth and stencil testing demo using opengl
     build_example(gl_depth_stencil_demo
