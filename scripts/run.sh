@@ -46,7 +46,7 @@ fi
 rm -rf ./tmp
 mkdir -p ./tmp
 
-rm -rf build/$target
+# rm -rf build/$target
 mkdir -p build/$target
 cd build/$target
 
