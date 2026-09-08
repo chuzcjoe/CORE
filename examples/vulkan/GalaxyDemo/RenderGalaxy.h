@@ -19,6 +19,8 @@ class RenderGalaxy : public core::vulkan::VulkanRender {
                uint32_t star_count);
 
   void Init() override;
+  void DynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
+                     VkExtent2D extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(uint32_t width, uint32_t height);
@@ -70,6 +72,7 @@ class RenderGalaxy : public core::vulkan::VulkanRender {
   core::vulkan::VulkanBuffer instance_buffer_staging_;
   core::vulkan::VulkanBuffer instance_buffer_local_;
   core::vulkan::VulkanBuffer uniform_buffer_;
+  core::vulkan::VulkanRenderingCommands dynamic_rendering_cmds_{};
 
   inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =
       std::chrono::high_resolution_clock::now();

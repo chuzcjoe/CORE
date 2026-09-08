@@ -17,6 +17,11 @@ RenderTriangle::RenderTriangle(core::vulkan::VulkanContext* context,
 void RenderTriangle::Init() {
   core::vulkan::VulkanRender::Init();
 
+  dynamic_rendering_cmds_ = core::vulkan::LoadDynamicRenderingCommands(context_->logical_device);
+  if (!dynamic_rendering_cmds_.vkCmdBeginRendering || !dynamic_rendering_cmds_.vkCmdEndRendering) {
+    throw std::runtime_error("failed to load dynamic rendering commands");
+  }
+
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
@@ -35,6 +40,25 @@ void RenderTriangle::Init() {
 
   vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
   index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+}
+
+void RenderTriangle::DynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
+                                   VkExtent2D extent) {
+  VkRenderingAttachmentInfo attachment_info{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                            .imageView = target_image_view,
+                                            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                            .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+  VkRenderingInfo rendering_info{.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                                 .renderArea = {.offset = {0, 0}, .extent = extent},
+                                 .layerCount = 1,
+                                 .colorAttachmentCount = 1,
+                                 .pColorAttachments = &attachment_info};
+
+  dynamic_rendering_cmds_.vkCmdBeginRendering(command_buffer, &rendering_info);
+  Render(command_buffer, extent);
+  dynamic_rendering_cmds_.vkCmdEndRendering(command_buffer);
 }
 
 void RenderTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {

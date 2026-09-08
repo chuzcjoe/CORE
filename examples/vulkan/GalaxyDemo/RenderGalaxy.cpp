@@ -17,6 +17,11 @@ RenderGalaxy::RenderGalaxy(core::vulkan::VulkanContext* context,
 void RenderGalaxy::Init() {
   core::vulkan::VulkanRender::Init();
 
+  dynamic_rendering_cmds_ = core::vulkan::LoadDynamicRenderingCommands(context_->logical_device);
+  if (!dynamic_rendering_cmds_.vkCmdBeginRendering || !dynamic_rendering_cmds_.vkCmdEndRendering) {
+    throw std::runtime_error("failed to load dynamic rendering commands");
+  }
+
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
@@ -42,6 +47,25 @@ void RenderGalaxy::Init() {
     uniform_data_.aspect = 1.0f;
     memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
   });
+}
+
+void RenderGalaxy::DynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
+                                 VkExtent2D extent) {
+  VkRenderingAttachmentInfo attachment_info{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                            .imageView = target_image_view,
+                                            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                            .clearValue = {{{0.01f, 0.005f, 0.02f, 1.0f}}}};
+  VkRenderingInfo rendering_info{.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                                 .renderArea = {.offset = {0, 0}, .extent = extent},
+                                 .layerCount = 1,
+                                 .colorAttachmentCount = 1,
+                                 .pColorAttachments = &attachment_info};
+
+  dynamic_rendering_cmds_.vkCmdBeginRendering(command_buffer, &rendering_info);
+  Render(command_buffer, extent);
+  dynamic_rendering_cmds_.vkCmdEndRendering(command_buffer);
 }
 
 void RenderGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
