@@ -66,4 +66,4 @@ jobs:
           echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
 
       - name: Build Android arm64-v8a
-        run: ./scripts/run.sh -target arm64-v8a
+        run: ./scripts/run.sh -t arm64-v8a

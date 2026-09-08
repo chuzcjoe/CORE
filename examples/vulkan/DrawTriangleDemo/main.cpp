@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "RenderTriangle.h"
@@ -49,7 +50,10 @@ int main() {
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
-  core::vulkan::VulkanSemaphore render_finished_semaphore(&context);
+  std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
+  for (size_t i = 0; i < swap_chain->swapchain_images.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
   core::vulkan::VulkanFence in_flight_fence(&context);
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
@@ -108,7 +112,7 @@ int main() {
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
-    VkSemaphore signal_semaphores[] = {render_finished_semaphore.semaphore};
+    VkSemaphore signal_semaphores[] = {render_finished_semaphores[image_index]->semaphore};
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
