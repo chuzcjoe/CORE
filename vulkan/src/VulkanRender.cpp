@@ -1,7 +1,5 @@
 #include "VulkanRender.h"
 
-#include "VulkanUtils.h"
-
 namespace core {
 namespace vulkan {
 
@@ -14,40 +12,7 @@ VulkanRender::VulkanRender(VulkanContext* context,
     : VulkanBase(context),
       render_pass_(nullptr),
       dynamic_rendering_info_(dynamic_rendering_info),
-      msaa_samples_(msaa_samples) {
-  LoadDynamicRenderingCommands();
-}
-
-void VulkanRender::BeginDynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
-                                      VkExtent2D extent, VkClearValue clear_value) {
-  VkRenderingAttachmentInfo attachment_info{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-                                            .imageView = target_image_view,
-                                            .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                            .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                            .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                            .clearValue = clear_value};
-  VkRenderingInfo rendering_info{.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-                                 .renderArea = {.offset = {0, 0}, .extent = extent},
-                                 .layerCount = 1,
-                                 .colorAttachmentCount = 1,
-                                 .pColorAttachments = &attachment_info};
-
-  vk_cmd_begin_rendering_(command_buffer, &rendering_info);
-}
-
-void VulkanRender::EndDynamicRender(VkCommandBuffer command_buffer) {
-  vk_cmd_end_rendering_(command_buffer);
-}
-
-void VulkanRender::LoadDynamicRenderingCommands() {
-  const auto commands = core::vulkan::LoadDynamicRenderingCommands(context_->logical_device);
-  vk_cmd_begin_rendering_ = commands.vkCmdBeginRendering;
-  vk_cmd_end_rendering_ = commands.vkCmdEndRendering;
-
-  if (!vk_cmd_begin_rendering_ || !vk_cmd_end_rendering_) {
-    throw std::runtime_error("failed to load dynamic rendering commands");
-  }
-}
+      msaa_samples_(msaa_samples) {}
 
 void VulkanRender::CreatePipeline() {
   // 1. shader stage

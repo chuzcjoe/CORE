@@ -20,7 +20,6 @@ class RenderTriangle : public core::vulkan::VulkanRender {
                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
-  void Render(VkCommandBuffer command_buffer, VkImageView target_image_view, VkExtent2D extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height);

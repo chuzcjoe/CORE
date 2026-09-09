@@ -25,16 +25,8 @@ class VulkanRender : public VulkanBase {
 
  protected:
   void CreatePipeline() override;
-  void BeginDynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
-                          VkExtent2D extent, VkClearValue clear_value);
-  void EndDynamicRender(VkCommandBuffer command_buffer);
-
-  PFN_vkCmdBeginRendering vk_cmd_begin_rendering_ = nullptr;
-  PFN_vkCmdEndRendering vk_cmd_end_rendering_ = nullptr;
 
  private:
-  void LoadDynamicRenderingCommands();
-
   // Derived class can customize these settings
   virtual VkCullModeFlags SetCullMode() const { return VK_CULL_MODE_BACK_BIT; }
   virtual VkFrontFace SetFrontFace() const { return VK_FRONT_FACE_CLOCKWISE; }

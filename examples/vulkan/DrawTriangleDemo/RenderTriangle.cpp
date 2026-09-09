@@ -37,14 +37,6 @@ void RenderTriangle::Init() {
   index_buffer_staging_.CopyToBuffer(index_buffer_local_);
 }
 
-void RenderTriangle::Render(VkCommandBuffer command_buffer, VkImageView target_image_view,
-                            VkExtent2D extent) {
-  const VkClearValue clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-  BeginDynamicRender(command_buffer, target_image_view, extent, clear_value);
-  Render(command_buffer, extent);
-  EndDynamicRender(command_buffer);
-}
-
 void RenderTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   const VkBuffer vertex_buffers[] = {vertex_buffer_local_.buffer};
   const VkDeviceSize offsets[] = {0};
