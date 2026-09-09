@@ -20,8 +20,6 @@ class RenderTriangle : public core::vulkan::VulkanRender {
                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   void Init() override;
-  void DynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
-                     VkExtent2D extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height);
@@ -65,7 +63,6 @@ class RenderTriangle : public core::vulkan::VulkanRender {
 
   // uniform buffer
   core::vulkan::VulkanBuffer uniform_buffer_;
-  core::vulkan::VulkanRenderingCommands dynamic_rendering_cmds_{};
 
   // start time, we need it to calculate the rotation angle
   inline static std::chrono::time_point<std::chrono::high_resolution_clock> start_time_ =

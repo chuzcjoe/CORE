@@ -58,6 +58,13 @@ int main() {
                                                                  kEnableDepthBuffer);
   }
 
+#if __APPLE__
+  const auto dynamic_rendering_cmds =
+      core::vulkan::LoadDynamicRenderingCommands(context.logical_device);
+  const PFN_vkCmdBeginRendering vkCmdBeginRendering = dynamic_rendering_cmds.vkCmdBeginRendering;
+  const PFN_vkCmdEndRendering vkCmdEndRendering = dynamic_rendering_cmds.vkCmdEndRendering;
+#endif
+
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
@@ -93,10 +100,25 @@ int main() {
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    VkRenderingAttachmentInfo attachment_info{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+        .imageView = swap_chain->swapchain_image_views[image_index],
+        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
+    VkRenderingInfo rendering_info{
+        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+        .renderArea = {.offset = {0, 0}, .extent = swap_chain->swapchain_extent},
+        .layerCount = 1,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &attachment_info};
+
+    vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                swap_chain->swapchain_extent.height, camera_view);
-    model->DynamicRender(command_buffer.buffer(), swap_chain->swapchain_image_views[image_index],
-                         swap_chain->swapchain_extent);
+    model->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
+    vkCmdEndRendering(command_buffer.buffer());
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);

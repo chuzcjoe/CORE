@@ -26,8 +26,6 @@ class RenderCubeMap : public core::vulkan::VulkanRender {
 
   void Init() override;
   void Init(const std::string& image_path);
-  void DynamicRender(VkCommandBuffer command_buffer, VkImageView target_image_view,
-                     VkExtent2D extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix);
@@ -61,7 +59,6 @@ class RenderCubeMap : public core::vulkan::VulkanRender {
   core::vulkan::VulkanBuffer uniform_buffer_;
   core::vulkan::VulkanImage cube_map_image_;
   core::vulkan::VulkanSampler sampler_;
-  core::vulkan::VulkanRenderingCommands dynamic_rendering_cmds_{};
 
   // clang-format off
   std::vector<float> skybox_vertices_ = {
