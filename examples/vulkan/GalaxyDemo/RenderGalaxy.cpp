@@ -44,6 +44,14 @@ void RenderGalaxy::Init() {
   });
 }
 
+void RenderGalaxy::Render(VkCommandBuffer command_buffer, VkImageView target_image_view,
+                          VkExtent2D extent) {
+  const VkClearValue clear_value = {{{0.01f, 0.005f, 0.02f, 1.0f}}};
+  BeginDynamicRender(command_buffer, target_image_view, extent, clear_value);
+  Render(command_buffer, extent);
+  EndDynamicRender(command_buffer);
+}
+
 void RenderGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
