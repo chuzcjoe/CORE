@@ -26,6 +26,7 @@ class RenderCubeMap : public core::vulkan::VulkanRender {
 
   void Init() override;
   void Init(const std::string& image_path);
+  void Render(VkCommandBuffer command_buffer, VkImageView target_image_view, VkExtent2D extent);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix);
