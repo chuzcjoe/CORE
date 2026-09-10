@@ -7,6 +7,9 @@ commands from the repository root unless stated otherwise.
 
 CORE uses CMake and requires C++20. Initialize submodules before the first build:
 
+Before installing or changing build dependencies, read `docs/install_dependencies.md` and follow
+the detection, permission, installation, and verification steps for the requested target.
+
 ```bash
 git submodule update --init --recursive
 ```

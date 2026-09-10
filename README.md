@@ -3,121 +3,61 @@
 [![CI](https://github.com/chuzcjoe/core/actions/workflows/macos.yml/badge.svg)](https://github.com/chuzcjoe/core/actions/workflows/macos.yml)
 [![CI](https://github.com/chuzcjoe/core/actions/workflows/android.yml/badge.svg)](https://github.com/chuzcjoe/core/actions/workflows/android.yml)
 
-**CORE** is a cross-platform C++ framework that abstracts away the boilerplate of modern GPU setup, letting developers focus on what matters. It combines high-performance GPU computing with powerful real-time rendering capabilities, offering a clean, unified interface for both compute workloads and graphics pipelines.
+CORE is a C++20 framework for GPU computing and rendering. It simplifies working with
+Vulkan, OpenCL, Metal, and OpenGL, with examples and tests for compute and graphics workloads.
+It provides higher-level abstractions over these GPU APIs to reduce boilerplate and make
+compute and rendering tasks easier to implement.
 
-<p align="center">
-  <img src="./logo/core.gif" alt="CORE" width="60%"/>
-</p>
+## 1. Supported Platforms
 
-# Table of Content
-- [1. Graphics and Compute APIs](#1-graphics-and-compute-apis)
-- [2. Supporting OS](#2-supporting-os)
-- [3. Compile](#3-compile)
-  - [3.1 Prerequisites](#31-prerequisites)
-  - [3.2 Host(MacOS) + Target(MacOS)](#32-hostmacos--targetmacos)
-  - [3.3 Host(MacOS) + Target(Android arm64-v8a)](#33-hostmacos--targetandroid-arm64-v8a)
-- [4. Examples](#4-examples)
-- [5. Unit Test](#5-unit-test)
-- [6. Compute](#6-compute)
-  - [6.1 Vulkan](#61-vulkan)
-  - [6.2 OpenCL](#62-opencl)
-- [7. Graphics](#7-graphics)
-  - [7.1 Vulkan](#71-vulkan)
-  - [7.2 Metal](#72-metal)
-  - [7.3 OpenGL](#73-opengl)
+- **macOS**: build and run locally.
+- **Android (arm64-v8a)**: cross-compile on macOS and run on an Android device.
 
-# 1. Graphics and Compute APIs
+## 2. Install Dependencies
 
-- [x] Vulkan
-- [x] OpenGL
-- [x] Metal
-- [x] OpenCL
-- [ ] OpenGLES (WIP)
+Ask your AI agent to follow [docs/install_dependencies.md](docs/install_dependencies.md).
+For example:
 
-# 2. Supporting OS
+> Read `docs/install_dependencies.md` and prepare this machine to build CORE for macOS
+> (or Android arm64-v8a). Check existing tools first, install missing dependencies,
+> configure the environment, and verify the setup.
 
-- [x] MacOS
-- [x] Android arm64-v8a
-- [ ] Windows (WIP, I am trying to get a windows laptop)
-- [ ] Linux (WIP, I am trying to get a linux laptop)
+## 3. Build and Run
 
-# 3. Compile
+Run all commands from the repository root in the shell configured in step 2.
+Initialize submodules before the first build:
 
-## 3.1 Prerequisites
-
-1. Download Vulkan from: https://vulkan.lunarg.com/. Select your OS and follow the install instructions.
-2. Download Android NDK from: https://github.com/android/ndk/releases?page=1. Select your the NDK version that matches your OS(macos/windows/linux).
-
-After downloading the NDK, set the environment variable **ANDROID_NDK_ROOT** pointing to your NDK directory. For example:
-```
-export ANDROID_NDK_ROOT=<path_to_ndk>/26.1.10909125
+```bash
+git submodule update --init --recursive
 ```
 
-For Linux setup:
-1. Download Vulkan SDK from https://vulkan.lunarg.com/sdk/home#linux
-2. Export Vulkan related environment variables by following this tutorial: https://vulkan.lunarg.com/doc/sdk/1.4.341.1/linux/getting_started.html
+### macOS
 
-## 3.2 Host(MacOS) + Target(MacOS)
-```
+```bash
+# Build libraries, examples, and tests.
 ./scripts/run.sh -t macos
-```
 
-## 3.3 Host(MacOS) + Target(Android arm64-v8a)
-```
-./scripts/run.sh -t arm64-v8a
-``` 
-
-# 4. Examples
-
-There are many examples under the `examples/` folder. If you build with command `./scripts/run.sh -t macos`, all the examples should be built under `./build/macos/examples/` folder. Execute them from the root directory.
-
-```
-./build/macos/examples/gl_light_demo
-```
-
-# 5. Unit Test
-
-All unit tests are under the `./tests` folder. To run every test in the module:
-```
-./scripts/run.sh -t macos -r tests
-```
-
-# 6. Compute
-```
-./scripts/run.sh -t [macos|arm64-v8a] -r [vulkan|tests]
-```
-
-## 6.1 Vulkan
-For MacOS:
-- `./scripts/run.sh -t macos -r vulkan`
-
-For Android arm64-v8a:
-- `./scripts/run.sh -t arm64-v8a -r vulkan`
-
-## 6.2 OpenCL
-**CORE** simplifies the use of OpenCL APIs by removing the need to link against the OpenCL library at build time. Instead, it dynamically loads the OpenCL runtime at execution (when available) and resolves all required function pointers on the fly.
-
-For MacOS: 
-- `./scripts/run.sh -t macos -r tests`
-
-For Android arm64-v8a:
-- `./scripts/run.sh -t arm64-v8a -r tests`
-
-
-# 7. Graphics
-
-## 7.1 Vulkan
-Normally, you need to write ~1000 lines of code in Vulkan to draw a simple triangle. Using **CORE** APIs,
-It only takes about **100** lines of code. See example in `examples/vulkan/DrawTriangleDemo/main.cpp`
-
-How to run this demo?
-```
-./scripts/run.sh -t macos
+# Run the Vulkan triangle example.
 ./build/macos/examples/vk_triangle_demo
+
+# Build and run the general or Vulkan test suite.
+./scripts/run.sh -t macos -r tests
+./scripts/run.sh -t macos -r vulkan
 ```
 
-## 7.2 Metal
-See example in `examples/metal/`.
+More examples are available in [examples/](examples/); macOS executables are built under
+`build/macos/examples/`.
 
-## 7.3 OpenGL
-See example in `examples/opengl/`.
+### Android
+
+```bash
+./scripts/run.sh -t arm64-v8a
+```
+
+To run tests, connect an Android device with USB debugging enabled and authorize it for `adb`:
+
+```bash
+adb devices
+./scripts/run.sh -t arm64-v8a -r tests
+./scripts/run.sh -t arm64-v8a -r vulkan
+```
