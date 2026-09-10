@@ -31,6 +31,18 @@ Initialize submodules before the first build:
 git submodule update --init --recursive
 ```
 
+Before running the demos in `examples/`, sync their required data (such as models and
+textures). These data files are not stored in this repository; they are maintained separately
+in [core_data](https://github.com/chuzcjoe/core_data). Run the sync script from the repository
+root to download the data into the corresponding local directories.
+
+```bash
+./scripts/sync_data.sh
+```
+
+The script requires Git LFS and SSH access to `git@github.com:chuzcjoe/core_data.git`.
+Run it again whenever you need to update the local data.
+
 ### macOS
 
 ```bash
