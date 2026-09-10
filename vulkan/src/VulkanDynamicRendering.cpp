@@ -31,32 +31,36 @@ void VulkanDynamicRendering::BeginDynamicRendering(VkCommandBuffer command_buffe
                                                    VkImageView depth_image_view,
                                                    VkClearValue depth_clear_value) const {
   const bool has_resolve_attachment = resolve_image_view != VK_NULL_HANDLE;
-  VkRenderingAttachmentInfo color_attachment{
-      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-      .imageView = target_image_view,
-      .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-      .resolveMode = has_resolve_attachment ? VK_RESOLVE_MODE_AVERAGE_BIT : VK_RESOLVE_MODE_NONE,
-      .resolveImageView = resolve_image_view,
-      .resolveImageLayout = has_resolve_attachment ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-                                                   : VK_IMAGE_LAYOUT_UNDEFINED,
-      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp =
-          has_resolve_attachment ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE,
-      .clearValue = clear_value};
-  VkRenderingAttachmentInfo depth_attachment{
-      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-      .imageView = depth_image_view,
-      .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-      .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-      .clearValue = depth_clear_value};
-  VkRenderingInfo rendering_info{
-      .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-      .renderArea = {.offset = {0, 0}, .extent = extent},
-      .layerCount = 1,
-      .colorAttachmentCount = 1,
-      .pColorAttachments = &color_attachment,
-      .pDepthAttachment = depth_image_view == VK_NULL_HANDLE ? nullptr : &depth_attachment};
+  VkRenderingAttachmentInfo color_attachment{};
+  color_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  color_attachment.imageView = target_image_view;
+  color_attachment.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+  color_attachment.resolveMode =
+      has_resolve_attachment ? VK_RESOLVE_MODE_AVERAGE_BIT : VK_RESOLVE_MODE_NONE;
+  color_attachment.resolveImageView = resolve_image_view;
+  color_attachment.resolveImageLayout =
+      has_resolve_attachment ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED;
+  color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  color_attachment.storeOp =
+      has_resolve_attachment ? VK_ATTACHMENT_STORE_OP_DONT_CARE : VK_ATTACHMENT_STORE_OP_STORE;
+  color_attachment.clearValue = clear_value;
+
+  VkRenderingAttachmentInfo depth_attachment{};
+  depth_attachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+  depth_attachment.imageView = depth_image_view;
+  depth_attachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+  depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+  depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+  depth_attachment.clearValue = depth_clear_value;
+
+  VkRenderingInfo rendering_info{};
+  rendering_info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+  rendering_info.renderArea = {.offset = {0, 0}, .extent = extent};
+  rendering_info.layerCount = 1;
+  rendering_info.colorAttachmentCount = 1;
+  rendering_info.pColorAttachments = &color_attachment;
+  rendering_info.pDepthAttachment =
+      depth_image_view == VK_NULL_HANDLE ? nullptr : &depth_attachment;
 
   vk_cmd_begin_rendering_(command_buffer, &rendering_info);
 }
