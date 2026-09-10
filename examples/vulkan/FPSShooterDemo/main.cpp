@@ -44,11 +44,11 @@ const float kArenaHalf = 22.0f;     // keep the player inside the arena
 const float kFireCooldown = 0.12f;  // seconds between shots
 
 // Real weapon model + texture ("Cerberus" by Andrew Maximov, see
-// assets/ATTRIBUTION.txt). FPS_ASSET_DIR is baked in at compile time (see
+// examples/data/assets/ATTRIBUTION.txt). FPS_ASSET_DIR is baked in at compile time (see
 // examples/CMakeLists.txt) so the demo runs from any working directory; the
 // fallback keeps it working if launched from repo root.
 #ifndef FPS_ASSET_DIR
-#define FPS_ASSET_DIR "./examples/vulkan/FPSShooterDemo/assets"
+#define FPS_ASSET_DIR "./examples/data/assets"
 #endif
 const std::string kGunModelPath = std::string(FPS_ASSET_DIR) + "/cerberus.obj";
 const std::string kGunTexturePath = std::string(FPS_ASSET_DIR) + "/cerberus_albedo.png";

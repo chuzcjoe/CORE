@@ -176,6 +176,6 @@ if(APPLE)
         PRIVATE_INCLUDES ${CMAKE_CURRENT_BINARY_DIR}/shaders
         DEPENDS vulkan_example_shaders
         LIBRARIES vulkan stb tinyobjloader
-        DEFINITIONS FPS_ASSET_DIR="${CMAKE_CURRENT_LIST_DIR}/vulkan/FPSShooterDemo/assets")
+        DEFINITIONS FPS_ASSET_DIR="${CMAKE_CURRENT_LIST_DIR}/data/assets")
 
 endif()
