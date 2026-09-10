@@ -7,6 +7,8 @@
 #include "RenderModel.h"
 #include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanDynamicRendering.h"
+#include "VulkanImage.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
 #include "VulkanUtils.h"
@@ -15,7 +17,7 @@ void process_inputs(GLFWwindow* window);
 
 const uint32_t kWidth = 1000;
 const uint32_t kHeight = 1000;
-const bool kEnableDepthBuffer = true;
+const VkFormat kDepthFormat = VK_FORMAT_D32_SFLOAT;
 const std::string kModelPath = "./examples/data/viking_room.obj";
 const std::string kTexturePath = "./examples/data/viking_room.png";
 const glm::vec3 kCameraPos = glm::vec3(0.0f, 1.5f, 3.0f);
@@ -48,13 +50,20 @@ int main() {
   }
 
   if (window_surface != VK_NULL_HANDLE) {
-    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface,
-                                                                 kEnableDepthBuffer);
+    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
 
   // multi-sampling
   VkSampleCountFlagBits msaa_samples = core::vulkan::GetMaxUsableSampleCount(&context);
+  const bool multisampling_enabled = msaa_samples != VK_SAMPLE_COUNT_1_BIT;
   printf("Using %d samples for MSAA\n", msaa_samples);
+
+  core::vulkan::VulkanImage depth_image(
+      &context, swap_chain->swapchain_extent.width, swap_chain->swapchain_extent.height,
+      kDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL, 1, msaa_samples);
+  depth_image.TransitionDepthImageLayout(
+      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, kDepthFormat);
 
   // imgui setup
   IMGUI_CHECKVERSION();
@@ -85,19 +94,14 @@ int main() {
                   VkPipelineRenderingCreateInfoKHR{
                       .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
                       .colorAttachmentCount = 1,
-                      .pColorAttachmentFormats = &(swap_chain->swapchain_image_format)}},
+                      .pColorAttachmentFormats = &(swap_chain->swapchain_image_format),
+                      .depthAttachmentFormat = kDepthFormat}},
       .UseDynamicRendering = true,
       .Allocator = VK_NULL_HANDLE};
   ImGui_ImplVulkan_Init(&init_info);
 
-#if __APPLE__
-  const auto dynamic_rendering_cmds =
-      core::vulkan::LoadDynamicRenderingCommands(context.logical_device);
-  const PFN_vkCmdBeginRendering vkCmdBeginRendering = dynamic_rendering_cmds.vkCmdBeginRendering;
-  const PFN_vkCmdEndRendering vkCmdEndRendering = dynamic_rendering_cmds.vkCmdEndRendering;
-#endif
-
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
+  core::vulkan::VulkanDynamicRendering dynamic_rendering(&context);
   core::vulkan::VulkanFence fence(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   // One render-finished (present) semaphore per swapchain image. A binary
@@ -113,9 +117,13 @@ int main() {
   // Dynamic rendering
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
+  dynamic_rendering_info.depth_format = kDepthFormat;
   std::unique_ptr<core::RenderModel> model =
       std::make_unique<core::RenderModel>(&context, dynamic_rendering_info, msaa_samples);
-  model->Init(kTexturePath, kModelPath, swap_chain->swapchain_extent);
+  model->Init(kTexturePath, kModelPath, swap_chain->swapchain_extent,
+              swap_chain->swapchain_image_format);
+  const VkClearValue color_clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+  const VkClearValue depth_clear_value = {.depthStencil = {1.0f, 0}};
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -150,29 +158,17 @@ int main() {
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-    VkRenderingAttachmentInfo attachment_info{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = model->msaa_image.image_view,
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .resolveMode = VK_RESOLVE_MODE_AVERAGE_BIT,
-        .resolveImageView = swap_chain->swapchain_image_views[image_index],
-        .resolveImageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = {{{0.0f, 0.0f, 0.0f, 1.0f}}}};
-    VkRenderingInfo rendering_info{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-        .renderArea = {.offset = {0, 0}, .extent = swap_chain->swapchain_extent},
-        .layerCount = 1,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &attachment_info};
-
-    vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
-    model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
-                               swap_chain->swapchain_extent.height, camera_view, model_rotation);
+    const VkImageView color_image_view = multisampling_enabled
+                                             ? model->msaa_image.image_view
+                                             : swap_chain->swapchain_image_views[image_index];
+    const VkImageView resolve_image_view =
+        multisampling_enabled ? swap_chain->swapchain_image_views[image_index] : VK_NULL_HANDLE;
+    dynamic_rendering.BeginDynamicRendering(
+        command_buffer.buffer(), color_image_view, resolve_image_view, swap_chain->swapchain_extent,
+        color_clear_value, depth_image.image_view, depth_clear_value);
     model->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), command_buffer.buffer());
-    vkCmdEndRendering(command_buffer.buffer());
+    dynamic_rendering.EndDynamicRendering(command_buffer.buffer());
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);

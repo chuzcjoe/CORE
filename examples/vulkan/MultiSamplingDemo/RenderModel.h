@@ -36,7 +36,8 @@ class RenderModel : public core::vulkan::VulkanRender {
               const VkSampleCountFlagBits msaa_samples);
 
   void Init() override;
-  void Init(const std::string& image_path, const std::string& model_path, const VkExtent2D& extent);
+  void Init(const std::string& image_path, const std::string& model_path, const VkExtent2D& extent,
+            VkFormat color_format);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
@@ -60,7 +61,7 @@ class RenderModel : public core::vulkan::VulkanRender {
  private:
   void CreateTextureImage(const std::string& image_path);
 
-  void CreateMSAAImage(const VkExtent2D& extent);
+  void CreateMSAAImage(const VkExtent2D& extent, VkFormat color_format);
 
   struct UniformBufferObject {
     glm::mat4 model;

@@ -11,6 +11,7 @@
 #include "RenderFloor.h"
 #include "VulkanCamera.h"
 #include "VulkanCommandBuffer.h"
+#include "VulkanDynamicRendering.h"
 #include "VulkanImage.h"
 #include "VulkanSwapChain.h"
 #include "VulkanSync.h"
@@ -83,14 +84,8 @@ int main() {
   depth_image.TransitionDepthImageLayout(
       VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, kDepthFormat);
 
-#if __APPLE__
-  const auto dynamic_rendering_cmds =
-      core::vulkan::LoadDynamicRenderingCommands(context.logical_device);
-  const PFN_vkCmdBeginRendering vkCmdBeginRendering = dynamic_rendering_cmds.vkCmdBeginRendering;
-  const PFN_vkCmdEndRendering vkCmdEndRendering = dynamic_rendering_cmds.vkCmdEndRendering;
-#endif
-
   core::vulkan::VulkanCommandBuffer command_buffer(&context);
+  core::vulkan::VulkanDynamicRendering dynamic_rendering(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
   for (size_t i = 0; i < swap_chain->swapchain_images.size(); ++i) {
@@ -106,6 +101,8 @@ int main() {
   auto cube = std::make_unique<core::RenderCube>(&context, dynamic_rendering_info);
   floor->Init();
   cube->Init();
+  const VkClearValue color_clear_value = {{{0.08f, 0.10f, 0.14f, 1.0f}}};
+  const VkClearValue depth_clear_value = {.depthStencil = {1.0f, 0}};
 
   core::PhysicsBody body;
   auto last_time = std::chrono::high_resolution_clock::now();
@@ -153,32 +150,12 @@ int main() {
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
 
-    VkRenderingAttachmentInfo color_attachment{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = swap_chain->swapchain_image_views[image_index],
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue = {{{0.08f, 0.10f, 0.14f, 1.0f}}}};
-    VkRenderingAttachmentInfo depth_attachment{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
-        .imageView = depth_image.image_view,
-        .imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .clearValue = {.depthStencil = {1.0f, 0}}};
-    VkRenderingInfo rendering_info{
-        .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-        .renderArea = {.offset = {0, 0}, .extent = swap_chain->swapchain_extent},
-        .layerCount = 1,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &color_attachment,
-        .pDepthAttachment = &depth_attachment};
-
-    vkCmdBeginRendering(command_buffer.buffer(), &rendering_info);
+    dynamic_rendering.BeginDynamicRendering(
+        command_buffer.buffer(), swap_chain->swapchain_image_views[image_index],
+        swap_chain->swapchain_extent, color_clear_value, depth_image.image_view, depth_clear_value);
     floor->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     cube->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
-    vkCmdEndRendering(command_buffer.buffer());
+    dynamic_rendering.EndDynamicRendering(command_buffer.buffer());
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
