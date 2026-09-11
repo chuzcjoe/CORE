@@ -203,22 +203,18 @@ int main() {
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-    VkSubmitInfo submit_info{};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    VkSemaphore wait_semaphores[] = {image_available_semaphore.semaphore};
-    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    submit_info.waitSemaphoreCount = 1;
-    submit_info.pWaitSemaphores = wait_semaphores;
-    submit_info.pWaitDstStageMask = wait_stages;
-    VkSemaphore signal_semaphores[] = {render_finished_semaphores[image_index]->semaphore};
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = signal_semaphores;
-    command_buffer.Submit(in_flight_fence.fence, submit_info);
+    command_buffer.Submit(
+        in_flight_fence.fence,
+        core::vulkan::SubmitSyncInfo{
+            .wait_semaphores = {image_available_semaphore.semaphore},
+            .wait_stage_masks = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+            .signal_semaphores = {render_finished_semaphores[image_index]->semaphore},
+        });
 
     VkPresentInfoKHR present_info{};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = signal_semaphores;
+    present_info.pWaitSemaphores = &render_finished_semaphores[image_index]->semaphore;
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swapchains;

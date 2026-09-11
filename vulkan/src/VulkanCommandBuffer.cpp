@@ -85,6 +85,16 @@ void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo&& submit_inf
   Submit(fence, submit_info);
 }
 
+void VulkanCommandBuffer::Submit(const VkFence& fence, const SubmitSyncInfo& sync_info) const {
+  VkSubmitInfo submit_info{};
+  submit_info.waitSemaphoreCount = static_cast<uint32_t>(sync_info.wait_semaphores.size());
+  submit_info.pWaitSemaphores = sync_info.wait_semaphores.data();
+  submit_info.pWaitDstStageMask = sync_info.wait_stage_masks.data();
+  submit_info.signalSemaphoreCount = static_cast<uint32_t>(sync_info.signal_semaphores.size());
+  submit_info.pSignalSemaphores = sync_info.signal_semaphores.data();
+  Submit(fence, submit_info);
+}
+
 void VulkanCommandBuffer::Submit(const VkFence& fence) const {
   vkEndCommandBuffer(command_buffer_);
 

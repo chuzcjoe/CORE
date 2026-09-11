@@ -149,25 +149,23 @@ int main() {
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
-    VkSemaphore wait_semaphores[] = {image_available_semaphore.semaphore};
-    VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-    VkSemaphore signal_semaphores[] = {render_finished_semaphores[image_index]->semaphore};
-    command_buffer.Submit(in_flight_fence.fence,
-                          VkSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                                       .waitSemaphoreCount = 1,
-                                       .pWaitSemaphores = wait_semaphores,
-                                       .pWaitDstStageMask = wait_stages,
-                                       .signalSemaphoreCount = 1,
-                                       .pSignalSemaphores = signal_semaphores});
+    command_buffer.Submit(
+        in_flight_fence.fence,
+        core::vulkan::SubmitSyncInfo{
+            .wait_semaphores = {image_available_semaphore.semaphore},
+            .wait_stage_masks = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+            .signal_semaphores = {render_finished_semaphores[image_index]->semaphore},
+        });
     // ========== Command buffer end ==========
     // present
     VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
-    VkPresentInfoKHR present_info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                  .waitSemaphoreCount = 1,
-                                  .pWaitSemaphores = signal_semaphores,
-                                  .swapchainCount = 1,
-                                  .pSwapchains = swapchains,
-                                  .pImageIndices = &image_index};
+    VkPresentInfoKHR present_info{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &render_finished_semaphores[image_index]->semaphore,
+        .swapchainCount = 1,
+        .pSwapchains = swapchains,
+        .pImageIndices = &image_index};
     vkQueuePresentKHR(context.present_queue(), &present_info);
   }
   vkDeviceWaitIdle(context.logical_device);

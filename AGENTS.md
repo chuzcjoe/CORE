@@ -105,3 +105,16 @@ as `APPLE` and `ANDROID`.
 - Do not opportunistically refactor, reformat, or optimize unrelated code.
 - Only clean up temporary code or debug leftovers introduced by the current task; do not clean
   up pre-existing code unrelated to the task.
+
+### Explicit Style
+
+- Write syntax that makes types, conversions, and intent clear without relying on hidden behavior.
+- Use explicit types when `auto` would obscure the type or its signedness, precision, or ownership.
+- Avoid implicit narrowing, signed/unsigned mixing, and implicit user-defined conversions. Use
+  named C++ casts for intentional conversions, and validate ranges before potentially lossy casts.
+- Mark constructors callable with one argument and conversion operators `explicit` unless implicit
+  conversion is an intentional, documented part of the API.
+- Use `nullptr` for null pointers and explicit pointer and numeric comparisons in conditions.
+- Use braces for control-flow bodies and parentheses when mixed operators could obscure grouping.
+- Keep side effects separate when combining them would obscure evaluation order or intent; avoid
+  clever expressions and ambiguous overloads.
