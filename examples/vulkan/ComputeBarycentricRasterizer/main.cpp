@@ -41,8 +41,7 @@ int main() {
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
   barycentric->Run(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
-  VkSubmitInfo submit_info{};
-  command_buffer.Submit(fence.fence, submit_info);
+  command_buffer.Submit(fence.fence, core::vulkan::SubmitSyncInfo{});
 
   vkWaitForFences(context.logical_device, 1, &fence.fence, VK_TRUE, UINT64_MAX);
 

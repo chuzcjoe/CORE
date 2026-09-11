@@ -9,6 +9,12 @@
 namespace core {
 namespace vulkan {
 
+struct SubmitSyncInfo {
+  std::vector<VkSemaphore> wait_semaphores;
+  std::vector<VkPipelineStageFlags> wait_stage_masks;
+  std::vector<VkSemaphore> signal_semaphores;
+};
+
 class VulkanCommandBuffer {
  public:
   explicit VulkanCommandBuffer(VulkanContext* context);
@@ -20,6 +26,7 @@ class VulkanCommandBuffer {
 
   void Submit(const VkFence& fence, VkSubmitInfo& submit_info) const;
   void Submit(const VkFence& fence, VkSubmitInfo&& submit_info) const;
+  void Submit(const VkFence& fence, const SubmitSyncInfo& sync_info) const;
   void Submit(const VkFence& fence) const;
 
   void Reset();
