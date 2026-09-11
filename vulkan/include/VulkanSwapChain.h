@@ -30,6 +30,8 @@ class VulkanSwapChain {
   void TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
                              VkImageLayout new_layout);
 
+  [[nodiscard]] VkResult Present(uint32_t image_index, VkSemaphore wait_semaphore) const;
+
   VkExtent2D swapchain_extent;
   std::vector<VkFramebuffer> swapchain_framebuffers;
   VkSwapchainKHR swapchain = VK_NULL_HANDLE;

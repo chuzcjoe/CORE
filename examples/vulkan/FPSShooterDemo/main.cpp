@@ -251,15 +251,11 @@ int main() {
             .signal_semaphores = {render_finished_semaphores[image_index]->semaphore},
         });
 
-    VkPresentInfoKHR present_info{};
-    present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores = &render_finished_semaphores[image_index]->semaphore;
-    VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
-    present_info.swapchainCount = 1;
-    present_info.pSwapchains = swapchains;
-    present_info.pImageIndices = &image_index;
-    vkQueuePresentKHR(context.present_queue(), &present_info);
+    const VkResult present_result =
+        swap_chain->Present(image_index, render_finished_semaphores[image_index]->semaphore);
+    if (present_result != VK_SUCCESS && present_result != VK_SUBOPTIMAL_KHR) {
+      VK_CHECK(present_result);
+    }
   }
   vkDeviceWaitIdle(context.logical_device);
 

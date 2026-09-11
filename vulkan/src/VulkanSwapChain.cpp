@@ -85,6 +85,18 @@ void VulkanSwapChain::UnInit() {
   }
 }
 
+VkResult VulkanSwapChain::Present(uint32_t image_index, VkSemaphore wait_semaphore) const {
+  const VkPresentInfoKHR present_info{
+      .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = &wait_semaphore,
+      .swapchainCount = 1,
+      .pSwapchains = &swapchain,
+      .pImageIndices = &image_index,
+  };
+  return vkQueuePresentKHR(context_->present_queue(), &present_info);
+}
+
 SwapChainSupportDetails VulkanSwapChain::QuerySwapChainSupport(VkPhysicalDevice device) {
   SwapChainSupportDetails details;
   vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
