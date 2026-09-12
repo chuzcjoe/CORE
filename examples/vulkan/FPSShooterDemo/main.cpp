@@ -82,12 +82,12 @@ int main() {
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
   std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
+
   if (glfwCreateWindowSurface(context.instance, window, nullptr, &window_surface) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface");
-  } else {
-    context.Init(window_surface);
   }
 
+  context.Init(window_surface);
   if (window_surface != VK_NULL_HANDLE) {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
@@ -108,9 +108,6 @@ int main() {
   // re-acquired, so indexing by image avoids the swapchain semaphore-reuse
   // validation error.
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
-  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
-    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
-  }
   core::vulkan::VulkanFence in_flight_fence(&context);
 
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
@@ -121,18 +118,30 @@ int main() {
   auto targets = std::make_unique<core::RenderCubes>(&context, dynamic_rendering_info, 16);
   auto bullets = std::make_unique<core::RenderCubes>(&context, dynamic_rendering_info, 64);
   auto gun = std::make_unique<core::RenderGunModel>(&context, dynamic_rendering_info);
-  floor->Init();
-  targets->Init();
-  bullets->Init();
-  gun->Init(kGunTexturePath, kGunModelPath);
-  const VkClearValue color_clear_value = {{{0.55f, 0.70f, 0.90f, 1.0f}}};
-  const VkClearValue depth_clear_value = {.depthStencil = {1.0f, 0}};
+  const VkClearValue color_clear_value{
+      .color =
+          {
+              .float32 = {0.55f, 0.70f, 0.90f, 1.0f},
+          },
+  };
+  const VkClearValue depth_clear_value{
+      .depthStencil = {.depth = 1.0f, .stencil = 0},
+  };
 
   core::Game game;
 
   float recoil = 0.0f;
   float flash = 0.0f;
   float fire_timer = 0.0f;
+  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
+
+  floor->Init();
+  targets->Init();
+  bullets->Init();
+  gun->Init(kGunTexturePath, kGunModelPath);
+
   auto last_time = std::chrono::high_resolution_clock::now();
 
   while (!glfwWindowShouldClose(window)) {

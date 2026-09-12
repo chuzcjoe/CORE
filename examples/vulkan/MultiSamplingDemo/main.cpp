@@ -43,12 +43,12 @@ int main() {
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
   std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
+
   if (glfwCreateWindowSurface(context.instance, window, nullptr, &window_surface) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface");
-  } else {
-    context.Init(window_surface);
   }
 
+  context.Init(window_surface);
   if (window_surface != VK_NULL_HANDLE) {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
@@ -109,9 +109,6 @@ int main() {
   // re-acquired, so indexing by image avoids the swapchain semaphore-reuse
   // validation error.
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
-  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
-    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
-  }
   core::vulkan::VulkanFence in_flight_fence(&context);
 
   // Dynamic rendering
@@ -120,10 +117,21 @@ int main() {
   dynamic_rendering_info.depth_format = kDepthFormat;
   std::unique_ptr<core::RenderModel> model =
       std::make_unique<core::RenderModel>(&context, dynamic_rendering_info, msaa_samples);
+  const VkClearValue color_clear_value{
+      .color =
+          {
+              .float32 = {0.0f, 0.0f, 0.0f, 1.0f},
+          },
+  };
+  const VkClearValue depth_clear_value{
+      .depthStencil = {.depth = 1.0f, .stencil = 0},
+  };
+  for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
+
   model->Init(kTexturePath, kModelPath, swap_chain->swapchain_extent,
               swap_chain->swapchain_image_format);
-  const VkClearValue color_clear_value = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-  const VkClearValue depth_clear_value = {.depthStencil = {1.0f, 0}};
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -141,16 +149,15 @@ int main() {
 
     ImGui::Render();
 
-    // draw process
     vkWaitForFences(context.logical_device, 1, &(in_flight_fence.fence), VK_TRUE, UINT64_MAX);
     in_flight_fence.Reset();
+
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
     const auto camera_view = camera->GetViewMatrix();
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                swap_chain->swapchain_extent.height, camera_view, model_rotation);
-    // ========== Command buffer begin ==========
     command_buffer.Reset();
     VkCommandBufferBeginInfo begin_info{};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -180,8 +187,6 @@ int main() {
             .wait_stage_masks = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
             .signal_semaphores = {render_finished_semaphores[image_index]->semaphore},
         });
-    // ========== Command buffer end ==========
-    // present
     const VkResult present_result =
         swap_chain->Present(image_index, render_finished_semaphores[image_index]->semaphore);
     if (present_result != VK_SUCCESS && present_result != VK_SUBOPTIMAL_KHR) {

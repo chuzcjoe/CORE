@@ -109,6 +109,12 @@ as `APPLE` and `ANDROID`.
 ### Explicit Style
 
 - Write syntax that makes types, conversions, and intent clear without relying on hidden behavior.
+- Initialize C++ `struct` and `union` aggregates with explicit member names. Use C++20 designated
+  initializers in declaration order, including for nested aggregates; avoid positional member
+  initialization and unexplained nested braces.
+- For `struct` aggregates, initialize all fields or use `{}` followed by explicit member assignments
+  to avoid missing-field initializer warnings. For `union` aggregates, explicitly select only the
+  intended active member (for example, `.color = {.float32 = {...}}` for `VkClearValue`).
 - Use explicit types when `auto` would obscure the type or its signedness, precision, or ownership.
 - Avoid implicit narrowing, signed/unsigned mixing, and implicit user-defined conversions. Use
   named C++ casts for intentional conversions, and validate ranges before potentially lossy casts.

@@ -78,11 +78,12 @@ int main() {
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
   std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
+
   if (glfwCreateWindowSurface(context.instance, window, nullptr, &window_surface) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface");
-  } else {
-    context.Init(window_surface);
   }
+
+  context.Init(window_surface);
   if (window_surface != VK_NULL_HANDLE) {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
@@ -99,9 +100,6 @@ int main() {
   core::vulkan::VulkanDynamicRendering dynamic_rendering(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
-  for (size_t i = 0; i < swap_chain->swapchain_images.size(); ++i) {
-    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
-  }
   core::vulkan::VulkanFence in_flight_fence(&context);
 
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
@@ -111,15 +109,26 @@ int main() {
   auto skybox = std::make_unique<core::RenderSkybox>(&context, dynamic_rendering_info);
   auto ground = std::make_unique<core::RenderGround>(&context, dynamic_rendering_info);
   auto car = std::make_unique<core::RenderCar>(&context, dynamic_rendering_info);
-  skybox->Init(kSkyboxFacePaths);
-  ground->Init(kGroundTexturePath);
-  car->Init();
-  const VkClearValue color_clear_value = {{{0.08f, 0.10f, 0.14f, 1.0f}}};
-  const VkClearValue depth_clear_value = {.depthStencil = {1.0f, 0}};
+  const VkClearValue color_clear_value{
+      .color =
+          {
+              .float32 = {0.08f, 0.10f, 0.14f, 1.0f},
+          },
+  };
+  const VkClearValue depth_clear_value{
+      .depthStencil = {.depth = 1.0f, .stencil = 0},
+  };
 
   // Mutable car state.
   glm::vec3 car_pos(0.0f, 0.0f, 0.0f);
   float car_yaw = 0.0f;  // radians; car's local +Z is its forward direction.
+  for (size_t i = 0; i < swap_chain->swapchain_images.size(); ++i) {
+    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+  }
+
+  skybox->Init(kSkyboxFacePaths);
+  ground->Init(kGroundTexturePath);
+  car->Init();
 
   auto last_time = std::chrono::high_resolution_clock::now();
 
