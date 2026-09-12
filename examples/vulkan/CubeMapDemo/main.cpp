@@ -116,15 +116,11 @@ int main() {
         });
     // ========== Command buffer end ==========
     // present
-    VkSwapchainKHR swapchains[] = {swap_chain->swapchain};
-    VkPresentInfoKHR present_info{
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &render_finished_semaphores[image_index]->semaphore,
-        .swapchainCount = 1,
-        .pSwapchains = swapchains,
-        .pImageIndices = &image_index};
-    vkQueuePresentKHR(context.present_queue(), &present_info);
+    const VkResult present_result =
+        swap_chain->Present(image_index, render_finished_semaphores[image_index]->semaphore);
+    if (present_result != VK_SUCCESS && present_result != VK_SUBOPTIMAL_KHR) {
+      VK_CHECK(present_result);
+    }
   }
   vkDeviceWaitIdle(context.logical_device);
 
