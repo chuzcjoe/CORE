@@ -45,25 +45,5 @@ jobs:
           which glslc || true
           glslc --version || true
 
-      # -------------------------
-      # Android SDK + NDK
-      # -------------------------
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: |
-          sdkmanager "ndk;26.1.10909125"
-
-      - name: Accept licenses
-        run: yes | sdkmanager --licenses
-
-      # -------------------------
-      # Environment setup
-      # -------------------------
-      - name: Set environment variables
-        run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
-
       - name: Build macos
         run: ./scripts/run.sh

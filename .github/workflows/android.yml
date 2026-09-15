@@ -5,6 +5,9 @@ on:
     branches: ["*"]
   pull_request:
 
+env:
+  NDK_VERSION: "27.3.13750724"
+
 jobs:
   build:
     runs-on: macos-latest
@@ -47,23 +50,23 @@ jobs:
 
       # -------------------------
       # Android SDK + NDK
+      # The legacy "tools" package was removed from Google's SDK repository,
+      # so the action's default `packages` no longer resolves. Install only
+      # what the build needs. The action accepts the SDK licenses itself.
       # -------------------------
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install NDK
-        run: |
-          sdkmanager "ndk;26.1.10909125"
-
-      - name: Accept licenses
-        run: yes | sdkmanager --licenses
+        with:
+          packages: "platform-tools ndk;${{ env.NDK_VERSION }}"
 
       # -------------------------
       # Environment setup
+      # scripts/run.sh reads ANDROID_NDK_ROOT.
       # -------------------------
       - name: Set environment variables
         run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/26.1.10909125" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> $GITHUB_ENV
+          echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> $GITHUB_ENV
 
       - name: Build Android arm64-v8a
         run: ./scripts/run.sh -t arm64-v8a
