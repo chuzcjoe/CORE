@@ -19,4 +19,6 @@ else()
         glm)
 endif()
 
-add_subdirectory(tests)
+if(ENABLE_TESTS)
+    add_subdirectory(tests)
+endif()
