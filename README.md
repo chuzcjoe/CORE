@@ -54,9 +54,8 @@ Run it again whenever you need to update the local data.
 # Run the Vulkan triangle example.
 ./build/macos/examples/vk_triangle_demo
 
-# Build and run the general or Vulkan test suite.
+# Build and run all module test suites.
 ./scripts/run.sh -t macos -r tests
-./scripts/run.sh -t macos -r vulkan
 ```
 
 More examples are available in [examples/](examples/); macOS executables are built under
@@ -73,5 +72,4 @@ To run tests, connect an Android device with USB debugging enabled and authorize
 ```bash
 adb devices
 ./scripts/run.sh -t arm64-v8a -r tests
-./scripts/run.sh -t arm64-v8a -r vulkan
 ```

@@ -2,10 +2,8 @@
 #include <android/log.h>
 #include <gtest/gtest.h>
 
-// skip #define STB_IMAGE_IMPLEMENTATION since StbTest.cpp already includes it
+// The stb implementations are provided by the io library.
 #include <stb_image.h>
-
-// skip #define STB_IMAGE_WRITE_IMPLEMENTATION since StbTest.cpp already includes it
 #include <stb_image_write.h>
 
 void write_func(void* context, void* data, int size) { fwrite(data, 1, size, (FILE*)context); }

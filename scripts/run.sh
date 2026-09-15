@@ -4,10 +4,10 @@ set -x
 
 usage() {
   cat <<EOF
-Usage: $0 [-t macos|arm64-v8a] [-r vulkan|tests] [-enable_trace 0|1]
+Usage: $0 [-t macos|arm64-v8a] [-r tests] [-enable_trace 0|1]
 
 Examples:
-  $0 -t macos -r vulkan
+  $0 -t macos -r tests
   $0 -t arm64-v8a -r tests
 
 Environment:
@@ -37,8 +37,8 @@ if [ "$target" != "macos" ] && [ "$target" != "arm64-v8a" ] ; then
     exit 1
 fi
 
-if [ -n "$run_module" ] && [ "$run_module" != "vulkan" ] && [ "$run_module" != "tests" ]; then
-    echo "module must be vulkan or tests"
+if [ -n "$run_module" ] && [ "$run_module" != "tests" ]; then
+    echo "module must be tests"
     exit 1
 fi
 
@@ -95,28 +95,34 @@ make -j10
 
 cd ../..
 
-if [ "$target" = "macos" ]; then
-    if [ "$run_module" = "vulkan" ]; then
-        echo "run vulkan tests"
-        ./build/"$target"/vulkan/tests/vulkan_tests
-    elif [ "$run_module" = "tests" ]; then
-        echo "run tests"
-        ./build/"$target"/tests/core-tests
+if [ "$run_module" = "tests" ]; then
+    if [ "$target" = "macos" ]; then
+        test_suites=(mat threadpool stb bitmap opencl vulkan metal)
+    else
+        test_suites=(mat threadpool stb bitmap opencl vulkan gles ahardwarebuffer)
     fi
-elif [ "$target" = "arm64-v8a" ]; then
-    if [ "$run_module" = "vulkan" ]; then
-        echo "run vulkan tests"
-        adb push ./build/"$target"/vulkan/tests/vulkan_tests "$device_path"
-        adb shell chmod +x "$device_path/vulkan_tests"
-        adb shell "$device_path/vulkan_tests"
-    elif [ "$run_module" = "tests" ]; then
-        echo "run tests"
-        adb shell mkdir -p "$device_path/tests"
-        adb push ./build/"$target"/tests/core-tests "$device_path"
+
+    if [ "$enable_trace" = "1" ]; then
+        test_suites+=(perfetto)
+    fi
+
+    if [ "$target" = "macos" ]; then
+        for test_suite in "${test_suites[@]}"; do
+            echo "run $test_suite tests"
+            ./build/"$target"/tests/"$test_suite"/"${test_suite}_tests"
+        done
+    elif [ "$target" = "arm64-v8a" ]; then
+        adb shell mkdir -p "$device_path/tests" "$device_path/data"
         adb push ./tests/data "$device_path/tests"
         adb push ./tests/shaders "$device_path/tests"
-        adb shell chmod +x "$device_path/core-tests"
-        adb shell "$device_path/core-tests"
+
+        for test_suite in "${test_suites[@]}"; do
+            test_executable="${test_suite}_tests"
+            echo "run $test_suite tests"
+            adb push ./build/"$target"/tests/"$test_suite"/"$test_executable" "$device_path"
+            adb shell chmod +x "$device_path/$test_executable"
+            adb shell "$device_path/$test_executable"
+        done
 
         # Pull results from device.
         adb pull "$device_path/data" ./tmp

@@ -17,7 +17,7 @@ namespace test {
 
 #if defined(__APPLE__)
 const std::string kDataPath =
-    (std::filesystem::path(__FILE__).parent_path() / "data" / "street.jpg").string();
+    (std::filesystem::path(__FILE__).parent_path().parent_path() / "data" / "street.jpg").string();
 const std::string kOutputPath = "./tmp/street_vertical_cross.png";
 #elif defined(__ANDROID__)
 const std::string kDataPath = "/data/local/tmp/core/tests/data/street.jpg";
