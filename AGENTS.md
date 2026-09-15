@@ -24,18 +24,14 @@ The supported build entry point is `scripts/run.sh`:
 export ANDROID_NDK_ROOT=/path/to/android-ndk/26.1.10909125
 ./scripts/run.sh -t arm64-v8a
 
-# Build and run the general test suite on macOS.
+# Build and run all module test suites on macOS.
 ./scripts/run.sh -t macos -r tests
-
-# Build and run the Vulkan test suite on macOS.
-./scripts/run.sh -t macos -r vulkan
 ```
 
 Android test execution uses `adb` and requires a connected device:
 
 ```bash
 ./scripts/run.sh -t arm64-v8a -r tests
-./scripts/run.sh -t arm64-v8a -r vulkan
 ```
 
 Run a macOS example from the repository root so relative asset paths resolve correctly:
@@ -54,10 +50,9 @@ warnings as build failures. CI builds both macOS and Android; Android currently 
 CORE/
 ├── CMakeLists.txt          # C++ standard, build options, and top-level configuration
 ├── cmake/                  # Module selection and CMake helpers for examples and shaders
-├── vulkan/                 # Vulkan abstraction library and Vulkan-specific tests
+├── vulkan/                 # Vulkan abstraction library
 │   ├── include/            # Public Vulkan headers
-│   ├── src/                # Vulkan implementations
-│   └── tests/              # Compute, rendering, and performance tests
+│   └── src/                # Vulkan implementations
 ├── opencl/                 # Dynamically loaded OpenCL abstraction
 ├── metal/                  # Apple Metal abstraction
 ├── opengl/                 # Desktop OpenGL abstraction
@@ -68,7 +63,7 @@ CORE/
 ├── timer/                  # Timing utilities
 ├── trace/                  # Optional Perfetto-backed tracing
 ├── threadpool/             # Header-only thread pool
-├── tests/                  # Cross-module GoogleTest suite
+├── tests/                  # Per-module GoogleTest executables and shared test assets
 ├── examples/               # Vulkan, OpenGL, and Metal demos plus their assets/shaders
 ├── apps/android/           # Native Android application projects
 ├── vulkan_tutorial/        # Standalone Vulkan tutorial programs
@@ -78,9 +73,9 @@ CORE/
 
 The top-level build includes modules through `cmake/core.cmake` and `ENABLE_*` options. Most
 libraries keep public declarations in `<module>/include/` and implementations in
-`<module>/src/`. General integration tests belong in `tests/`; Vulkan-only tests belong in
-`vulkan/tests/`. Platform-specific sources and targets are selected with CMake conditions such
-as `APPLE` and `ANDROID`.
+`<module>/src/`. All tests belong in module-specific subdirectories under `tests/`.
+Platform-specific sources and targets are selected with CMake conditions such as `APPLE` and
+`ANDROID`.
 
 ## Development Guidelines
 

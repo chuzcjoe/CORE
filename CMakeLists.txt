@@ -26,7 +26,7 @@ option(ENABLE_METAL "Build the Metal module" ON)
 option(ENABLE_EGL "Build the EGL module" ON)
 option(ENABLE_IO "Build the IO module" ON)
 option(ENABLE_THREADPOOL "Build the thread pool module" ON)
-option(ENABLE_TESTS "Build core tests" ON)
+option(ENABLE_TESTS "Build module tests" ON)
 option(ENABLE_EXAMPLES "Build examples" ON)
 
 find_package(Vulkan REQUIRED)

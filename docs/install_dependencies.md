@@ -278,7 +278,6 @@ An Android device is not needed to compile. It is needed for the following comma
 ```bash
 adb devices
 ./scripts/run.sh -t arm64-v8a -r tests
-./scripts/run.sh -t arm64-v8a -r vulkan
 ./scripts/build_android_apps.sh -app BasicApp
 ```
 
