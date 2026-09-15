@@ -8,6 +8,8 @@ Vulkan, OpenCL, Metal, and OpenGL, with examples and tests for compute and graph
 It provides higher-level abstractions over these GPU APIs to reduce boilerplate and make
 compute and rendering tasks easier to implement.
 
+To get started with CORE, see [CORE quickstart guide](https://core-computings.github.io/)
+
 ## 1. Supported Platforms
 
 - **macOS**: build and run locally.
