@@ -32,12 +32,12 @@ int main() {
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
   core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
   std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
+
   if (glfwCreateWindowSurface(context.instance, window, nullptr, &window_surface) != VK_SUCCESS) {
     throw std::runtime_error("failed to create window surface");
-  } else {
-    context.Init(window_surface);
   }
 
+  context.Init(window_surface);
   if (window_surface != VK_NULL_HANDLE) {
     swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
   }
@@ -46,17 +46,21 @@ int main() {
   core::vulkan::VulkanDynamicRendering dynamic_rendering(&context);
   core::vulkan::VulkanSemaphore image_available_semaphore(&context);
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
+  core::vulkan::VulkanFence in_flight_fence(&context);
+  core::vulkan::DynamicRenderingInfo dynamic_rendering_info{
+      .color_formats = {swap_chain->swapchain_image_format}};
+  auto galaxy = std::make_unique<core::RenderGalaxy>(&context, dynamic_rendering_info, kStarCount);
+  const VkClearValue clear_value{
+      .color =
+          {
+              .float32 = {0.01f, 0.005f, 0.02f, 1.0f},
+          },
+  };
   for (size_t i = 0; i < swap_chain->swapchain_images.size(); ++i) {
     render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
   }
-  core::vulkan::VulkanFence in_flight_fence(&context);
 
-  core::vulkan::DynamicRenderingInfo dynamic_rendering_info{
-      .color_formats = {swap_chain->swapchain_image_format}};
-
-  auto galaxy = std::make_unique<core::RenderGalaxy>(&context, dynamic_rendering_info, kStarCount);
   galaxy->Init();
-  const VkClearValue clear_value = {{{0.01f, 0.005f, 0.02f, 1.0f}}};
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
