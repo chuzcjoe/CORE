@@ -52,11 +52,8 @@ TEST(ComputeGaussianBlur, test) {
 
   fence.Reset();
 
-  vkResetCommandBuffer(command_buffer.buffer(), 0);
-  VkCommandBufferBeginInfo begin_info{};
-  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-  vkBeginCommandBuffer(command_buffer.buffer(), &begin_info);
+  command_buffer.Reset();
+  command_buffer.BeginCommandBuffer();
   query_pool.Reset(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
   compute_blur->Run(command_buffer.buffer());
