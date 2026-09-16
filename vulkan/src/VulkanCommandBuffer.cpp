@@ -111,6 +111,17 @@ void VulkanCommandBuffer::Submit(const VkFence& fence) const {
 
 void VulkanCommandBuffer::Reset() { VK_CHECK(vkResetCommandBuffer(command_buffer_, 0)); }
 
+void VulkanCommandBuffer::BeginCommandBuffer() {
+  const VkCommandBufferBeginInfo begin_info{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .pInheritanceInfo = nullptr,
+  };
+
+  VK_CHECK(vkBeginCommandBuffer(command_buffer_, &begin_info));
+}
+
 VulkanCommandBuffer VulkanCommandBuffer::BeginOneTimeCommands(VulkanContext* context) {
   VulkanCommandBuffer command_buffer(context);
 

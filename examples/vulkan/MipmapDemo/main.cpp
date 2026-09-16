@@ -138,9 +138,7 @@ int main() {
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                swap_chain->swapchain_extent.height, camera_view, model_rotation);
     command_buffer.Reset();
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    VK_CHECK(vkBeginCommandBuffer(command_buffer.buffer(), &begin_info));
+    command_buffer.BeginCommandBuffer();
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

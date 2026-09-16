@@ -30,6 +30,7 @@ class VulkanCommandBuffer {
   void Submit(const VkFence& fence) const;
 
   void Reset();
+  void BeginCommandBuffer();
   static VulkanCommandBuffer BeginOneTimeCommands(VulkanContext* context);
   void EndOneTimeCommands() const;
 

@@ -93,9 +93,7 @@ int main() {
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                swap_chain->swapchain_extent.height, camera_view);
     command_buffer.Reset();
-    VkCommandBufferBeginInfo begin_info{};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    VK_CHECK(vkBeginCommandBuffer(command_buffer.buffer(), &begin_info));
+    command_buffer.BeginCommandBuffer();
     VkRenderPassBeginInfo renderpass_info{};
     renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderpass_info.renderPass = render_pass.GetRenderPass();
