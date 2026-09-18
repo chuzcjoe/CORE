@@ -92,8 +92,7 @@ int main() {
     const auto camera_view = camera->GetViewMatrix();
     model->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                swap_chain->swapchain_extent.height, camera_view);
-    command_buffer.Reset();
-    command_buffer.BeginCommandBuffer();
+    command_buffer.BeginCommandBufferWithReset();
     VkRenderPassBeginInfo renderpass_info{};
     renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderpass_info.renderPass = render_pass.GetRenderPass();

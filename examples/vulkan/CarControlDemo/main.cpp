@@ -191,8 +191,7 @@ int main() {
     ground->UpdateUniformBuffer(view, project);
     car->UpdateUniformBuffer(model, view, project);
 
-    command_buffer.Reset();
-    command_buffer.BeginCommandBuffer();
+    command_buffer.BeginCommandBufferWithReset();
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

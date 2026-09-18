@@ -151,8 +151,7 @@ int main() {
     floor->UpdateUniformBuffer(view, project);
     cube->UpdateUniformBuffer(body.ModelMatrix(), view, project);
 
-    command_buffer.Reset();
-    command_buffer.BeginCommandBuffer();
+    command_buffer.BeginCommandBufferWithReset();
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);

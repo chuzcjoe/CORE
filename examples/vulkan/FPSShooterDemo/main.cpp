@@ -230,8 +230,7 @@ int main() {
         glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
     gun->UpdateUniformBuffer(project, viewmodel, flash);
 
-    command_buffer.Reset();
-    command_buffer.BeginCommandBuffer();
+    command_buffer.BeginCommandBufferWithReset();
 
     swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
                                       VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
