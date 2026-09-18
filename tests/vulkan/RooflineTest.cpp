@@ -26,8 +26,7 @@ double TimeDispatchMs(core::vulkan::VulkanContext& context,
                       core::vulkan::VulkanFence& fence, core::vulkan::VulkanQueryPool& query_pool,
                       const std::function<void(VkCommandBuffer)>& record) {
   fence.Reset();
-  command_buffer.Reset();
-  command_buffer.BeginCommandBuffer();
+  command_buffer.BeginCommandBufferWithReset();
 
   query_pool.Reset(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);

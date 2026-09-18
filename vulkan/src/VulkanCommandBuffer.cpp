@@ -122,6 +122,11 @@ void VulkanCommandBuffer::BeginCommandBuffer() {
   VK_CHECK(vkBeginCommandBuffer(command_buffer_, &begin_info));
 }
 
+void VulkanCommandBuffer::BeginCommandBufferWithReset() {
+  Reset();
+  BeginCommandBuffer();
+}
+
 VulkanCommandBuffer VulkanCommandBuffer::BeginOneTimeCommands(VulkanContext* context) {
   VulkanCommandBuffer command_buffer(context);
 

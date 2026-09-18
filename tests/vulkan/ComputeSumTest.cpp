@@ -50,8 +50,7 @@ TEST(ComputeSum, test) {
 
   fence.Reset();
 
-  command_buffer.Reset();
-  command_buffer.BeginCommandBuffer();
+  command_buffer.BeginCommandBufferWithReset();
   query_pool.Reset(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
   compute_sum->Run(command_buffer.buffer());

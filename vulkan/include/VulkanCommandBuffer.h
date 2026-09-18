@@ -31,6 +31,7 @@ class VulkanCommandBuffer {
 
   void Reset();
   void BeginCommandBuffer();
+  void BeginCommandBufferWithReset();
   static VulkanCommandBuffer BeginOneTimeCommands(VulkanContext* context);
   void EndOneTimeCommands() const;
 

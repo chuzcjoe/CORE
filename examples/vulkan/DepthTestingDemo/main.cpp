@@ -71,8 +71,7 @@ int main() {
                           image_available_semaphore.semaphore, VK_NULL_HANDLE, &image_index);
     texture->UpdateUniformBuffer(swap_chain->swapchain_extent.width,
                                  swap_chain->swapchain_extent.height);
-    command_buffer.Reset();
-    command_buffer.BeginCommandBuffer();
+    command_buffer.BeginCommandBufferWithReset();
     VkRenderPassBeginInfo renderpass_info{};
     renderpass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderpass_info.renderPass = render_pass.GetRenderPass();
