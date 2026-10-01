@@ -19,6 +19,10 @@ if(ENABLE_VULKAN AND ENABLE_MAT AND ENABLE_TIMER)
   add_subdirectory(vulkan)
 endif()
 
+if(ENABLE_CUDA)
+  add_subdirectory(cuda)
+endif()
+
 if(APPLE AND ENABLE_METAL)
   add_subdirectory(metal)
 endif()
