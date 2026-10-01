@@ -34,6 +34,7 @@ sudo apt-get install -y \
   cmake \
   curl \
   git \
+  git-lfs \
   glslc \
   libgl1-mesa-dev \
   libvulkan-dev \
@@ -48,6 +49,7 @@ sudo apt-get install -y \
   ocl-icd-opencl-dev \
   pkg-config \
   pocl-opencl-icd \
+  rsync \
   vulkan-tools \
   xxd
 
