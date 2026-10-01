@@ -276,19 +276,16 @@ TEST(OpenCL, MapMemGaussianBlur) {
   core::opencl::CLKernel clkernel(&clprogram, "gaussian_blur");
   core::opencl::CLCommandQueue clqueue(&clcontext);
 
-  size_t src_size = height * width * sizeof(float);
+  const size_t src_size = static_cast<size_t>(height) * static_cast<size_t>(width) * sizeof(float);
   core::opencl::CLBuffer input_buffer(&clcontext, src_size,
                                       CL_MEM_READ_ONLY | CL_MEM_ALLOC_HOST_PTR);
   core::opencl::CLBuffer output_buffer(&clcontext, src_size,
                                        CL_MEM_WRITE_ONLY | CL_MEM_ALLOC_HOST_PTR);
 
-  // Map input buffer and copy data
   float* mapped_input = input_buffer.MapBuffer<float>(clqueue.queue, CL_MAP_WRITE);
-  float* mapped_output = output_buffer.MapBuffer<float>(clqueue.queue, CL_MAP_READ);
   core::MatView<float, 1> input_view(mapped_input, height, width);
-  core::MatView<float, 1> output_view(mapped_output, height, width);
 
-  // Prepare input and fill with random data
+  // Prepare input while the OpenCL buffer is mapped to host memory.
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<float> dist(0.0f, 1.0f);
@@ -298,20 +295,9 @@ TEST(OpenCL, MapMemGaussianBlur) {
     }
   }
 
-  // Set kernel arguments
+  // Compute the reference while the mapped input pointer is valid.
   const int radius = 1;      // 3x3 kernel
   const float sigma = 2.0f;  // match GPU and CPU
-  clkernel.SetArgs(input_buffer, output_buffer, width, height, radius, sigma);
-
-  // Enqueue kernel
-  size_t global_work_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
-  clqueue.Submit(clkernel, 2, global_work_size);
-  // unmap buffers
-  input_buffer.UnmapBuffer(clqueue.queue, mapped_input);
-  output_buffer.UnmapBuffer(clqueue.queue, mapped_output);
-  clqueue.Finish();
-
-  // CPU reference implementation (3x3 Gaussian with clamping, same sigma)
   auto gaussian = [](float x, float s) -> float { return std::exp(-(x * x) / (2.0f * s * s)); };
   auto clampi = [](int v, int lo, int hi) -> int { return v < lo ? lo : (v > hi ? hi : v); };
 
@@ -335,6 +321,16 @@ TEST(OpenCL, MapMemGaussianBlur) {
     }
   }
 
+  input_buffer.UnmapBuffer(clqueue.queue, mapped_input);
+  clkernel.SetArgs(input_buffer, output_buffer, width, height, radius, sigma);
+
+  size_t global_work_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
+  clqueue.Submit(clkernel, 2, global_work_size);
+  clqueue.Finish();
+
+  float* mapped_output = output_buffer.MapBuffer<float>(clqueue.queue, CL_MAP_READ);
+  core::MatView<float, 1> output_view(mapped_output, height, width);
+
   // Compare GPU and CPU results
   double max_abs_err = 0.0;
   for (int y = 0; y < height; ++y) {
@@ -345,6 +341,7 @@ TEST(OpenCL, MapMemGaussianBlur) {
       if (e > max_abs_err) max_abs_err = e;
     }
   }
+  output_buffer.UnmapBuffer(clqueue.queue, mapped_output);
   std::cout << "GaussianBlur CPU vs GPU max abs error: " << max_abs_err << std::endl;
   ASSERT_LT(max_abs_err, 1e-3) << "CPU and GPU Gaussian blur differ too much";
 }
