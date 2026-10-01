@@ -14,7 +14,7 @@
 
 #if defined(__ANDROID__)
 #define SHADER_PATH "/data/local/tmp/core/tests/shaders/"
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) || defined(__linux__)
 #define SHADER_PATH "./tests/shaders/"
 #endif
 
@@ -220,7 +220,7 @@ TEST(OpenCL, GaussianBlur) {
   clqueue.ReadBuffer(output_buffer, dst.data(), src_size);
 
   // CPU reference implementation (3x3 Gaussian with clamping, same sigma)
-  auto gaussian = [](float x, float s) -> float { return std::expf(-(x * x) / (2.0f * s * s)); };
+  auto gaussian = [](float x, float s) -> float { return std::exp(-(x * x) / (2.0f * s * s)); };
   auto clampi = [](int v, int lo, int hi) -> int { return v < lo ? lo : (v > hi ? hi : v); };
 
   core::Mat<float, 1> ref(src.rows(), src.cols());
@@ -312,7 +312,7 @@ TEST(OpenCL, MapMemGaussianBlur) {
   clqueue.Finish();
 
   // CPU reference implementation (3x3 Gaussian with clamping, same sigma)
-  auto gaussian = [](float x, float s) -> float { return std::expf(-(x * x) / (2.0f * s * s)); };
+  auto gaussian = [](float x, float s) -> float { return std::exp(-(x * x) / (2.0f * s * s)); };
   auto clampi = [](int v, int lo, int hi) -> int { return v < lo ? lo : (v > hi ? hi : v); };
 
   core::Mat<float, 1> ref(height, width);

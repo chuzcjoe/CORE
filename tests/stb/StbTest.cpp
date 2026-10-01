@@ -9,7 +9,7 @@
 namespace core {
 namespace test {
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__linux__)
 const std::string kDataPath = "./tests/data/core.png";
 const std::string kOutputPath = "./tmp/core_write.png";
 #elif defined(__ANDROID__)
