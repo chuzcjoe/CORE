@@ -62,7 +62,7 @@ if ! command -v slangc >/dev/null || ! slangc -version 2>&1 | grep -q "${SLANG_V
 
   sudo rm -rf "${SLANG_INSTALL_DIR}"
   sudo mkdir -p "${SLANG_INSTALL_DIR}"
-  sudo tar -xzf "${archive_path}" -C "${SLANG_INSTALL_DIR}" --strip-components=1
+  sudo tar -xzf "${archive_path}" -C "${SLANG_INSTALL_DIR}"
   sudo ln -sf "${SLANG_INSTALL_DIR}/bin/slangc" /usr/local/bin/slangc
 fi
 
