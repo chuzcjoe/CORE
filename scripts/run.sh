@@ -4,10 +4,11 @@ set -x
 
 usage() {
   cat <<EOF
-Usage: $0 [-t macos|arm64-v8a] [-r tests] [-enable_trace 0|1]
+Usage: $0 [-t macos|linux|arm64-v8a] [-r tests] [-enable_trace 0|1]
 
 Examples:
   $0 -t macos -r tests
+  $0 -t linux -r tests
   $0 -t arm64-v8a -r tests
 
 Environment:
@@ -18,6 +19,7 @@ EOF
 target=macos
 run_module=""
 enable_trace=0
+enable_metal=0
 
 device_path="/data/local/tmp/core"
 
@@ -32,8 +34,8 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [ "$target" != "macos" ] && [ "$target" != "arm64-v8a" ] ; then
-    echo "target must be macos, arm64-v8a"
+if [ "$target" != "macos" ] && [ "$target" != "linux" ] && [ "$target" != "arm64-v8a" ] ; then
+    echo "target must be macos, linux, or arm64-v8a"
     exit 1
 fi
 
@@ -71,7 +73,10 @@ if [ "$target" = "arm64-v8a" ] ; then
                     -DENABLE_THREADPOOL=1
                     -DENABLE_TESTS=1
                     -DENABLE_EXAMPLES=1)
-elif [ "$target" = "macos" ]; then
+elif [ "$target" = "macos" ] || [ "$target" = "linux" ]; then
+  if [ "$target" = "macos" ]; then
+    enable_metal=1
+  fi
   project_root="$(cd ../.. && pwd)"
   echo "project root: $project_root"
   cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root"
@@ -82,7 +87,7 @@ elif [ "$target" = "macos" ]; then
                   -DENABLE_TIMER=1
                   -DENABLE_TRACE="$enable_trace"
                   -DENABLE_OPENGL=1
-                  -DENABLE_METAL=1
+                  -DENABLE_METAL="$enable_metal"
                   -DENABLE_EGL=0
                   -DENABLE_IO=1
                   -DENABLE_THREADPOOL=1
@@ -98,6 +103,8 @@ cd ../..
 if [ "$run_module" = "tests" ]; then
     if [ "$target" = "macos" ]; then
         test_suites=(mat threadpool stb bitmap opencl vulkan metal)
+    elif [ "$target" = "linux" ]; then
+        test_suites=(mat threadpool stb bitmap opencl vulkan)
     else
         test_suites=(mat threadpool stb bitmap opencl vulkan gles ahardwarebuffer)
     fi
@@ -106,7 +113,7 @@ if [ "$run_module" = "tests" ]; then
         test_suites+=(perfetto)
     fi
 
-    if [ "$target" = "macos" ]; then
+    if [ "$target" = "macos" ] || [ "$target" = "linux" ]; then
         for test_suite in "${test_suites[@]}"; do
             echo "run $test_suite tests"
             ./build/"$target"/tests/"$test_suite"/"${test_suite}_tests"

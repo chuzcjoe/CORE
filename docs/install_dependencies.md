@@ -1,4 +1,4 @@
-# Installing Build Dependencies on macOS
+# Installing Build Dependencies
 
 This document is written for AI coding agents preparing a machine to build CORE. The repository
 supports two build modes:
@@ -18,6 +18,22 @@ Do not modify project source files or CI workflows while installing dependencies
 
 The versions below were observed on an Apple Silicon workstation on 2026-09-10. They are the
 known-good reference versions for this guide.
+
+## Ubuntu Linux
+
+For a native Ubuntu Linux build, install the toolchain, Vulkan/OpenCL runtimes, shader compilers,
+desktop development headers, and repository submodules with one command:
+
+```bash
+./scripts/install_deps_linux.sh
+```
+
+The script uses `sudo`, installs the Slang compiler in `/opt/core-deps`, and supports x86_64 and
+arm64 hosts. After it completes, build with:
+
+```bash
+./scripts/run.sh -t linux
+```
 
 ## 1. Build macOS Locally on macOS
 

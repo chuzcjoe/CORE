@@ -1,12 +1,17 @@
-# only add glfw for macos
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+# GLFW is required by the Vulkan library on desktop platforms.
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_DOCS     OFF CACHE BOOL "" FORCE)
     set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)
     set(GLFW_BUILD_WIN32   OFF CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_COCOA   ON  CACHE BOOL "" FORCE)
-    set(GLFW_BUILD_X11     OFF CACHE BOOL "" FORCE)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        set(GLFW_BUILD_COCOA   ON  CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_X11     OFF CACHE BOOL "" FORCE)
+    else()
+        set(GLFW_BUILD_COCOA   OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_X11     ON  CACHE BOOL "" FORCE)
+    endif()
     set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
 
     # glfw ships its own CMakeLists.txt that already defines a `glfw` target,
