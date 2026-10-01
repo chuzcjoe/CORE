@@ -24,12 +24,12 @@ struct Bitmap {
     InitGetSetFuncs();
   }
 
-  Bitmap(int w, int h, int depth, BitmapFormat fmt, const void* ptr)
+  Bitmap(int w, int h, int component_depth, BitmapFormat fmt, const void* ptr)
       : width(w),
         height(h),
-        depth(depth),
+        depth(component_depth),
         format(fmt),
-        pixel(w * h * depth * GetBytesPerComponent(fmt)) {
+        pixel(w * h * component_depth * GetBytesPerComponent(fmt)) {
     InitGetSetFuncs();
     memcpy(pixel.data(), ptr, pixel.size());
   }
