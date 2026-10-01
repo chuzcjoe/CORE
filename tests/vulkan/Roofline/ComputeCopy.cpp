@@ -1,5 +1,7 @@
 #include "ComputeCopy.h"
 
+#include <cstring>
+
 namespace core {
 namespace vulkan {
 

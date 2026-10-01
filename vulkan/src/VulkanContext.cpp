@@ -1,5 +1,6 @@
 #include "VulkanContext.h"
 
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <unordered_set>

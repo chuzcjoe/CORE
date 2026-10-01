@@ -12,8 +12,8 @@ class CLBuffer {
  public:
   // Create a buffer of given size and flags. Optionally initialize from host_ptr.
   // Throws std::runtime_error on failure.
-  CLBuffer(CLContext* context, const size_t size, const cl_mem_flags flags = CL_MEM_READ_WRITE,
-           void* host_ptr = nullptr);
+  CLBuffer(CLContext* context, const size_t buffer_size,
+           const cl_mem_flags flags = CL_MEM_READ_WRITE, void* host_ptr = nullptr);
   ~CLBuffer();
 
   cl_mem buffer = nullptr;

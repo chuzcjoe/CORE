@@ -1,5 +1,7 @@
 #include "ComputeFma.h"
 
+#include <cstring>
+
 namespace core {
 namespace vulkan {
 

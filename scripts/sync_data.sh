@@ -5,7 +5,7 @@ set -euo pipefail
 # =========================
 # Config
 # =========================
-DATA_REPO_URL="git@github.com:chuzcjoe/core_data.git"
+DATA_REPO_URL="https://github.com/chuzcjoe/core_data.git"
 DATA_REPO_REF="${1:-master}"   # default to master
 
 TARGET_DIR="$(pwd)"

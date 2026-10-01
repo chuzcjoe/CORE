@@ -15,7 +15,7 @@ namespace test {
 // More images can be downloaded from
 // https://commons.wikimedia.org/wiki/Category:360%C2%B0_panoramas_with_equirectangular_projection
 
-#if defined(__APPLE__)
+#if defined(__APPLE__) || defined(__linux__)
 const std::string kDataPath =
     (std::filesystem::path(__FILE__).parent_path().parent_path() / "data" / "street.jpg").string();
 const std::string kOutputPath = "./tmp/street_vertical_cross.png";
