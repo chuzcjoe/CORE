@@ -13,13 +13,13 @@ Examples:
 
 Environment:
   ANDROID_NDK_ROOT required when -t arm64-v8a
+  CUDA Toolkit required when -t linux
 EOF
 }
 
 target=macos
 run_module=""
 enable_trace=0
-enable_metal=0
 
 device_path="/data/local/tmp/core"
 
@@ -73,10 +73,7 @@ if [ "$target" = "arm64-v8a" ] ; then
                     -DENABLE_THREADPOOL=1
                     -DENABLE_TESTS=1
                     -DENABLE_EXAMPLES=1)
-elif [ "$target" = "macos" ] || [ "$target" = "linux" ]; then
-  if [ "$target" = "macos" ]; then
-    enable_metal=1
-  fi
+elif [ "$target" = "macos" ]; then
   project_root="$(cd ../.. && pwd)"
   echo "project root: $project_root"
   cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root"
@@ -87,12 +84,31 @@ elif [ "$target" = "macos" ] || [ "$target" = "linux" ]; then
                   -DENABLE_TIMER=1
                   -DENABLE_TRACE="$enable_trace"
                   -DENABLE_OPENGL=1
-                  -DENABLE_METAL="$enable_metal"
+                  -DENABLE_METAL=1
                   -DENABLE_EGL=0
                   -DENABLE_IO=1
                   -DENABLE_THREADPOOL=1
                   -DENABLE_TESTS=1
-                  -DENABLE_EXAMPLES=1)
+                  -DENABLE_EXAMPLES=1
+                  -DENABLE_CUDA=0)
+elif [ "$target" = "linux" ]; then
+  project_root="$(cd ../.. && pwd)"
+  echo "project root: $project_root"
+  cmake_options+=(-DPIPELINE_CACHE_DIR="$project_root"
+                  -DENABLE_EXTERNAL=1
+                  -DENABLE_VULKAN=1
+                  -DENABLE_OPENCL=1
+                  -DENABLE_MAT=1
+                  -DENABLE_TIMER=1
+                  -DENABLE_TRACE="$enable_trace"
+                  -DENABLE_OPENGL=1
+                  -DENABLE_METAL=0
+                  -DENABLE_EGL=0
+                  -DENABLE_IO=1
+                  -DENABLE_THREADPOOL=1
+                  -DENABLE_TESTS=1
+                  -DENABLE_EXAMPLES=1
+                  -DENABLE_CUDA=1)
 fi
 
 cmake "${cmake_options[@]}" ../..
@@ -104,7 +120,7 @@ if [ "$run_module" = "tests" ]; then
     if [ "$target" = "macos" ]; then
         test_suites=(mat threadpool stb bitmap opencl vulkan metal)
     elif [ "$target" = "linux" ]; then
-        test_suites=(mat threadpool stb bitmap opencl vulkan)
+        test_suites=(mat threadpool stb bitmap opencl vulkan cuda)
     else
         test_suites=(mat threadpool stb bitmap opencl vulkan gles ahardwarebuffer)
     fi

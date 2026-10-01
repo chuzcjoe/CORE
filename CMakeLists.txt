@@ -28,6 +28,11 @@ option(ENABLE_IO "Build the IO module" ON)
 option(ENABLE_THREADPOOL "Build the thread pool module" ON)
 option(ENABLE_TESTS "Build module tests" ON)
 option(ENABLE_EXAMPLES "Build examples" ON)
+option(ENABLE_CUDA "Build CUDA tests" OFF)
+
+if(ENABLE_CUDA)
+  enable_language(CUDA)
+endif()
 
 find_package(Vulkan REQUIRED)
 message(STATUS "Found Vulkan: ${Vulkan_LIBRARY}, ${Vulkan_INCLUDE_DIRS}")
