@@ -9,23 +9,20 @@
 namespace core {
 namespace test {
 
-#if defined(__APPLE__) || defined(__linux__)
-const std::string kDataPath = "./tests/data/core.png";
-const std::string kOutputPath = "./tmp/core_write.png";
-#elif defined(__ANDROID__)
+#if defined(__ANDROID__)
 const std::string kDataPath = "/data/local/tmp/core/tests/data/core.png";
 const std::string kOutputPath = "/data/local/tmp/core/tests/data/core_write.png";
+#elif defined(__APPLE__) || defined(__linux__)
+const std::string kDataPath = "./tests/data/core.png";
+const std::string kOutputPath = "./tmp/core_write.png";
 #endif
 
 TEST(StbTest, test) {
-  int width;
-  int height;
-  int channels;
+  int width = 0;
+  int height = 0;
+  int channels = 0;
   unsigned char* img = stbi_load(kDataPath.c_str(), &width, &height, &channels, 3);
-
-  if (!img) {
-    std::cerr << "Failed to load image: " << kDataPath << std::endl;
-  }
+  ASSERT_NE(img, nullptr) << "Failed to load image: " << kDataPath;
 
   std::cout << "Loaded image " << width << "x" << height << " channels=" << channels << std::endl;
 

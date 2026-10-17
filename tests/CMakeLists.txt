@@ -8,7 +8,6 @@ endif()
 
 if(ENABLE_IO AND ENABLE_MAT)
   add_subdirectory(stb)
-  add_subdirectory(bitmap)
 endif()
 
 if(ENABLE_OPENCL AND ENABLE_MAT)
