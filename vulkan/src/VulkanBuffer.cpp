@@ -104,9 +104,14 @@ void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
   if ((memory_properties_ & staging_buffer_property) != staging_buffer_property) {
     throw std::runtime_error("Buffer is not mappable");
   }
-  void* data;
-  vkMapMemory(context_->logical_device, buffer_memory_, 0, buffer_size_, 0, &data);
-  func(data);
+  void* data = nullptr;
+  VK_CHECK(vkMapMemory(context_->logical_device, buffer_memory_, 0, buffer_size_, 0, &data));
+  try {
+    func(data);
+  } catch (...) {
+    vkUnmapMemory(context_->logical_device, buffer_memory_);
+    throw;
+  }
   vkUnmapMemory(context_->logical_device, buffer_memory_);
 }
 
