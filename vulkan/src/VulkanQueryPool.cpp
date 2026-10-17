@@ -11,7 +11,7 @@ VulkanQueryPool::VulkanQueryPool(VulkanContext* context, const VkQueryType query
   if (query_type_ == VK_QUERY_TYPE_TIMESTAMP) {
     pool_info.queryCount = 2;
   } else {
-    std::runtime_error("Query type is not supported");
+    throw std::runtime_error("Query type is not supported");
   }
   VK_CHECK(vkCreateQueryPool(context_->logical_device, &pool_info, nullptr, &query_pool_));
 }
