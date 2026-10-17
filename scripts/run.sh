@@ -118,11 +118,11 @@ cd ../..
 
 if [ "$run_module" = "tests" ]; then
     if [ "$target" = "macos" ]; then
-        test_suites=(mat threadpool stb bitmap opencl vulkan metal)
+        test_suites=(mat threadpool stb opencl vulkan metal)
     elif [ "$target" = "linux" ]; then
-        test_suites=(mat threadpool stb bitmap opencl vulkan cuda)
+        test_suites=(mat threadpool stb opencl vulkan cuda)
     else
-        test_suites=(mat threadpool stb bitmap opencl vulkan gles ahardwarebuffer)
+        test_suites=(mat threadpool stb opencl vulkan gles ahardwarebuffer)
     fi
 
     if [ "$enable_trace" = "1" ]; then

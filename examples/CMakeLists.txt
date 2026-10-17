@@ -4,6 +4,12 @@ add_vulkan_shader_target(vulkan_example_shaders
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vulkan
     OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
+if(ENABLE_IO AND ENABLE_MAT)
+    build_example(bitmap_demo
+        SOURCES bitmap/main.cpp
+        LIBRARIES io stb)
+endif()
+
 # only add glfw/draw triangle for macos
 if(APPLE)
     # 1. glfw demo
