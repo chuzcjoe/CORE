@@ -1,6 +1,7 @@
 #include "VulkanCommandBuffer.h"
 
 #include <iostream>
+#include <stdexcept>
 
 namespace core {
 namespace vulkan {
@@ -86,6 +87,10 @@ void VulkanCommandBuffer::Submit(const VkFence& fence, VkSubmitInfo&& submit_inf
 }
 
 void VulkanCommandBuffer::Submit(const VkFence& fence, const SubmitSyncInfo& sync_info) const {
+  if (sync_info.wait_semaphores.size() != sync_info.wait_stage_masks.size()) {
+    throw std::invalid_argument("Each wait semaphore requires exactly one stage mask");
+  }
+
   VkSubmitInfo submit_info{};
   submit_info.waitSemaphoreCount = static_cast<uint32_t>(sync_info.wait_semaphores.size());
   submit_info.pWaitSemaphores = sync_info.wait_semaphores.data();
