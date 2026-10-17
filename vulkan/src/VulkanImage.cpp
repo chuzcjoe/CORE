@@ -89,6 +89,10 @@ VulkanImage::~VulkanImage() {
 }
 
 VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
+  if (this == &rhs) {
+    return *this;
+  }
+
   if (context_ && image_view != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->logical_device, image_view, nullptr);
   }

@@ -40,6 +40,10 @@ VulkanBuffer::~VulkanBuffer() {
 }
 
 VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
+  if (this == &rhs) {
+    return *this;
+  }
+
   if (context_ && buffer != VK_NULL_HANDLE) {
     vkDestroyBuffer(context_->logical_device, buffer, nullptr);
   }
