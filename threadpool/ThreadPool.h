@@ -5,6 +5,7 @@
 #include <functional>
 #include <future>
 #include <mutex>
+#include <stdexcept>
 #include <thread>
 #include <tuple>
 #include <type_traits>
@@ -18,6 +19,9 @@ class ThreadPool {
   explicit ThreadPool(std::size_t thread_count = std::thread::hardware_concurrency()
                                                      ? std::thread::hardware_concurrency()
                                                      : 4) {
+    if (thread_count == 0U) {
+      throw std::invalid_argument("ThreadPool: thread count must be greater than zero");
+    }
     workers_.reserve(thread_count);
     for (std::size_t i = 0; i < thread_count; ++i) {
       workers_.emplace_back([this] { worker_loop(); });

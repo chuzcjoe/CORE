@@ -2,9 +2,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <future>
 #include <iostream>
 #include <numeric>
 #include <random>
+#include <stdexcept>
 #include <vector>
 
 #include "ThreadPool.h"
@@ -12,6 +14,18 @@
 
 namespace core {
 namespace test {
+
+TEST(ThreadPoolTest, RejectsZeroWorkers) {
+  EXPECT_THROW(core::ThreadPool(0U), std::invalid_argument);
+}
+
+TEST(ThreadPoolTest, SingleWorkerExecutesTasks) {
+  core::ThreadPool pool(1U);
+  std::future<int> result = pool.submit([] { return 42; });
+
+  EXPECT_EQ(pool.size(), 1U);
+  EXPECT_EQ(result.get(), 42);
+}
 
 // This test case compute the sum of 30000 elements in a vector using 3 tasks
 
