@@ -13,6 +13,9 @@ To get started with CORE, see [CORE quickstart guide](https://core-computings.gi
 For batched Vulkan buffer uploads and partial copies, see the
 [buffer transfer guide](docs/vulkan_buffer_transfers.md).
 
+For saving and reloading device-specific OpenCL programs, see the
+[program binary guide](docs/opencl_program_binaries.md).
+
 ## 1. Supported Platforms
 
 - **macOS**: build and run locally.

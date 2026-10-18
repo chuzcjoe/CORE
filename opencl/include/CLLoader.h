@@ -37,6 +37,8 @@ typedef void* CORE_DYNLIB_HANDLE;
 #define clCreateContext           CL_GET_FUN(core::opencl::__clCreateContext)
 #define clCreateCommandQueue      CL_GET_FUN(core::opencl::__clCreateCommandQueue)
 #define clCreateProgramWithSource CL_GET_FUN(core::opencl::__clCreateProgramWithSource)
+#define clCreateProgramWithBinary CL_GET_FUN(core::opencl::__clCreateProgramWithBinary)
+#define clGetProgramInfo          CL_GET_FUN(core::opencl::__clGetProgramInfo)
 #define clBuildProgram            CL_GET_FUN(core::opencl::__clBuildProgram)
 #define clCreateKernel            CL_GET_FUN(core::opencl::__clCreateKernel)
 #define clCreateBuffer            CL_GET_FUN(core::opencl::__clCreateBuffer)
@@ -89,6 +91,15 @@ typedef cl_command_queue (*PFN_CLCREATECOMMANDQUEUE)(
 typedef cl_program (*PFN_CLCREATEPROGRAMWITHSOURCE)(
     cl_context /* context */, cl_uint /* count */, const char** /* strings */,
     const size_t* /* lengths */, cl_int* /* errcode_ret */) CL_API_SUFFIX__VERSION_1_0;
+
+typedef cl_program (*PFN_CLCREATEPROGRAMWITHBINARY)(
+    cl_context context, cl_uint num_devices, const cl_device_id* device_list,
+    const size_t* lengths, const unsigned char** binaries, cl_int* binary_status,
+    cl_int* errcode_ret) CL_API_SUFFIX__VERSION_1_0;
+
+typedef cl_int (*PFN_CLGETPROGRAMINFO)(
+    cl_program program, cl_program_info param_name, size_t param_value_size,
+    void* param_value, size_t* param_value_size_ret) CL_API_SUFFIX__VERSION_1_0;
 
 typedef cl_int (*PFN_CLBUILDPROGRAM)(cl_program /* program */, cl_uint /* num_devices */,
                                      const cl_device_id* /* device_list */,
@@ -184,6 +195,8 @@ extern PFN_CLGETDEVICEIDS            __clGetDeviceIDs;
 extern PFN_CLCREATECONTEXT           __clCreateContext;
 extern PFN_CLCREATECOMMANDQUEUE      __clCreateCommandQueue;
 extern PFN_CLCREATEPROGRAMWITHSOURCE __clCreateProgramWithSource;
+extern PFN_CLCREATEPROGRAMWITHBINARY __clCreateProgramWithBinary;
+extern PFN_CLGETPROGRAMINFO         __clGetProgramInfo;
 extern PFN_CLBUILDPROGRAM            __clBuildProgram;
 extern PFN_CLCREATEKERNEL            __clCreateKernel;
 extern PFN_CLCREATEBUFFER            __clCreateBuffer;

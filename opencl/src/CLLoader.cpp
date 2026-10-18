@@ -16,6 +16,8 @@ PFN_CLGETDEVICEIDS            __clGetDeviceIDs            = nullptr;
 PFN_CLCREATECONTEXT           __clCreateContext           = nullptr;
 PFN_CLCREATECOMMANDQUEUE      __clCreateCommandQueue      = nullptr;
 PFN_CLCREATEPROGRAMWITHSOURCE __clCreateProgramWithSource = nullptr;
+PFN_CLCREATEPROGRAMWITHBINARY __clCreateProgramWithBinary = nullptr;
+PFN_CLGETPROGRAMINFO         __clGetProgramInfo          = nullptr;
 PFN_CLBUILDPROGRAM            __clBuildProgram            = nullptr;
 PFN_CLCREATEKERNEL            __clCreateKernel            = nullptr;
 PFN_CLCREATEBUFFER            __clCreateBuffer            = nullptr;
@@ -103,6 +105,10 @@ int cl_init() {
   __clCreateContext           = (PFN_CLCREATECONTEXT)CORE_DYNLIB_IMPORT(module, "clCreateContext");
   __clCreateCommandQueue      = (PFN_CLCREATECOMMANDQUEUE)CORE_DYNLIB_IMPORT(module, "clCreateCommandQueue");
   __clCreateProgramWithSource = (PFN_CLCREATEPROGRAMWITHSOURCE)CORE_DYNLIB_IMPORT(module, "clCreateProgramWithSource");
+  __clCreateProgramWithBinary = reinterpret_cast<PFN_CLCREATEPROGRAMWITHBINARY>(
+      CORE_DYNLIB_IMPORT(module, "clCreateProgramWithBinary"));
+  __clGetProgramInfo = reinterpret_cast<PFN_CLGETPROGRAMINFO>(
+      CORE_DYNLIB_IMPORT(module, "clGetProgramInfo"));
   __clBuildProgram            = (PFN_CLBUILDPROGRAM)CORE_DYNLIB_IMPORT(module, "clBuildProgram");
   __clCreateKernel            = (PFN_CLCREATEKERNEL)CORE_DYNLIB_IMPORT(module, "clCreateKernel");
   __clCreateBuffer            = (PFN_CLCREATEBUFFER)CORE_DYNLIB_IMPORT(module, "clCreateBuffer");
