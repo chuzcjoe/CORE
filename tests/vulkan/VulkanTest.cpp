@@ -1,8 +1,11 @@
 #include <gtest/gtest.h>
 
+#include <stdexcept>
+
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
 #include "VulkanImage.h"
+#include "VulkanQueryPool.h"
 #include "VulkanUtils.h"
 
 namespace core {
@@ -39,5 +42,22 @@ TEST(VulkanTest, test) {
 
   EXPECT_TRUE(context.instance != VK_NULL_HANDLE);
 }
+
+TEST(VulkanQueryPoolTest, RejectsUnsupportedQueryTypes) {
+  core::vulkan::VulkanContext context(true, core::vulkan::QueueFamilyType::Compute, VK_NULL_HANDLE);
+  context.Init();
+
+  const VkQueryType unsupported_types[] = {VK_QUERY_TYPE_OCCLUSION,
+                                          VK_QUERY_TYPE_PIPELINE_STATISTICS};
+  for (const VkQueryType query_type : unsupported_types) {
+    try {
+      core::vulkan::VulkanQueryPool query_pool(&context, query_type);
+      FAIL() << "Unsupported query type was accepted: " << query_type;
+    } catch (const std::runtime_error& error) {
+      EXPECT_STREQ(error.what(), "Query type is not supported");
+    }
+  }
+}
+
 }  // namespace test
 }  // namespace core
