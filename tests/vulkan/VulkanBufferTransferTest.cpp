@@ -43,7 +43,7 @@ TEST_F(VulkanBufferTransferTest, UploadsAndReadsBackAnOrderedChain) {
       words[index] = index * 7 + 3;
     }
   });
-  std::array<vulkan::BufferCopy, 2> copies{};
+  std::array<vulkan::BatchBufferCopy, 2> copies{};
   copies[0].source = source.get();
   copies[0].destination = &device;
   copies[1].source = &device;
@@ -74,7 +74,7 @@ TEST_F(VulkanBufferTransferTest, CopiesSourceRemainderWithOffsetsAndPreservesOth
       words[index] = 99;
     }
   });
-  const vulkan::BufferCopy copy{
+  const vulkan::BatchBufferCopy copy{
       .source = source.get(), .destination = destination.get(),
       .source_offset = 4, .destination_offset = 8, .size = VK_WHOLE_SIZE};
   vulkan::VulkanBuffer::CopyBuffers(std::span(&copy, 1));
@@ -90,7 +90,7 @@ TEST_F(VulkanBufferTransferTest, CopiesSourceRemainderWithOffsetsAndPreservesOth
 TEST_F(VulkanBufferTransferTest, AllowsNonOverlappingSelfCopyAndRejectsOverlap) {
   std::unique_ptr<vulkan::VulkanBuffer> buffer = MakeBuffer();
   buffer->MapData([](void* data) { *static_cast<uint32_t*>(data) = 123; });
-  vulkan::BufferCopy copy{
+  vulkan::BatchBufferCopy copy{
       .source = buffer.get(), .destination = buffer.get(),
       .source_offset = 0, .destination_offset = 4, .size = 4};
   vulkan::VulkanBuffer::CopyBuffers(std::span(&copy, 1));
@@ -104,7 +104,7 @@ TEST_F(VulkanBufferTransferTest, RejectsInvalidRangesBeforeExecutingAnyCopy) {
   std::unique_ptr<vulkan::VulkanBuffer> destination = MakeBuffer();
   source->MapData([](void* data) { *static_cast<uint32_t*>(data) = 42; });
   destination->MapData([](void* data) { *static_cast<uint32_t*>(data) = 0; });
-  std::array<vulkan::BufferCopy, 2> copies{};
+  std::array<vulkan::BatchBufferCopy, 2> copies{};
   copies[0].source = source.get();
   copies[0].destination = destination.get();
   copies[1] = copies[0];
@@ -126,7 +126,7 @@ TEST_F(VulkanBufferTransferTest, RejectsMissingBuffersUsageAndDifferentContexts)
   std::unique_ptr<vulkan::VulkanBuffer> source = MakeBuffer();
   std::unique_ptr<vulkan::VulkanBuffer> wrong_usage =
       MakeBuffer(64, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-  vulkan::BufferCopy copy{};
+  vulkan::BatchBufferCopy copy{};
   EXPECT_THROW(vulkan::VulkanBuffer::CopyBuffers(std::span(&copy, 1)), std::invalid_argument);
   copy.source = source.get();
   copy.destination = wrong_usage.get();

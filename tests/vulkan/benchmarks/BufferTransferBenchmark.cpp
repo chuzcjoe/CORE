@@ -11,14 +11,14 @@
 
 namespace {
 
-using core::vulkan::BufferCopy;
+using core::vulkan::BatchBufferCopy;
 using core::vulkan::VulkanBuffer;
 using core::vulkan::VulkanContext;
 
 void Benchmark(VulkanContext& context, size_t count, VkDeviceSize bytes) {
   std::vector<std::unique_ptr<VulkanBuffer>> sources;
   std::vector<std::unique_ptr<VulkanBuffer>> destinations;
-  std::vector<BufferCopy> copies(count);
+  std::vector<BatchBufferCopy> copies(count);
   for (size_t index = 0; index < count; ++index) {
     sources.push_back(std::make_unique<VulkanBuffer>(
         &context, bytes, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,

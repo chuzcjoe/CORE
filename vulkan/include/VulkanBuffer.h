@@ -16,7 +16,7 @@ namespace vulkan {
 class VulkanImage;
 class VulkanBuffer;
 
-struct BufferCopy {
+struct BatchBufferCopy {
   const VulkanBuffer* source = nullptr;
   VulkanBuffer* destination = nullptr;
   VkDeviceSize source_offset = 0;
@@ -40,7 +40,7 @@ class VulkanBuffer {
   // copies the source's remaining bytes. All buffers must share one context.
   // Validate the entire batch before recording; an empty batch is a no-op.
   // Access to the context's queue must be externally synchronized.
-  static void CopyBuffers(std::span<const BufferCopy> copies);
+  static void CopyBuffers(std::span<const BatchBufferCopy> copies);
 
   void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
                    const uint32_t layers = 1);

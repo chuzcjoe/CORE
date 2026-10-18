@@ -12,7 +12,7 @@ Create sources with `VK_BUFFER_USAGE_TRANSFER_SRC_BIT` and destinations with
 Fill or flush source memory before calling the function.
 
 ```cpp
-std::array<core::vulkan::BufferCopy, 2> uploads{};
+std::array<core::vulkan::BatchBufferCopy, 2> uploads{};
 uploads[0].source = &vertex_staging;
 uploads[0].destination = &vertex_device;
 uploads[1].source = &index_staging;

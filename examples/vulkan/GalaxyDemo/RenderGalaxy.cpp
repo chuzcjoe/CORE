@@ -31,7 +31,7 @@ void RenderGalaxy::Init() {
     memcpy(data, instances_.data(), sizeof(InstanceData) * instances_.size());
   });
 
-  std::array<core::vulkan::BufferCopy, 3> uploads{};
+  std::array<core::vulkan::BatchBufferCopy, 3> uploads{};
   uploads[0].source = &quad_buffer_staging_;
   uploads[0].destination = &quad_buffer_local_;
   uploads[1].source = &index_buffer_staging_;
