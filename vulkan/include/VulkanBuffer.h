@@ -4,6 +4,7 @@
 
 #include <functional>
 #include <iostream>
+#include <span>
 
 #include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
@@ -13,6 +14,15 @@ namespace core {
 namespace vulkan {
 
 class VulkanImage;
+class VulkanBuffer;
+
+struct BufferCopy {
+  const VulkanBuffer* source = nullptr;
+  VulkanBuffer* destination = nullptr;
+  VkDeviceSize source_offset = 0;
+  VkDeviceSize destination_offset = 0;
+  VkDeviceSize size = VK_WHOLE_SIZE;
+};
 
 class VulkanBuffer {
  public:
@@ -25,6 +35,12 @@ class VulkanBuffer {
   VulkanBuffer& operator=(VulkanBuffer&&);
 
   void CopyToBuffer(VulkanBuffer& dst_buffer);
+
+  // Execute copies in order with one submission and fence wait. VK_WHOLE_SIZE
+  // copies the source's remaining bytes. All buffers must share one context.
+  // Validate the entire batch before recording; an empty batch is a no-op.
+  // Access to the context's queue must be externally synchronized.
+  static void CopyBuffers(std::span<const BufferCopy> copies);
 
   void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
                    const uint32_t layers = 1);
@@ -40,6 +56,7 @@ class VulkanBuffer {
   VulkanContext* context_ = nullptr;
   VkDeviceSize buffer_size_ = 0;
   VkMemoryPropertyFlags memory_properties_ = 0;
+  VkBufferUsageFlags usage_ = 0;
   VkDeviceMemory buffer_memory_ = VK_NULL_HANDLE;
 };
 

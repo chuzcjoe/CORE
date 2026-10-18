@@ -1,5 +1,6 @@
 #include "RenderGalaxy.h"
 
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <random>
@@ -30,9 +31,14 @@ void RenderGalaxy::Init() {
     memcpy(data, instances_.data(), sizeof(InstanceData) * instances_.size());
   });
 
-  quad_buffer_staging_.CopyToBuffer(quad_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
-  instance_buffer_staging_.CopyToBuffer(instance_buffer_local_);
+  std::array<core::vulkan::BufferCopy, 3> uploads{};
+  uploads[0].source = &quad_buffer_staging_;
+  uploads[0].destination = &quad_buffer_local_;
+  uploads[1].source = &index_buffer_staging_;
+  uploads[1].destination = &index_buffer_local_;
+  uploads[2].source = &instance_buffer_staging_;
+  uploads[2].destination = &instance_buffer_local_;
+  core::vulkan::VulkanBuffer::CopyBuffers(uploads);
 
   uniform_buffer_.MapData([this](void* data) {
     uniform_data_.model = glm::mat4(1.0f);

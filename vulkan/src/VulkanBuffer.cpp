@@ -7,7 +7,7 @@ namespace vulkan {
 
 VulkanBuffer::VulkanBuffer(VulkanContext* context, const VkDeviceSize size,
                            const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties)
-    : context_(context), buffer_size_(size), memory_properties_(properties) {
+    : context_(context), buffer_size_(size), memory_properties_(properties), usage_(usage) {
   VkBufferCreateInfo buffer_info{};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   buffer_info.size = buffer_size_;
@@ -60,6 +60,7 @@ VulkanBuffer& VulkanBuffer::operator=(VulkanBuffer&& rhs) {
 
   buffer_size_ = rhs.buffer_size_;
   memory_properties_ = rhs.memory_properties_;
+  usage_ = rhs.usage_;
 
   return *this;
 }

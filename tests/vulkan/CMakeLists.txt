@@ -28,3 +28,6 @@ target_link_libraries(vulkan_tests
   stb
   timer
   vulkan)
+
+add_executable(vulkan_transfer_benchmark benchmarks/BufferTransferBenchmark.cpp)
+target_link_libraries(vulkan_transfer_benchmark PRIVATE vulkan)
