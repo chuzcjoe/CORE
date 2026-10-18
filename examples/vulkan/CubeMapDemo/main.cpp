@@ -1,6 +1,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
+#include <iostream>
 #include <memory>
 #include <vector>
 
@@ -31,7 +32,11 @@ bool first_mouse = true;
 std::unique_ptr<core::vulkan::VulkanCamera> camera =
     std::make_unique<core::vulkan::VulkanCamera>(kCameraPos, kCameraFront, kCameraUp, kCameraSpeed);
 
-int main() {
+int main(int argc, char* argv[]) {
+  if (argc > 2) {
+    std::cerr << "Usage: " << argv[0] << " [panorama-or-vertical-cross-image]\n";
+    return 1;
+  }
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
   GLFWwindow* window;
   glfwInit();
@@ -80,7 +85,7 @@ int main() {
     render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
   }
 
-  model->Init(kTexturePath);
+  model->Init(argc == 2 ? argv[1] : kTexturePath);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();

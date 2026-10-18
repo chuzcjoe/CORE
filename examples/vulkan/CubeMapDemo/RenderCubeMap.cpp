@@ -149,7 +149,9 @@ void RenderCubeMap::CreateTextureImage(const std::string& image_path) {
   // Load and process cubemap
   core::io::Bitmap in(texture_width, texture_height, kTextureChannels,
                       BitmapFormat::BitmapFormat_Uint8, pixels);
-  core::io::Bitmap out = core::io::ConvertVerticalCrossToCubeMapFaces(in);
+  const bool is_panorama = (in.width % 4 == 0) && (in.width / 2 == in.height);
+  core::io::Bitmap out = is_panorama ? core::io::ConvertBitmapToCubeMapFaces(in)
+                                    : core::io::ConvertVerticalCrossToCubeMapFaces(in);
   printf("Processed cube map image: width=%d, height=%d, channels=%d\n", out.width, out.height,
          out.depth);
 
