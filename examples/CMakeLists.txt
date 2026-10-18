@@ -10,6 +10,12 @@ if(ENABLE_IO AND ENABLE_MAT)
         LIBRARIES io stb)
 endif()
 
+if(ENABLE_OPENCL)
+    build_example(cl_program_binary_demo
+        SOURCES opencl/ProgramBinary/main.cpp
+        LIBRARIES opencl)
+endif()
+
 # only add glfw/draw triangle for macos
 if(APPLE)
     # 1. glfw demo
