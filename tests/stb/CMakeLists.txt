@@ -1,4 +1,4 @@
-add_executable(stb_tests StbTest.cpp)
+add_executable(stb_tests StbTest.cpp MatViewImageTest.cpp)
 
 target_link_libraries(stb_tests
   PRIVATE

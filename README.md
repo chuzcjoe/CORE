@@ -16,6 +16,9 @@ For batched Vulkan buffer uploads and partial copies, see the
 For saving and reloading device-specific OpenCL programs, see the
 [program binary guide](docs/opencl_program_binaries.md).
 
+For padded image rows and zero-copy image regions, see the
+[strided matrix view guide](docs/mat_views.md).
+
 ## 1. Supported Platforms
 
 - **macOS**: build and run locally.

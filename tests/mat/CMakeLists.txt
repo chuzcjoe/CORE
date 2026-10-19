@@ -1,4 +1,4 @@
-add_executable(mat_tests MatTest.cpp)
+add_executable(mat_tests MatTest.cpp MatViewTest.cpp)
 
 target_link_libraries(mat_tests
   PRIVATE

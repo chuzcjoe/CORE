@@ -8,6 +8,9 @@ if(ENABLE_IO AND ENABLE_MAT)
     build_example(bitmap_demo
         SOURCES bitmap/main.cpp
         LIBRARIES io stb)
+    build_example(mat_crop_demo
+        SOURCES mat/ImageCrop/main.cpp
+        LIBRARIES io)
 endif()
 
 if(ENABLE_OPENCL)
