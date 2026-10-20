@@ -2,6 +2,8 @@
 #include <android/log.h>
 #include <gtest/gtest.h>
 
+#include "Status.h"
+
 // The stb implementations are provided by the io library.
 #include <stb_image.h>
 #include <stb_image_write.h>
@@ -25,13 +27,17 @@ TEST(AHardwareBufferTest, test) {
   desc.usage = AHARDWAREBUFFER_USAGE_CPU_READ_OFTEN | AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN;
 
   if (AHardwareBuffer_allocate(&desc, &ahb) != 0) {
-    throw std::runtime_error("Failed to allocate AHardwareBuffer");
+    FAIL() << core::Status(core::ErrorCode::kBackend,
+                           "Failed to allocate AHardwareBuffer")
+                  .message();
   }
 
   void* data = nullptr;
   if (AHardwareBuffer_lock(ahb, AHARDWAREBUFFER_USAGE_CPU_WRITE_OFTEN, -1, nullptr, &data) != 0) {
     AHardwareBuffer_release(ahb);
-    throw std::runtime_error("Failed to lock AHardwareBuffer");
+    FAIL() << core::Status(core::ErrorCode::kBackend,
+                           "Failed to lock AHardwareBuffer")
+                  .message();
   }
 
   uint8_t* pixels = (uint8_t*)data;

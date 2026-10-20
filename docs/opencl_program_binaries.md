@@ -2,34 +2,47 @@
 
 `CLProgram` can export a built program and load it again without requiring the original
 `.cl` file at load time. This supports applications that persist programs between runs or
-package programs for a known device and driver. The existing source-file constructor is
-unchanged.
+package programs for a known device and driver. Source files and binaries are loaded
+through checked `CLProgram::Create` factories.
 
 ## API
 
-Initialize the OpenCL loader with `core::opencl::cl_init()` before constructing a context,
-as with the existing wrappers. Build from source and obtain owned binary bytes:
+`CLContext::Create()` initializes the OpenCL loader. Build from source and obtain
+owned binary bytes in a function returning `core::Status`:
 
 ```cpp
-core::opencl::CLContext context;
-core::opencl::CLProgram source(&context, std::string("tests/shaders/vec_add.cl"));
-const std::vector<unsigned char> binary = source.GetBinary();
-core::opencl::CLProgram loaded(&context, std::span<const unsigned char>(binary));
-core::opencl::CLKernel kernel(&loaded, "vec_add");
+auto context_result = core::opencl::CLContext::Create();
+if (!context_result.ok()) { return context_result.status(); }
+auto context = std::move(*context_result);
+auto source_result = core::opencl::CLProgram::Create(
+    context.get(), std::string("tests/shaders/vec_add.cl"));
+if (!source_result.ok()) { return source_result.status(); }
+auto source = std::move(*source_result);
+auto binary_result = source->GetBinary();
+if (!binary_result.ok()) { return binary_result.status(); }
+auto binary = std::move(*binary_result);
+auto loaded_result = core::opencl::CLProgram::Create(
+    context.get(), std::span<const unsigned char>(binary));
+if (!loaded_result.ok()) { return loaded_result.status(); }
+auto loaded = std::move(*loaded_result);
+auto kernel_result = core::opencl::CLKernel::Create(loaded.get(), "vec_add");
+if (!kernel_result.ok()) { return kernel_result.status(); }
+auto kernel = std::move(*kernel_result);
 ```
 
-The span is consumed during construction and need not remain alive afterward. The exported
+The span is consumed during creation and need not remain alive afterward. The exported
 vector is independent of the source program. The context must outlive its programs, kernels,
 queues and buffers. Export supports the single-device programs created by `CLContext`.
 
-Both constructors accept an optional `const char* build_options`. Keep the default `nullptr`
+Both factories accept an optional `const char* build_options`. Keep the default `nullptr`
 when reloading to reuse the binary's original options. Supplying different options when
 loading a binary has implementation-defined behavior under OpenCL. Binary loading checks both
 the overall OpenCL error and the per-device binary status, then calls `clBuildProgram` to
 produce an executable before kernels can be created. Build failures include the driver log
-when available and release the program. Empty binary input or a missing context/device throws
-`std::invalid_argument`; driver rejection, missing loader symbols and export failures throw
-`std::runtime_error`. There is no implicit source fallback.
+when available and release the program. Empty binary input or a missing context/device returns
+`ErrorCode::kInvalidArgument`; driver rejection, missing loader symbols and export failures return
+`ErrorCode::kBackend`. File failures return `ErrorCode::kIo`. Errors preserve native OpenCL
+codes when available. There is no implicit source fallback. See [checked error handling](error_handling.md).
 
 ## Runnable example
 

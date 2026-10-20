@@ -24,7 +24,7 @@ class VulkanRender : public VulkanBase {
                const VkSampleCountFlagBits msaa_samples = VK_SAMPLE_COUNT_1_BIT);
 
  protected:
-  void CreatePipeline() override;
+  Status CreatePipeline() override;
 
  private:
   // Derived class can customize these settings

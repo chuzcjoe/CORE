@@ -1,3 +1,5 @@
+#include "Status.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "MTLTexture.h"
 
@@ -16,11 +18,15 @@ MTLTexture::~MTLTexture() {
   }
 }
 
-void MTLTexture::LoadTextureFromFile(const char* file_path) {
+Status MTLTexture::LoadTextureFromFile(const char* file_path) {
+  if (context_ == nullptr || context_->device() == nullptr) {
+    return Status(ErrorCode::kInvalidState,
+                  "Texture loading requires a live Metal device");
+  }
   stbi_set_flip_vertically_on_load(true);
   unsigned char* image = stbi_load(file_path, &width_, &height_, &channels_, STBI_rgb_alpha);
   if (!image) {
-    throw std::runtime_error("Failed to load texture image");
+    return Status(ErrorCode::kBackend, "Failed to load texture image");
   }
 
   MTL::TextureDescriptor* texture_descriptor = MTL::TextureDescriptor::alloc()->init();
@@ -28,7 +34,17 @@ void MTLTexture::LoadTextureFromFile(const char* file_path) {
   texture_descriptor->setWidth(width_);
   texture_descriptor->setHeight(height_);
 
-  texture_ = context_->device()->newTexture(texture_descriptor);
+  MTL::Texture* loaded_texture =
+      context_->device()->newTexture(texture_descriptor);
+  if (loaded_texture == nullptr) {
+    texture_descriptor->release();
+    stbi_image_free(image);
+    return Status(ErrorCode::kBackend, "Metal texture allocation failed");
+  }
+  if (texture_ != nullptr) {
+    texture_->release();
+  }
+  texture_ = loaded_texture;
 
   MTL::Region region = MTL::Region(0, 0, 0, width_, height_, 1);
   NS::UInteger bytes_per_row = 4 * width_;
@@ -39,6 +55,8 @@ void MTLTexture::LoadTextureFromFile(const char* file_path) {
   stbi_image_free(image);
   printf("Texture loaded: %s (Width: %d, Height: %d, Channels: %d)\n", file_path, width_, height_,
          channels_);
+
+  return Status();
 }
 
 }  // namespace metal

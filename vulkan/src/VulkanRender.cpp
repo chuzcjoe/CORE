@@ -1,5 +1,8 @@
 #include "VulkanRender.h"
 
+#include <memory>
+#include <type_traits>
+
 namespace core {
 namespace vulkan {
 
@@ -14,10 +17,40 @@ VulkanRender::VulkanRender(VulkanContext* context,
       dynamic_rendering_info_(dynamic_rendering_info),
       msaa_samples_(msaa_samples) {}
 
-void VulkanRender::CreatePipeline() {
+Status VulkanRender::CreatePipeline() {
   // 1. shader stage
-  const auto vertex_shader_module = CreateShaderModule(LoadVertexShader());
-  const auto fragment_shader_module = CreateShaderModule(LoadFragmentShader());
+
+  const auto vertex_shader_module_result =
+      CreateShaderModule(LoadVertexShader());
+  if (!vertex_shader_module_result.ok()) {
+    return vertex_shader_module_result.status();
+  }
+  const auto vertex_shader_module = *vertex_shader_module_result;
+  const auto release_vertex_shader_module = [this](VkShaderModule handle) {
+    if (handle != VK_NULL_HANDLE) {
+      vkDestroyShaderModule(context_->logical_device, handle, nullptr);
+    }
+  };
+  const std::unique_ptr<std::remove_pointer_t<VkShaderModule>,
+                        decltype(release_vertex_shader_module)>
+      vertex_shader_module_owner(vertex_shader_module,
+                                 release_vertex_shader_module);
+
+  const auto fragment_shader_module_result =
+      CreateShaderModule(LoadFragmentShader());
+  if (!fragment_shader_module_result.ok()) {
+    return fragment_shader_module_result.status();
+  }
+  const auto fragment_shader_module = *fragment_shader_module_result;
+  const auto release_fragment_shader_module = [this](VkShaderModule handle) {
+    if (handle != VK_NULL_HANDLE) {
+      vkDestroyShaderModule(context_->logical_device, handle, nullptr);
+    }
+  };
+  const std::unique_ptr<std::remove_pointer_t<VkShaderModule>,
+                        decltype(release_fragment_shader_module)>
+      fragment_shader_module_owner(fragment_shader_module,
+                                   release_fragment_shader_module);
 
   VkPipelineShaderStageCreateInfo vert_info{};
   vert_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -156,11 +189,14 @@ void VulkanRender::CreatePipeline() {
   } else {
     // Dynamic rendering path
     if (dynamic_rendering_info_.color_formats.empty()) {
-      throw std::runtime_error("Dynamic rendering requires at least one color format");
+      return Status(ErrorCode::kBackend,
+                    "Dynamic rendering requires at least one color format");
     }
 
     if (dynamic_rendering_info_.color_formats.size() != 1) {
-      throw std::runtime_error("Dynamic rendering currently supports exactly one color format");
+      return Status(
+          ErrorCode::kBackend,
+          "Dynamic rendering currently supports exactly one color format");
     }
 
     rendering_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
@@ -179,10 +215,17 @@ void VulkanRender::CreatePipeline() {
   pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
   pipeline_info.basePipelineIndex = -1;
 
-  VK_CHECK(vkCreateGraphicsPipelines(context_->logical_device, VK_NULL_HANDLE, 1, &pipeline_info,
-                                     nullptr, &pipeline));
-  vkDestroyShaderModule(context_->logical_device, fragment_shader_module, nullptr);
-  vkDestroyShaderModule(context_->logical_device, vertex_shader_module, nullptr);
+  {
+    const VkResult result =
+        vkCreateGraphicsPipelines(context_->logical_device, VK_NULL_HANDLE, 1,
+                                  &pipeline_info, nullptr, &pipeline);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
+
+  return Status();
 }
 
 }  // namespace vulkan

@@ -3,30 +3,57 @@
 #include <filesystem>
 
 #include "ComputeGaussianBlur.slang.spv.h"
+#include "Status.h"
 #include "VulkanUtils.h"
 
 namespace core {
 namespace vulkan {
 
-ComputeGaussianBlur::ComputeGaussianBlur(VulkanContext* context, VulkanBuffer& src,
-                                         VulkanBuffer& dst, const int width, const int height)
+ComputeGaussianBlur::ComputeGaussianBlur(VulkanContext* context,
+                                         VulkanBuffer& src, VulkanBuffer& dst,
+                                         const int width, const int height)
     : VulkanCompute(context),
       src_buffer(src),
       dst_buffer(dst),
-      uniform_buffer_(context, sizeof(UniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-      uniform_data_{.width = width, .height = height},
-      gaussian_kernel_(context, gaussian_kernel_data_.size() * sizeof(float),
-                       VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
-}
+      uniform_data_{.width = width, .height = height} {}
 
-void ComputeGaussianBlur::Init() {
-  VulkanCompute::Init();
+core::Status ComputeGaussianBlur::Init() {
+  {
+    const core::Status status = uniform_buffer_.Init(
+        context_, sizeof(UniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = gaussian_kernel_.Init(
+        context_, gaussian_kernel_data_.size() * sizeof(float),
+        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  gaussian_kernel_.MapData([this](void* data) {
-    memcpy(data, gaussian_kernel_data_.data(), gaussian_kernel_data_.size() * sizeof(float));
-  });
+  {
+    const core::Status status = VulkanCompute::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = gaussian_kernel_.MapData([this](void* data) {
+      memcpy(data, gaussian_kernel_data_.data(),
+             gaussian_kernel_data_.size() * sizeof(float));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateStorageBufferDescriptorSet(1, src_buffer);
@@ -37,14 +64,27 @@ void ComputeGaussianBlur::Init() {
 
   // Save cache if file doesn't exist
   if (!std::filesystem::exists(GetPipelineCache())) {
-    SavePipelineCache(GetPipelineCache());
+    {
+      const core::Status status = SavePipelineCache(GetPipelineCache());
+      if (!status.ok()) {
+        return status;
+      }
+    }
   }
+
+  return core::Status();
 }
 
-void ComputeGaussianBlur::Run(const VkCommandBuffer command_buffer) {
+core::Status ComputeGaussianBlur::Run(const VkCommandBuffer command_buffer) {
   // Copy uniform data to the uniform buffer
-  uniform_buffer_.MapData(
-      [this](void* data) { memcpy(data, &uniform_data_, sizeof(UniformData)); });
+  {
+    const core::Status status = uniform_buffer_.MapData([this](void* data) {
+      memcpy(data, &uniform_data_, sizeof(UniformData));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // Record commands to dispatch the compute shader
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
@@ -54,6 +94,8 @@ void ComputeGaussianBlur::Run(const VkCommandBuffer command_buffer) {
   const uint32_t group_x = (uniform_data_.width + 15) / 16;
   const uint32_t group_y = (uniform_data_.height + 15) / 16;
   vkCmdDispatch(command_buffer, group_x, group_y, 1);
+
+  return core::Status();
 }
 
 std::vector<BindingInfo> ComputeGaussianBlur::GetBindingInfo() const {

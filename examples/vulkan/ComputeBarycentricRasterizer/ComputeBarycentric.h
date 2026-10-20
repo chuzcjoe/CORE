@@ -14,8 +14,8 @@ class ComputeBarycentric : public core::vulkan::VulkanCompute {
  public:
   ComputeBarycentric(core::vulkan::VulkanContext* context, const int width, const int height);
 
-  void Init() override;
-  void Run(const VkCommandBuffer command_buffer);
+  core::Status Init() override;
+  core::Status Run(const VkCommandBuffer command_buffer);
 
   core::vulkan::VulkanBuffer rasterized;
 
@@ -24,7 +24,7 @@ class ComputeBarycentric : public core::vulkan::VulkanCompute {
   const std::vector<uint32_t>& LoadShaderCode() const override;
 
  private:
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   core::vulkan::VulkanBuffer uniform_buffer_;
   struct UniformData {

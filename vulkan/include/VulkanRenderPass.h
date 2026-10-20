@@ -1,7 +1,9 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
+#include "Status.h"
 #include "VulkanBase.h"
 #include "VulkanBuffer.h"
 #include "VulkanContext.h"
@@ -13,8 +15,17 @@ namespace vulkan {
 
 class VulkanRenderPass {
  public:
-  VulkanRenderPass(VulkanContext* context, VkFormat color_attachment_format = VK_FORMAT_UNDEFINED,
-                   const bool enable_depth_buffer = false);
+  VulkanRenderPass(const VulkanRenderPass&) = delete;
+  VulkanRenderPass& operator=(const VulkanRenderPass&) = delete;
+  VulkanRenderPass() = default;
+
+  static Result<std::unique_ptr<VulkanRenderPass>> Create(
+      VulkanContext* context,
+      VkFormat color_attachment_format = VK_FORMAT_UNDEFINED,
+      const bool enable_depth_buffer = false);
+  Status Init(VulkanContext* context,
+              VkFormat color_attachment_format = VK_FORMAT_UNDEFINED,
+              const bool enable_depth_buffer = false);
   ~VulkanRenderPass();
 
   VkRenderPass GetRenderPass() const { return render_pass_; }
@@ -22,14 +33,18 @@ class VulkanRenderPass {
   VkFormat depth_format = VK_FORMAT_UNDEFINED;
 
  private:
-  VkFormat FindDepthFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling,
-                           VkFormatFeatureFlags features) const;
+  Result<VkFormat> FindDepthFormat(const std::vector<VkFormat>& candidates,
+                                   VkImageTiling tiling,
+                                   VkFormatFeatureFlags features) const;
 
   VulkanContext* context_ = nullptr;
   VkRenderPass render_pass_ = VK_NULL_HANDLE;
 
   bool has_color_attachment_ = false;
   bool has_depth_attachment_ = false;
+
+ private:
+  bool initialized_ = false;
 };
 
 }  // namespace vulkan

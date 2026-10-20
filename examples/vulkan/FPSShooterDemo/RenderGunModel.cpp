@@ -1,7 +1,8 @@
 #include "RenderGunModel.h"
 
 #include <cstring>
-#include <stdexcept>
+
+#include "Status.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
@@ -11,37 +12,107 @@
 
 namespace core {
 
-RenderGunModel::RenderGunModel(core::vulkan::VulkanContext* context,
-                               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info), sampler_(context) {}
+RenderGunModel::RenderGunModel(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {}
 
-void RenderGunModel::Init(const std::string& image_path, const std::string& model_path) {
-  CreateTextureImage(image_path);
-  LoadModel(model_path);
+core::Status RenderGunModel::Init(const std::string& image_path,
+                                  const std::string& model_path) {
+  {
+    const core::Status status = CreateTextureImage(image_path);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = LoadModel(model_path);
+    if (!status.ok()) {
+      return status;
+    }
+  }
   AppendCrosshair();
-  CreateBuffers();
-  Init();
+  {
+    const core::Status status = CreateBuffers();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderGunModel::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderGunModel::Init() {
+  {
+    const core::Status status = sampler_.Init(context_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateCombinedImageSamplerDescriptorSet(1, texture_image_.image_view, sampler_.sampler);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  vertex_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-  });
-  index_buffer_staging_.MapData(
-      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
-  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+  {
+    const core::Status status =
+        vertex_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, vertices_.data(),
+                 sizeof(vertices_[0]) * vertices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([](void* data) {
-    UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f), 0.0f, 0.0f, 0.0f, 0.0f};
-    memcpy(data, &init, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([](void* data) {
+      UniformBufferObject init{
+          glm::mat4(1.0f), glm::mat4(1.0f), 0.0f, 0.0f, 0.0f, 0.0f};
+      memcpy(data, &init, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderGunModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -70,13 +141,21 @@ void RenderGunModel::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
-void RenderGunModel::UpdateUniformBuffer(const glm::mat4& project, const glm::mat4& viewmodel,
-                                         float flash) {
-  uniform_buffer_.MapData([&](void* data) {
-    UniformBufferObject ubo{project, viewmodel, flash, 0.0f, 0.0f, 0.0f};
-    ubo.project[1][1] *= -1;  // Vulkan Y-flip
-    memcpy(data, &ubo, sizeof(UniformBufferObject));
-  });
+core::Status RenderGunModel::UpdateUniformBuffer(const glm::mat4& project,
+                                                 const glm::mat4& viewmodel,
+                                                 float flash) {
+  {
+    const core::Status status = uniform_buffer_.MapData([&](void* data) {
+      UniformBufferObject ubo{project, viewmodel, flash, 0.0f, 0.0f, 0.0f};
+      ubo.project[1][1] *= -1;  // Vulkan Y-flip
+      memcpy(data, &ubo, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 std::vector<core::vulkan::BindingInfo> RenderGunModel::GetBindingInfo() const {
@@ -116,7 +195,7 @@ std::vector<VkVertexInputAttributeDescription> RenderGunModel::GetVertexAttribut
   return a;
 }
 
-void RenderGunModel::LoadModel(const std::string& model_path) {
+core::Status RenderGunModel::LoadModel(const std::string& model_path) {
   tinyobj::attrib_t attrib;
   std::vector<tinyobj::shape_t> shapes;
   std::vector<tinyobj::material_t> materials;
@@ -124,7 +203,8 @@ void RenderGunModel::LoadModel(const std::string& model_path) {
   std::string err;
 
   if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, model_path.c_str())) {
-    throw std::runtime_error("failed to load gun model: " + warn + err);
+    return core::Status(core::ErrorCode::kBackend,
+                        "failed to load gun model: " + warn + err);
   }
 
   for (const auto& shape : shapes) {
@@ -152,6 +232,8 @@ void RenderGunModel::LoadModel(const std::string& model_path) {
       vertices_.push_back(vertex);
     }
   }
+
+  return core::Status();
 }
 
 void RenderGunModel::AppendCrosshair() {
@@ -175,56 +257,128 @@ void RenderGunModel::AppendCrosshair() {
   add_quad(0.0018f, 0.012f);  // vertical bar
 }
 
-void RenderGunModel::CreateTextureImage(const std::string& image_path) {
+core::Status RenderGunModel::CreateTextureImage(const std::string& image_path) {
   int texture_width, texture_height, texture_channels;
   stbi_uc* pixels = stbi_load(image_path.c_str(), &texture_width, &texture_height,
                               &texture_channels, STBI_rgb_alpha);
   if (!pixels) {
-    throw std::runtime_error("failed to load gun texture: " + image_path);
+    return core::Status(core::ErrorCode::kBackend,
+                        "failed to load gun texture: " + image_path);
   }
   const VkDeviceSize image_size = static_cast<VkDeviceSize>(texture_width) * texture_height * 4;
 
-  core::vulkan::VulkanBuffer staging_buffer(
+  auto staging_buffer_result = core::vulkan::VulkanBuffer::Create(
       context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  staging_buffer.MapData(
-      [&pixels, image_size](void* data) { memcpy(data, pixels, static_cast<size_t>(image_size)); });
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  if (!staging_buffer_result.ok()) {
+    return staging_buffer_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanBuffer> staging_buffer_owner =
+      std::move(*staging_buffer_result);
+  core::vulkan::VulkanBuffer& staging_buffer = *staging_buffer_owner;
+  {
+    const core::Status status =
+        staging_buffer.MapData([&pixels, image_size](void* data) {
+          memcpy(data, pixels, static_cast<size_t>(image_size));
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
   stbi_image_free(pixels);
 
-  texture_image_ =
-      core::vulkan::VulkanImage(context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
-                                VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-                                VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  texture_image_.TransitionImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
-  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
-                             static_cast<uint32_t>(texture_height));
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                       VK_FORMAT_R8G8B8A8_SRGB);
+  {
+    const core::Status status = texture_image_.Init(
+        context_, texture_width, texture_height, VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = texture_image_.TransitionImageLayout(
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_FORMAT_R8G8B8A8_SRGB);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = staging_buffer.CopyToImage(
+        texture_image_, static_cast<uint32_t>(texture_width),
+        static_cast<uint32_t>(texture_height));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = texture_image_.TransitionImageLayout(
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderGunModel::CreateBuffers() {
+core::Status RenderGunModel::CreateBuffers() {
   const VkDeviceSize v_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize i_size = sizeof(indices_[0]) * indices_.size();
 
-  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = vertex_buffer_staging_.Init(
+        context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = vertex_buffer_local_.Init(
+        context_, v_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, i_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

@@ -20,8 +20,8 @@ class ComputeFma : public VulkanCompute {
   ComputeFma(VulkanContext* context, VulkanBuffer& dst, const int iterations,
              const uint32_t group_count);
 
-  void Init() override;
-  void Run(const VkCommandBuffer command_buffer);
+  core::Status Init() override;
+  core::Status Run(const VkCommandBuffer command_buffer);
 
  protected:
   std::vector<BindingInfo> GetBindingInfo() const override;

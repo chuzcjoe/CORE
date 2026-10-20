@@ -2,6 +2,9 @@
 
 #include <vulkan/vulkan.h>
 
+#include <memory>
+
+#include "Status.h"
 #include "VulkanContext.h"
 
 namespace core {
@@ -9,7 +12,12 @@ namespace vulkan {
 
 class VulkanSampler {
  public:
-  explicit VulkanSampler(VulkanContext* context);
+  VulkanSampler(const VulkanSampler&) = delete;
+  VulkanSampler& operator=(const VulkanSampler&) = delete;
+  VulkanSampler() = default;
+
+  static Result<std::unique_ptr<VulkanSampler>> Create(VulkanContext* context);
+  Status Init(VulkanContext* context);
   ~VulkanSampler();
 
  private:
@@ -17,6 +25,9 @@ class VulkanSampler {
 
  public:
   VkSampler sampler = VK_NULL_HANDLE;
+
+ private:
+  bool initialized_ = false;
 };
 
 }  // namespace vulkan

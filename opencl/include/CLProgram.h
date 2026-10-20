@@ -1,36 +1,48 @@
 #pragma once
 
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
 
 #include "CLContext.h"
+#include "Status.h"
 
 namespace core {
 namespace opencl {
 
 class CLProgram {
  public:
-  // Construct by loading a .cl file, creating the program, and building it.
-  // Throws std::runtime_error on failure with build log if available.
-  CLProgram(CLContext* context, const std::string& source_path,
-            const char* build_options = nullptr);
+  CLProgram(const CLProgram&) = delete;
+  CLProgram& operator=(const CLProgram&) = delete;
+  CLProgram() = default;
+  // Load a .cl file, create the program, and build it.
+
+  static Result<std::unique_ptr<CLProgram>> Create(
+      CLContext* context, const std::string& source_path,
+      const char* build_options = nullptr);
+  Status Init(CLContext* context, const std::string& source_path,
+              const char* build_options = nullptr);
   // Load a device/driver-specific binary, then build its executable. The bytes
-  // are consumed during construction; context must outlive this object.
-  CLProgram(CLContext* context, std::span<const unsigned char> binary,
-            const char* build_options = nullptr);
+  // are consumed during creation; context must outlive this object.
+
+  static Result<std::unique_ptr<CLProgram>> Create(
+      CLContext* context, std::span<const unsigned char> binary,
+      const char* build_options = nullptr);
+  Status Init(CLContext* context, std::span<const unsigned char> binary,
+              const char* build_options = nullptr);
   ~CLProgram();
 
   // Return an owned copy of the built program's single-device binary.
-  // Throws std::runtime_error if the driver cannot provide a binary.
-  std::vector<unsigned char> GetBinary() const;
+  Result<std::vector<unsigned char>> GetBinary() const;
 
   cl_program program = nullptr;
 
  private:
   CLContext* context_ = nullptr;
-  static std::string ReadFile(const std::string& path);
-  void Build(const char* build_options);
+  static Result<std::string> ReadFile(const std::string& path);
+  Status Build(const char* build_options);
+  bool initialized_ = false;
 };
 
 }  // namespace opencl

@@ -1,3 +1,7 @@
+#include <memory>
+
+#include "Status.h"
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -7,7 +11,6 @@
 #include <simd/simd.h>
 
 #include <iostream>
-#include <stdexcept>
 #include <string>
 
 #include "Foundation/Foundation.hpp"
@@ -32,12 +35,16 @@ constexpr Vertex kVertices[] = {
     {{0.7f, -0.6f}, {0.2f, 0.4f, 1.0f}},
 };
 
-int main() {
+core::Status RunApplication() {
   NS::AutoreleasePool* pool = NS::AutoreleasePool::alloc()->init();
+  const auto release_pool = [](NS::AutoreleasePool* value) {
+    value->release();
+  };
+  const std::unique_ptr<NS::AutoreleasePool, decltype(release_pool)> pool_owner(
+      pool, release_pool);
 
   if (!glfwInit()) {
-    pool->release();
-    throw std::runtime_error("Failed to initialize GLFW");
+    return core::Status(core::ErrorCode::kBackend, "Failed to initialize GLFW");
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -46,12 +53,24 @@ int main() {
   GLFWwindow* window = glfwCreateWindow(kWidth, kHeight, "Metal Triangle", nullptr, nullptr);
   if (!window) {
     glfwTerminate();
-    pool->release();
-    throw std::runtime_error("Failed to create GLFW window");
+
+    return core::Status(core::ErrorCode::kBackend,
+                        "Failed to create GLFW window");
+  }
+  const auto close_window = [](GLFWwindow* value) {
+    glfwDestroyWindow(value);
+    glfwTerminate();
+  };
+  const std::unique_ptr<GLFWwindow, decltype(close_window)> window_owner(
+      window, close_window);
+
+  auto created_resource_0 = core::metal::MTLContext::Create(window);
+  if (!created_resource_0.ok()) {
+    return created_resource_0.status();
   }
 
   std::unique_ptr<core::metal::MTLContext> context =
-      std::make_unique<core::metal::MTLContext>(window);
+      std::move(*created_resource_0);
   std::unique_ptr<core::metal::MTLCommandQueue> command_queue =
       std::make_unique<core::metal::MTLCommandQueue>(context.get());
   std::unique_ptr<core::metal::MTLRenderPipeline> pipeline =
@@ -60,8 +79,14 @@ int main() {
       std::make_unique<core::metal::MTLBuffer>(context.get(), MTL::ResourceStorageModeShared);
 
   buffer->CreateBuffer(kVertices, sizeof(kVertices));
-  pipeline->CreateRenderPipeline("./examples/metal/MetalTriangleDemo/triangle.metal",
-                                 MTL::PixelFormatBGRA8Unorm);
+  {
+    const core::Status status = pipeline->CreateRenderPipeline(
+        "./examples/metal/MetalTriangleDemo/triangle.metal",
+        MTL::PixelFormatBGRA8Unorm);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -90,9 +115,13 @@ int main() {
     frame_pool->release();
   }
 
-  glfwDestroyWindow(window);
-  glfwTerminate();
-
-  pool->release();
-  return 0;
+  return core::Status();
+}
+int main() {
+  const core::Status status = RunApplication();
+  if (!status.ok()) {
+    std::fprintf(stderr, "%s\n", status.message().c_str());
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

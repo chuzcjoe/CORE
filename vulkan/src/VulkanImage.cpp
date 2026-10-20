@@ -1,23 +1,54 @@
 #include "VulkanImage.h"
 
+#include "Status.h"
 #include "VulkanBuffer.h"
 
 namespace core {
 namespace vulkan {
 
-VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uint32_t height,
-                         const VkFormat format, const VkImageUsageFlags usage,
-                         const VkImageAspectFlags aspect, const VkMemoryPropertyFlags properties,
+Result<std::unique_ptr<VulkanImage>> VulkanImage::Create(
+    VulkanContext* context, const uint32_t width, const uint32_t height,
+    const VkFormat format, const VkImageUsageFlags usage,
+    const VkImageAspectFlags aspect, const VkMemoryPropertyFlags properties,
+    const VkImageTiling tiling, const uint32_t mip_levels,
+    const VkSampleCountFlagBits samples, const VkImageCreateFlags flags,
+    const uint32_t layers) {
+  std::unique_ptr<VulkanImage> object(new VulkanImage());
+  const Status status =
+      object->Init(context, width, height, format, usage, aspect, properties,
+                   tiling, mip_levels, samples, flags, layers);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanImage>>(status);
+  }
+  return Result<std::unique_ptr<VulkanImage>>(std::move(object));
+}
+
+Status VulkanImage::Init(VulkanContext* context, const uint32_t width,
+                         const uint32_t height, const VkFormat format,
+                         const VkImageUsageFlags usage,
+                         const VkImageAspectFlags aspect,
+                         const VkMemoryPropertyFlags properties,
                          const VkImageTiling tiling, const uint32_t mip_levels,
-                         const VkSampleCountFlagBits samples, const VkImageCreateFlags flags,
-                         const uint32_t layers)
-    : context_(context),
-      image_format_(format),
-      mip_levels_(mip_levels),
-      array_layers_(layers),
-      samples_(samples),
-      image_width(width),
-      image_height(height) {
+                         const VkSampleCountFlagBits samples,
+                         const VkImageCreateFlags flags,
+                         const uint32_t layers) {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanImage initialization is single-use");
+  }
+  initialized_ = true;
+  context_ = context;
+  if (context_ == nullptr || !context_->is_initialized()) {
+    return Status(ErrorCode::kInvalidState, "A live Vulkan device is required");
+  }
+
+  image_format_ = format;
+  mip_levels_ = mip_levels;
+  array_layers_ = layers;
+  samples_ = samples;
+  image_width = width;
+  image_height = height;
+
   VkImageCreateInfo image_info{};
   image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
   image_info.imageType = VK_IMAGE_TYPE_2D;
@@ -35,7 +66,14 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   image_info.samples = samples_;
   image_info.flags = flags;  // Optional
 
-  VK_CHECK(vkCreateImage(context_->logical_device, &image_info, nullptr, &image));
+  {
+    const VkResult result =
+        vkCreateImage(context_->logical_device, &image_info, nullptr, &image);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   VkMemoryRequirements mem_requirements;
   vkGetImageMemoryRequirements(context_->logical_device, image, &mem_requirements);
@@ -43,12 +81,29 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   VkMemoryAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   alloc_info.allocationSize = mem_requirements.size;
-  alloc_info.memoryTypeIndex =
+
+  const auto alloc_info_memoryTypeIndex_result =
       context_->FindMemoryType(mem_requirements.memoryTypeBits, properties);
+  if (!alloc_info_memoryTypeIndex_result.ok()) {
+    return alloc_info_memoryTypeIndex_result.status();
+  }
+  alloc_info.memoryTypeIndex = *alloc_info_memoryTypeIndex_result;
 
-  VK_CHECK(vkAllocateMemory(context_->logical_device, &alloc_info, nullptr, &image_memory));
+  {
+    const VkResult result = vkAllocateMemory(
+        context_->logical_device, &alloc_info, nullptr, &image_memory);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
-  vkBindImageMemory(context_->logical_device, image, image_memory, 0);
+  const VkResult bind_result =
+      vkBindImageMemory(context_->logical_device, image, image_memory, 0);
+  if (bind_result != VK_SUCCESS) {
+    return Status(ErrorCode::kBackend, VkErrorMessages(bind_result), "Vulkan",
+                  bind_result);
+  }
 
   // Create image view
   VkImageViewCreateInfo view_info{};
@@ -73,10 +128,23 @@ VulkanImage::VulkanImage(VulkanContext* context, const uint32_t width, const uin
   view_info.subresourceRange.baseArrayLayer = 0;
   view_info.subresourceRange.layerCount = layers;
 
-  VK_CHECK(vkCreateImageView(context_->logical_device, &view_info, nullptr, &image_view));
+  {
+    const VkResult result = vkCreateImageView(context_->logical_device,
+                                              &view_info, nullptr, &image_view);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
+
+  return Status();
 }
 
 VulkanImage::~VulkanImage() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
+
   if (context_ && image_view != VK_NULL_HANDLE) {
     vkDestroyImageView(context_->logical_device, image_view, nullptr);
   }
@@ -103,10 +171,12 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
     vkFreeMemory(context_->logical_device, image_memory, nullptr);
   }
 
+  initialized_ = rhs.initialized_;
   context_ = rhs.context_;
   image_format_ = rhs.image_format_;
   mip_levels_ = rhs.mip_levels_;
   array_layers_ = rhs.array_layers_;
+  samples_ = rhs.samples_;
 
   image = rhs.image;
   rhs.image = VK_NULL_HANDLE;
@@ -123,11 +193,23 @@ VulkanImage& VulkanImage::operator=(VulkanImage&& rhs) {
   return *this;
 }
 
-void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
-                                        const VkImageLayout new_layout,
-                                        [[maybe_unused]] const VkFormat format,
-                                        const uint32_t mip_levels, const uint32_t layers) {
-  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+Status VulkanImage::TransitionImageLayout(
+    const VkImageLayout old_layout, const VkImageLayout new_layout,
+    [[maybe_unused]] const VkFormat format, const uint32_t mip_levels,
+    const uint32_t layers) {
+  if (context_ == nullptr || image == VK_NULL_HANDLE ||
+      image_view == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanImage requires successful initialization");
+  }
+
+  auto command_buffer_result =
+      VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  if (!command_buffer_result.ok()) {
+    return command_buffer_result.status();
+  }
+  auto command_buffer_owner = std::move(*command_buffer_result);
+  auto& command_buffer = *command_buffer_owner;
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -180,19 +262,39 @@ void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
     source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   } else {
-    throw std::invalid_argument("unsupported layout transition!");
+    return Status(ErrorCode::kInvalidArgument,
+                  "unsupported layout transition!");
   }
 
   vkCmdPipelineBarrier(command_buffer.buffer(), source_stage, destination_stage, 0, 0, nullptr, 0,
                        nullptr, 1, &barrier);
 
-  command_buffer.EndOneTimeCommands();
+  {
+    const core::Status status = command_buffer.EndOneTimeCommands();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
-void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
-                                             const VkImageLayout new_layout,
-                                             [[maybe_unused]] const VkFormat format) {
-  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+Status VulkanImage::TransitionDepthImageLayout(
+    const VkImageLayout old_layout, const VkImageLayout new_layout,
+    [[maybe_unused]] const VkFormat format) {
+  if (context_ == nullptr || image == VK_NULL_HANDLE ||
+      image_view == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanImage requires successful initialization");
+  }
+
+  auto command_buffer_result =
+      VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  if (!command_buffer_result.ok()) {
+    return command_buffer_result.status();
+  }
+  auto command_buffer_owner = std::move(*command_buffer_result);
+  auto& command_buffer = *command_buffer_owner;
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -237,25 +339,37 @@ void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
     source_stage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     destination_stage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
   } else {
-    throw std::invalid_argument("unsupported layout transition!");
+    return Status(ErrorCode::kInvalidArgument,
+                  "unsupported layout transition!");
   }
 
   vkCmdPipelineBarrier(command_buffer.buffer(), source_stage, destination_stage, 0, 0, nullptr, 0,
                        nullptr, 1, &barrier);
 
-  command_buffer.EndOneTimeCommands();
+  {
+    const core::Status status = command_buffer.EndOneTimeCommands();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
-void VulkanImage::GenerateMipmaps() {
-  // Check if image format supports linear blitting
-  // VkFormatProperties format_properties;
-  // vkGetPhysicalDeviceFormatProperties(context_->physical_device, image_format_,
-  // &format_properties); if (!(format_properties.optimalTilingFeatures &
-  //       VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
-  //   throw std::runtime_error("texture image format does not support linear blitting!");
-  // }
+Status VulkanImage::GenerateMipmaps() {
+  if (context_ == nullptr || image == VK_NULL_HANDLE ||
+      image_view == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanImage requires successful initialization");
+  }
 
-  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  auto command_buffer_result =
+      VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  if (!command_buffer_result.ok()) {
+    return command_buffer_result.status();
+  }
+  auto command_buffer_owner = std::move(*command_buffer_result);
+  auto& command_buffer = *command_buffer_owner;
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -327,7 +441,14 @@ void VulkanImage::GenerateMipmaps() {
                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                        &barrier);
 
-  command_buffer.EndOneTimeCommands();
+  {
+    const core::Status status = command_buffer.EndOneTimeCommands();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
 }  // namespace vulkan

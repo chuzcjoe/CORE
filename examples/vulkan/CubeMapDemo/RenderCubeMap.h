@@ -24,11 +24,12 @@ class RenderCubeMap : public core::vulkan::VulkanRender {
   RenderCubeMap(core::vulkan::VulkanContext* context,
                 const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
-  void Init(const std::string& image_path);
+  core::Status Init() override;
+  core::Status Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix);
+  core::Status UpdateUniformBuffer(const int width, const int height,
+                                   const glm::mat4& view_matrix);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
@@ -43,9 +44,9 @@ class RenderCubeMap : public core::vulkan::VulkanRender {
   std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
-  void CreateTextureImage(const std::string& image_path);
+  core::Status CreateTextureImage(const std::string& image_path);
 
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   struct UniformBufferObject {
     glm::mat4 view;

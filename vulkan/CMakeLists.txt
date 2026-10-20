@@ -18,3 +18,5 @@ else()
         Vulkan::Vulkan
         glm)
 endif()
+
+target_link_libraries(vulkan PUBLIC core_error)

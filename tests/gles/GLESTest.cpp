@@ -3,6 +3,7 @@
 
 #include <cstdint>
 
+#include "Status.h"
 #include "TextureIO.h"
 #include "egl/Context.h"
 
@@ -96,8 +97,13 @@ TEST(GLES, test) {
   glFinish();
 
   // save texture to file
-  core::io::WriteTextureToFile(color_tex, kWidth, kHeight,
-                               "/data/local/tmp/core/data/gles_test.png");
+  {
+    const core::Status status = core::io::WriteTextureToFile(
+        color_tex, kWidth, kHeight, "/data/local/tmp/core/data/gles_test.png");
+    if (!status.ok()) {
+      FAIL() << status.message();
+    }
+  }
 
   glDeleteBuffers(1, &vbo);
   glDeleteProgram(program);

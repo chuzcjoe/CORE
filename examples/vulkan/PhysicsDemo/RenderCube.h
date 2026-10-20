@@ -18,10 +18,12 @@ class RenderCube : public core::vulkan::VulkanRender {
   RenderCube(core::vulkan::VulkanContext* context,
              const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const glm::mat4& model, const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& model,
+                                   const glm::mat4& view,
+                                   const glm::mat4& project);
 
  protected:
   // Don't cull: the cube tumbles freely so either winding can face the camera.
@@ -50,7 +52,7 @@ class RenderCube : public core::vulkan::VulkanRender {
   };
 
   void BuildGeometry();
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   std::vector<Vertex> vertices_;
   std::vector<uint16_t> indices_;

@@ -3,7 +3,7 @@
 `VulkanBuffer::CopyBuffers` copies a sequence of buffer ranges using one command
 buffer, one queue submission and one fence wait. It is useful when uploading
 related vertex, index and instance buffers together. The Galaxy demo uses it for
-its three initial uploads. The existing synchronous `CopyToBuffer` API is unchanged.
+its three initial uploads. Both synchronous copy APIs return `core::Status`.
 
 ## Usage
 
@@ -17,7 +17,10 @@ uploads[0].source = &vertex_staging;
 uploads[0].destination = &vertex_device;
 uploads[1].source = &index_staging;
 uploads[1].destination = &index_device;
-core::vulkan::VulkanBuffer::CopyBuffers(uploads);
+const core::Status status = core::vulkan::VulkanBuffer::CopyBuffers(uploads);
+if (!status.ok()) {
+  return status;
+}
 ```
 
 Each entry defaults to zero offsets and `VK_WHOLE_SIZE`, which copies the source's
@@ -27,8 +30,8 @@ Offsets and sizes are in bytes. Zero-length copies and overlapping source/destin
 ranges within one self-copy are rejected; non-overlapping self-copies are supported.
 
 The entire batch is validated before recording. Missing or uninitialized buffers,
-mixed contexts and incorrect usage flags throw `std::invalid_argument`; invalid
-ranges throw `std::out_of_range`. An empty batch does nothing. A rejected batch
+mixed contexts and incorrect usage flags return `ErrorCode::kInvalidArgument`; invalid
+ranges return `ErrorCode::kOutOfRange`. An empty batch succeeds without work. A rejected batch
 does not execute an earlier valid entry.
 
 Copies execute in array order. Transfer barriers support dependencies such as

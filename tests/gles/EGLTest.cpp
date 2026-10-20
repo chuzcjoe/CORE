@@ -2,6 +2,7 @@
 #include <glad/glad_egl.h>
 #include <gtest/gtest.h>
 
+#include "Status.h"
 #include "egl/Context.h"
 
 namespace core {
@@ -9,7 +10,8 @@ namespace test {
 
 TEST(EGL, test) {
   if (!gladLoadEGL()) {
-    throw std::runtime_error("Failed to load EGL");
+    FAIL() << core::Status(core::ErrorCode::kBackend, "Failed to load EGL")
+                  .message();
   }
 
   core::egl::Context egl_context(3, 3);

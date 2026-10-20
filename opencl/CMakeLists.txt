@@ -7,7 +7,8 @@ target_include_directories(opencl
     include)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    target_link_libraries(opencl opencl-headers dl)
+    target_link_libraries(opencl PUBLIC opencl-headers dl)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
-    target_link_libraries(opencl opencl-headers dl)
+    target_link_libraries(opencl PUBLIC opencl-headers dl)
 endif()
+target_link_libraries(opencl PUBLIC core_error)

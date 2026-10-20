@@ -1,31 +1,41 @@
 #pragma once
+
 #include <condition_variable>
 #include <cstddef>
 #include <deque>
 #include <functional>
 #include <future>
+#include <memory>
 #include <mutex>
-#include <stdexcept>
 #include <thread>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
+#include "Status.h"
+
 namespace core {
 
 class ThreadPool {
  public:
-  explicit ThreadPool(std::size_t thread_count = std::thread::hardware_concurrency()
-                                                     ? std::thread::hardware_concurrency()
-                                                     : 4) {
+  static Result<std::unique_ptr<ThreadPool>> Create(
+      std::size_t thread_count = std::thread::hardware_concurrency() != 0U
+                                     ? std::thread::hardware_concurrency()
+                                     : 4U) {
     if (thread_count == 0U) {
-      throw std::invalid_argument("ThreadPool: thread count must be greater than zero");
+      return Result<std::unique_ptr<ThreadPool>>(
+          Status(ErrorCode::kInvalidArgument,
+                 "ThreadPool: thread count must be greater than zero"));
     }
-    workers_.reserve(thread_count);
+    // Construct the owner before starting workers so already-started workers
+    // are joined if the standard library fails to start a later thread.
+    std::unique_ptr<ThreadPool> pool(new ThreadPool());
+    pool->workers_.reserve(thread_count);
     for (std::size_t i = 0; i < thread_count; ++i) {
-      workers_.emplace_back([this] { worker_loop(); });
+      pool->workers_.emplace_back([ptr = pool.get()] { ptr->worker_loop(); });
     }
+    return Result<std::unique_ptr<ThreadPool>>(std::move(pool));
   }
 
   ThreadPool(const ThreadPool&) = delete;
@@ -34,8 +44,8 @@ class ThreadPool {
   ~ThreadPool() { shutdown(); }
 
   template <class F, class... Args>
-  auto submit(F&& f, Args&&... args)
-      -> std::future<std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>> {
+  auto submit(F&& f, Args&&... args) -> Result<std::future<
+      std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>>> {
     using R = std::invoke_result_t<std::decay_t<F>, std::decay_t<Args>...>;
 
     auto task_fn =
@@ -49,11 +59,14 @@ class ThreadPool {
 
     {
       std::lock_guard<std::mutex> lk(m_);
-      if (!accepting_) throw std::runtime_error("ThreadPool: submit on a stopped pool");
+      if (!accepting_) {
+        return Result<std::future<R>>(Status(
+            ErrorCode::kInvalidState, "ThreadPool: submit on a stopped pool"));
+      }
       tasks_.emplace_back([ptask]() mutable { (*ptask)(); });
     }
     cv_.notify_one();
-    return fut;
+    return Result<std::future<R>>(std::move(fut));
   }
 
   void wait_idle() {
@@ -85,6 +98,7 @@ class ThreadPool {
   std::size_t size() const noexcept { return workers_.size(); }
 
  private:
+  ThreadPool() = default;
   void worker_loop() {
     for (;;) {
       std::function<void()> task;
@@ -100,10 +114,7 @@ class ThreadPool {
         ++active_;
       }
 
-      try {
-        task();
-      } catch (...) { /* packaged_task handles exceptions */
-      }
+      task();
 
       // NEW: notify whenever the pool is idle
       {

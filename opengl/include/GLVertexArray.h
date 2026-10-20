@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include "Status.h"
+
 namespace core {
 namespace opengl {
 
@@ -17,8 +19,9 @@ class GLVertexArray {
 
   void SetElementData(const void* data, size_t size, GLenum usage = GL_STATIC_DRAW) const;
 
-  void SetVertexAttribPointer(GLuint location, GLint size, GLenum type, GLboolean normalized,
-                              GLsizei stride, const void* pointer) const;
+  Status SetVertexAttribPointer(GLuint location, GLint size, GLenum type,
+                                GLboolean normalized, GLsizei stride,
+                                const void* pointer) const;
 
   void AttachVertexBuffer(unsigned int vbo_id) { vbo_id_ = vbo_id; }
 

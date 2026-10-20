@@ -3,7 +3,27 @@
 namespace core {
 namespace vulkan {
 
-VulkanSampler::VulkanSampler(VulkanContext* context) : context_(context) {
+Result<std::unique_ptr<VulkanSampler>> VulkanSampler::Create(
+    VulkanContext* context) {
+  std::unique_ptr<VulkanSampler> object(new VulkanSampler());
+  const Status status = object->Init(context);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanSampler>>(status);
+  }
+  return Result<std::unique_ptr<VulkanSampler>>(std::move(object));
+}
+
+Status VulkanSampler::Init(VulkanContext* context) {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSampler initialization is single-use");
+  }
+  initialized_ = true;
+  context_ = context;
+  if (context_ == nullptr || !context_->is_initialized()) {
+    return Status(ErrorCode::kInvalidState, "A live Vulkan device is required");
+  }
+
   VkSamplerCreateInfo sampler_info{};
   sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
   sampler_info.magFilter = VK_FILTER_LINEAR;
@@ -22,10 +42,23 @@ VulkanSampler::VulkanSampler(VulkanContext* context) : context_(context) {
   sampler_info.minLod = 0.0f;
   sampler_info.maxLod = VK_LOD_CLAMP_NONE;
 
-  VK_CHECK(vkCreateSampler(context_->logical_device, &sampler_info, nullptr, &sampler));
+  {
+    const VkResult result = vkCreateSampler(context_->logical_device,
+                                            &sampler_info, nullptr, &sampler);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
+
+  return Status();
 }
 
 VulkanSampler::~VulkanSampler() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
+
   if (sampler != VK_NULL_HANDLE) {
     vkDestroySampler(context_->logical_device, sampler, nullptr);
   }

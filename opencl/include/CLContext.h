@@ -1,15 +1,22 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include "CLLoader.h"
+#include "Status.h"
 
 namespace core {
 namespace opencl {
 
 class CLContext {
  public:
-  CLContext();
+  CLContext(const CLContext&) = delete;
+  CLContext& operator=(const CLContext&) = delete;
+  CLContext() = default;
+
+  static Result<std::unique_ptr<CLContext>> Create();
+  Status Init();
   ~CLContext();
 
   cl_context context = nullptr;
@@ -20,8 +27,9 @@ class CLContext {
   static void PrintInfo();
 
  private:
-  void QueryPlatforms();
-  void QueryDevices();
+  Status QueryPlatforms();
+  Status QueryDevices();
+  bool initialized_ = false;
 };
 
 }  // namespace opencl

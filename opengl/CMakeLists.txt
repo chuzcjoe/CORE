@@ -17,3 +17,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin" OR CMAKE_SYSTEM_NAME STREQUAL "Linux")
         gl_glad
         stb)
 endif()
+target_link_libraries(opengl PUBLIC core_error)

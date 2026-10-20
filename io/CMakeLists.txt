@@ -21,3 +21,4 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
         glm
         gles_glad)
 endif()
+target_link_libraries(io PUBLIC core_error)

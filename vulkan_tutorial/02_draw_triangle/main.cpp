@@ -1,3 +1,4 @@
+#define VULKAN_HPP_NO_EXCEPTIONS
 #include <assert.h>
 
 #include <algorithm>
@@ -7,8 +8,9 @@
 #include <iostream>
 #include <limits>
 #include <memory>
-#include <stdexcept>
 #include <vector>
+
+#include "Status.h"
 
 // #if defined(__INTELLISENSE__) || !defined(USE_CPP20_MODULES)
 // #	include <vulkan/vulkan_raii.hpp>
@@ -33,13 +35,35 @@ constexpr bool enableValidationLayers = false;
 constexpr bool enableValidationLayers = true;
 #endif
 
+core::Status BackendError(vk::Result result) {
+  return core::Status(core::ErrorCode::kBackend, vk::to_string(result),
+                      "Vulkan", static_cast<std::int64_t>(result));
+}
+
 class HelloTriangleApplication {
  public:
-  void run() {
-    initWindow();
-    initVulkan();
-    mainLoop();
-    cleanup();
+  ~HelloTriangleApplication() { cleanup(); }
+
+  core::Status run() {
+    {
+      const core::Status status = initWindow();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = initVulkan();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = mainLoop();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    return core::Status();
   }
 
  private:
@@ -50,7 +74,7 @@ class HelloTriangleApplication {
   vk::raii::SurfaceKHR surface = nullptr;
   vk::raii::PhysicalDevice physicalDevice = nullptr;
   vk::raii::Device device = nullptr;
-  uint32_t queueIndex = ~0;
+  uint32_t queueIndex = std::numeric_limits<uint32_t>::max();
   vk::raii::Queue queue = nullptr;
   vk::raii::SwapchainKHR swapChain = nullptr;
   std::vector<vk::Image> swapChainImages;
@@ -77,51 +101,142 @@ class HelloTriangleApplication {
       vk::KHRSynchronization2ExtensionName, vk::KHRCreateRenderpass2ExtensionName};
 #endif
 
-  void initWindow() {
-    glfwInit();
+  core::Status initWindow() {
+    if (glfwInit() != GLFW_TRUE) {
+      return core::Status(core::ErrorCode::kBackend,
+                          "GLFW initialization failed");
+    }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-  }
-
-  void initVulkan() {
-    createInstance();
-    setupDebugMessenger();
-    createSurface();
-    pickPhysicalDevice();
-    createLogicalDevice();
-    createSwapChain();
-    createImageViews();
-    createGraphicsPipeline();
-    createCommandPool();
-    createCommandBuffers();
-    createSyncObjects();
-  }
-
-  void mainLoop() {
-    while (!glfwWindowShouldClose(window)) {
-      glfwPollEvents();
-      drawFrame();
+    if (window == nullptr) {
+      return core::Status(core::ErrorCode::kBackend, "Window creation failed");
     }
 
-    device.waitIdle();
+    return core::Status();
+  }
+
+  core::Status initVulkan() {
+    {
+      const core::Status status = createInstance();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = setupDebugMessenger();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createSurface();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = pickPhysicalDevice();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createLogicalDevice();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createSwapChain();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createImageViews();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createGraphicsPipeline();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createCommandPool();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createCommandBuffers();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = createSyncObjects();
+      if (!status.ok()) {
+        return status;
+      }
+    }
+
+    return core::Status();
+  }
+
+  core::Status mainLoop() {
+    while (!glfwWindowShouldClose(window)) {
+      glfwPollEvents();
+      {
+        const core::Status status = drawFrame();
+        if (!status.ok()) {
+          return status;
+        }
+      }
+    }
+
+    {
+      const vk::Result result = device.waitIdle();
+      if (result != vk::Result::eSuccess) {
+        return BackendError(result);
+      }
+    }
+
+    return core::Status();
   }
 
   void cleanup() {
+    if (*device) {
+      static_cast<void>(device.waitIdle());
+    }
+    // Release GPU resources while the surface and window are still alive.
+    inFlightFences.clear();
+    renderFinishedSemaphores.clear();
+    presentCompleteSemaphores.clear();
+    commandBuffers.clear();
+    commandPool.clear();
+    graphicsPipeline.clear();
+    pipelineLayout.clear();
+    swapChainImageViews.clear();
+    swapChain.clear();
+    device.clear();
+    surface.clear();
     glfwDestroyWindow(window);
 
     glfwTerminate();
   }
 
-  void createInstance() {
+  core::Status createInstance() {
     uint32_t supportedVersion = 0;
-    try {
-      supportedVersion = context.enumerateInstanceVersion();
-    } catch (...) {
-      supportedVersion = VK_API_VERSION_1_0;
-    }
+    const auto version = context.enumerateInstanceVersion();
+    supportedVersion = version.result == vk::Result::eSuccess
+                           ? version.value
+                           : VK_API_VERSION_1_0;
 
     uint32_t desiredVersion = VK_API_VERSION_1_3;
     uint32_t apiVersion = std::min(supportedVersion, desiredVersion);
@@ -142,12 +257,19 @@ class HelloTriangleApplication {
     }
 
     // Check if the required layers are supported by the Vulkan implementation.
-    auto layerProperties = context.enumerateInstanceLayerProperties();
+
+    auto layerProperties_result = context.enumerateInstanceLayerProperties();
+    if (layerProperties_result.result != vk::Result::eSuccess) {
+      return BackendError(layerProperties_result.result);
+    }
+    auto layerProperties = std::move(layerProperties_result.value);
     for (auto const &requiredLayer : requiredLayers) {
       if (std::ranges::none_of(layerProperties, [requiredLayer](auto const &layerProperty) {
             return strcmp(layerProperty.layerName, requiredLayer) == 0;
           })) {
-        throw std::runtime_error("Required layer not supported: " + std::string(requiredLayer));
+        return core::Status(
+            core::ErrorCode::kBackend,
+            "Required layer not supported: " + std::string(requiredLayer));
       }
     }
 
@@ -155,14 +277,21 @@ class HelloTriangleApplication {
     auto requiredExtensions = getRequiredExtensions();
 
     // Check if the required extensions are supported by the Vulkan implementation.
-    auto extensionProperties = context.enumerateInstanceExtensionProperties();
+
+    auto extensionProperties_result =
+        context.enumerateInstanceExtensionProperties();
+    if (extensionProperties_result.result != vk::Result::eSuccess) {
+      return BackendError(extensionProperties_result.result);
+    }
+    auto extensionProperties = std::move(extensionProperties_result.value);
     for (auto const &requiredExtension : requiredExtensions) {
       if (std::ranges::none_of(
               extensionProperties, [requiredExtension](auto const &extensionProperty) {
                 return strcmp(extensionProperty.extensionName, requiredExtension) == 0;
               })) {
-        throw std::runtime_error("Required extension not supported: " +
-                                 std::string(requiredExtension));
+        return core::Status(core::ErrorCode::kBackend,
+                            "Required extension not supported: " +
+                                std::string(requiredExtension));
       }
     }
 
@@ -177,15 +306,26 @@ class HelloTriangleApplication {
       return std::strcmp(ext, VK_KHR_PORTABILITY_ENUMERATION_EXTENSION_NAME) == 0;
     });
     if (!hasPortability) {
-      throw std::runtime_error("VK_KHR_portability_enumeration must be enabled on macOS");
+      return core::Status(
+          core::ErrorCode::kBackend,
+          "VK_KHR_portability_enumeration must be enabled on macOS");
     }
     createInfo.flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
 #endif
-    instance = vk::raii::Instance(context, createInfo);
+
+    auto instance_result = context.createInstance(createInfo);
+    if (instance_result.result != vk::Result::eSuccess) {
+      return BackendError(instance_result.result);
+    }
+    instance = std::move(instance_result.value);
+
+    return core::Status();
   }
 
-  void setupDebugMessenger() {
-    if (!enableValidationLayers) return;
+  core::Status setupDebugMessenger() {
+    if (!enableValidationLayers) {
+      return core::Status();
+    }
 
     vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(
         vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose |
@@ -199,93 +339,103 @@ class HelloTriangleApplication {
         .messageSeverity = severityFlags,
         .messageType = messageTypeFlags,
         .pfnUserCallback = &debugCallback};
-    debugMessenger = instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
+
+    auto debugMessenger_result =
+        instance.createDebugUtilsMessengerEXT(debugUtilsMessengerCreateInfoEXT);
+    if (debugMessenger_result.result != vk::Result::eSuccess) {
+      return BackendError(debugMessenger_result.result);
+    }
+    debugMessenger = std::move(debugMessenger_result.value);
+
+    return core::Status();
   }
 
-  void createSurface() {
+  core::Status createSurface() {
     VkSurfaceKHR _surface;
     if (glfwCreateWindowSurface(*instance, window, nullptr, &_surface) != 0) {
-      throw std::runtime_error("failed to create window surface!");
+      return core::Status(core::ErrorCode::kBackend,
+                          "failed to create window surface!");
     }
     surface = vk::raii::SurfaceKHR(instance, _surface);
+
+    return core::Status();
   }
 
-  void pickPhysicalDevice() {
-    std::vector<vk::raii::PhysicalDevice> devices = instance.enumeratePhysicalDevices();
-    const auto devIter = std::ranges::find_if(devices, [&](auto const &device) {
-#ifdef __APPLE__
-      bool supportsVulkan = device.getProperties().apiVersion >= VK_API_VERSION_1_0;
-
-      auto queueFamilies = device.getQueueFamilyProperties();
-      bool supportsGraphics = std::ranges::any_of(queueFamilies, [](auto const &qfp) {
-        return !!(qfp.queueFlags & vk::QueueFlagBits::eGraphics);
-      });
-
-      auto availableDeviceExtensions = device.enumerateDeviceExtensionProperties();
-      bool supportsAllRequiredExtensions = std::ranges::all_of(
-          requiredDeviceExtension,
-          [&availableDeviceExtensions](auto const &requiredDeviceExtension) {
+  core::Status pickPhysicalDevice() {
+    auto devices_result = instance.enumeratePhysicalDevices();
+    if (devices_result.result != vk::Result::eSuccess) {
+      return BackendError(devices_result.result);
+    }
+    auto devices = std::move(devices_result.value);
+    for (const auto& candidate : devices) {
+      const auto families = candidate.getQueueFamilyProperties();
+      const bool graphics =
+          std::ranges::any_of(families, [](const auto& family) {
+            return static_cast<bool>(family.queueFlags &
+                                     vk::QueueFlagBits::eGraphics);
+          });
+      auto extensions = candidate.enumerateDeviceExtensionProperties();
+      if (extensions.result != vk::Result::eSuccess) {
+        return BackendError(extensions.result);
+      }
+      const bool supported = std::ranges::all_of(
+          requiredDeviceExtension, [&](const char* required) {
             return std::ranges::any_of(
-                availableDeviceExtensions,
-                [requiredDeviceExtension](auto const &availableDeviceExtension) {
-                  return strcmp(availableDeviceExtension.extensionName, requiredDeviceExtension) ==
-                         0;
+                extensions.value, [&](const auto& available) {
+                  return std::strcmp(available.extensionName, required) == 0;
                 });
           });
-
-      bool supportsRequiredFeatures = true;
-
-      return supportsVulkan && supportsGraphics && supportsAllRequiredExtensions &&
-             supportsRequiredFeatures;
+#ifdef __APPLE__
+      const bool version_supported =
+          candidate.getProperties().apiVersion >= VK_API_VERSION_1_0;
+      const bool features_supported = true;
 #else
-                bool supportsVulkan1_3 = device.getProperties().apiVersion >= VK_API_VERSION_1_3;
-
-                auto queueFamilies = device.getQueueFamilyProperties();
-                bool supportsGraphics =
-                    std::ranges::any_of(queueFamilies, [](auto const &qfp) { return !!(qfp.queueFlags & vk::QueueFlagBits::eGraphics); });
-
-                auto availableDeviceExtensions = device.enumerateDeviceExtensionProperties();
-                bool supportsAllRequiredExtensions =
-                    std::ranges::all_of(requiredDeviceExtension,
-			                                                       [&availableDeviceExtensions](auto const &requiredDeviceExtension) {
-                                            return std::ranges::any_of(availableDeviceExtensions,
-				                                                                                  [requiredDeviceExtension](auto const &availableDeviceExtension) { return strcmp(availableDeviceExtension.extensionName, requiredDeviceExtension) == 0; });
-                                        });
-
-                auto features                 = device.template getFeatures2<vk::PhysicalDeviceFeatures2,
-			                                                                                            vk::PhysicalDeviceVulkan11Features,
-			                                                                                            vk::PhysicalDeviceVulkan13Features,
-			                                                                                            vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
-                bool supportsRequiredFeatures = features.template get<vk::PhysicalDeviceVulkan11Features>().shaderDrawParameters &&
-                                                features.template get<vk::PhysicalDeviceVulkan13Features>().synchronization2 &&
-                                                features.template get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
-                                                features.template get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>().extendedDynamicState;
-
-                return supportsVulkan1_3 && supportsGraphics && supportsAllRequiredExtensions && supportsRequiredFeatures;
+      const bool version_supported =
+          candidate.getProperties().apiVersion >= VK_API_VERSION_1_3;
+      const auto features = candidate.getFeatures2<
+          vk::PhysicalDeviceFeatures2, vk::PhysicalDeviceVulkan11Features,
+          vk::PhysicalDeviceVulkan13Features,
+          vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>();
+      const bool features_supported =
+          features.get<vk::PhysicalDeviceVulkan11Features>()
+              .shaderDrawParameters &&
+          features.get<vk::PhysicalDeviceVulkan13Features>().synchronization2 &&
+          features.get<vk::PhysicalDeviceVulkan13Features>().dynamicRendering &&
+          features.get<vk::PhysicalDeviceExtendedDynamicStateFeaturesEXT>()
+              .extendedDynamicState;
 #endif
-    });
-    if (devIter != devices.end()) {
-      physicalDevice = *devIter;
-    } else {
-      throw std::runtime_error("failed to find a suitable GPU!");
+      if (graphics && supported && version_supported && features_supported) {
+        physicalDevice = candidate;
+        return core::Status();
+      }
     }
+    return core::Status(core::ErrorCode::kUnsupported,
+                        "No suitable Vulkan GPU");
   }
 
-  void createLogicalDevice() {
+  core::Status createLogicalDevice() {
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties =
         physicalDevice.getQueueFamilyProperties();
 
     // get the first index into queueFamilyProperties which supports both graphics and present
     for (uint32_t qfpIndex = 0; qfpIndex < queueFamilyProperties.size(); qfpIndex++) {
-      if ((queueFamilyProperties[qfpIndex].queueFlags & vk::QueueFlagBits::eGraphics) &&
-          physicalDevice.getSurfaceSupportKHR(qfpIndex, *surface)) {
+      const auto support =
+          physicalDevice.getSurfaceSupportKHR(qfpIndex, *surface);
+      if (support.result != vk::Result::eSuccess) {
+        return BackendError(support.result);
+      }
+      if ((queueFamilyProperties[qfpIndex].queueFlags &
+           vk::QueueFlagBits::eGraphics) &&
+          support.value) {
         // found a queue family that supports both graphics and present
         queueIndex = qfpIndex;
         break;
       }
     }
-    if (queueIndex == ~0) {
-      throw std::runtime_error("Could not find a queue for graphics and present -> terminating");
+    if (queueIndex == std::numeric_limits<uint32_t>::max()) {
+      return core::Status(
+          core::ErrorCode::kBackend,
+          "Could not find a queue for graphics and present -> terminating");
     }
 
     // query for Vulkan 1.3 features
@@ -311,14 +461,36 @@ class HelloTriangleApplication {
         .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtension.size()),
         .ppEnabledExtensionNames = requiredDeviceExtension.data()};
 
-    device = vk::raii::Device(physicalDevice, deviceCreateInfo);
-    queue = vk::raii::Queue(device, queueIndex, 0);
+    auto device_result = physicalDevice.createDevice(deviceCreateInfo);
+    if (device_result.result != vk::Result::eSuccess) {
+      return BackendError(device_result.result);
+    }
+    device = std::move(device_result.value);
+    queue = device.getQueue(queueIndex, 0);
+
+    return core::Status();
   }
 
-  void createSwapChain() {
-    auto surfaceCapabilities = physicalDevice.getSurfaceCapabilitiesKHR(*surface);
+  core::Status createSwapChain() {
+    auto surfaceCapabilities_result =
+        physicalDevice.getSurfaceCapabilitiesKHR(*surface);
+    if (surfaceCapabilities_result.result != vk::Result::eSuccess) {
+      return BackendError(surfaceCapabilities_result.result);
+    }
+    auto surfaceCapabilities = std::move(surfaceCapabilities_result.value);
     swapChainExtent = chooseSwapExtent(surfaceCapabilities);
-    swapChainSurfaceFormat = chooseSwapSurfaceFormat(physicalDevice.getSurfaceFormatsKHR(*surface));
+    auto formats = physicalDevice.getSurfaceFormatsKHR(*surface);
+    if (formats.result != vk::Result::eSuccess) {
+      return BackendError(formats.result);
+    }
+    if (formats.value.empty()) {
+      return core::Status(core::ErrorCode::kUnsupported, "No surface formats");
+    }
+    swapChainSurfaceFormat = chooseSwapSurfaceFormat(formats.value);
+    auto modes = physicalDevice.getSurfacePresentModesKHR(*surface);
+    if (modes.result != vk::Result::eSuccess) {
+      return BackendError(modes.result);
+    }
     vk::SwapchainCreateInfoKHR swapChainCreateInfo{
         .surface = *surface,
         .minImageCount = chooseSwapMinImageCount(surfaceCapabilities),
@@ -330,14 +502,25 @@ class HelloTriangleApplication {
         .imageSharingMode = vk::SharingMode::eExclusive,
         .preTransform = surfaceCapabilities.currentTransform,
         .compositeAlpha = vk::CompositeAlphaFlagBitsKHR::eOpaque,
-        .presentMode = chooseSwapPresentMode(physicalDevice.getSurfacePresentModesKHR(*surface)),
+        .presentMode = chooseSwapPresentMode(modes.value),
         .clipped = true};
 
-    swapChain = vk::raii::SwapchainKHR(device, swapChainCreateInfo);
-    swapChainImages = swapChain.getImages();
+    auto swapChain_result = device.createSwapchainKHR(swapChainCreateInfo);
+    if (swapChain_result.result != vk::Result::eSuccess) {
+      return BackendError(swapChain_result.result);
+    }
+    swapChain = std::move(swapChain_result.value);
+
+    auto swapChainImages_result = swapChain.getImages();
+    if (swapChainImages_result.result != vk::Result::eSuccess) {
+      return BackendError(swapChainImages_result.result);
+    }
+    swapChainImages = std::move(swapChainImages_result.value);
+
+    return core::Status();
   }
 
-  void createImageViews() {
+  core::Status createImageViews() {
     assert(swapChainImageViews.empty());
 
     vk::ImageViewCreateInfo imageViewCreateInfo{
@@ -346,13 +529,26 @@ class HelloTriangleApplication {
         .subresourceRange = {vk::ImageAspectFlagBits::eColor, 0, 1, 0, 1}};
     for (auto &image : swapChainImages) {
       imageViewCreateInfo.image = image;
-      swapChainImageViews.emplace_back(device, imageViewCreateInfo);
+      auto view_result = device.createImageView(imageViewCreateInfo);
+      if (view_result.result != vk::Result::eSuccess) {
+        return BackendError(view_result.result);
+      }
+      swapChainImageViews.push_back(std::move(view_result.value));
     }
+
+    return core::Status();
   }
 
-  void createGraphicsPipeline() {
-    vk::raii::ShaderModule shaderModule =
-        createShaderModule(readFile("./vulkan_tutorial/shaders/slang.spv"));
+  core::Status createGraphicsPipeline() {
+    auto code = readFile("./vulkan_tutorial/shaders/slang.spv");
+    if (!code.ok()) {
+      return code.status();
+    }
+    auto shader = createShaderModule(*code);
+    if (!shader.ok()) {
+      return shader.status();
+    }
+    vk::raii::ShaderModule shaderModule = std::move(*shader);
 
     vk::PipelineShaderStageCreateInfo vertShaderStageInfo{
         .stage = vk::ShaderStageFlagBits::eVertex, .module = shaderModule, .pName = "vertMain"};
@@ -395,7 +591,12 @@ class HelloTriangleApplication {
     vk::PipelineLayoutCreateInfo pipelineLayoutInfo{.setLayoutCount = 0,
                                                     .pushConstantRangeCount = 0};
 
-    pipelineLayout = vk::raii::PipelineLayout(device, pipelineLayoutInfo);
+    auto pipelineLayout_result =
+        device.createPipelineLayout(pipelineLayoutInfo);
+    if (pipelineLayout_result.result != vk::Result::eSuccess) {
+      return BackendError(pipelineLayout_result.result);
+    }
+    pipelineLayout = std::move(pipelineLayout_result.value);
 
     vk::StructureChain<vk::GraphicsPipelineCreateInfo, vk::PipelineRenderingCreateInfo>
         pipelineCreateInfoChain = {
@@ -412,26 +613,51 @@ class HelloTriangleApplication {
              .renderPass = nullptr},
             {.colorAttachmentCount = 1, .pColorAttachmentFormats = &swapChainSurfaceFormat.format}};
 
-    graphicsPipeline = vk::raii::Pipeline(
-        device, nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
+    auto graphicsPipeline_result = device.createGraphicsPipeline(
+        nullptr, pipelineCreateInfoChain.get<vk::GraphicsPipelineCreateInfo>());
+    if (graphicsPipeline_result.result != vk::Result::eSuccess) {
+      return BackendError(graphicsPipeline_result.result);
+    }
+    graphicsPipeline = std::move(graphicsPipeline_result.value);
+
+    return core::Status();
   }
 
-  void createCommandPool() {
+  core::Status createCommandPool() {
     vk::CommandPoolCreateInfo poolInfo{.flags = vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
                                        .queueFamilyIndex = queueIndex};
-    commandPool = vk::raii::CommandPool(device, poolInfo);
+
+    auto commandPool_result = device.createCommandPool(poolInfo);
+    if (commandPool_result.result != vk::Result::eSuccess) {
+      return BackendError(commandPool_result.result);
+    }
+    commandPool = std::move(commandPool_result.value);
+
+    return core::Status();
   }
 
-  void createCommandBuffers() {
+  core::Status createCommandBuffers() {
     vk::CommandBufferAllocateInfo allocInfo{.commandPool = commandPool,
                                             .level = vk::CommandBufferLevel::ePrimary,
                                             .commandBufferCount = MAX_FRAMES_IN_FLIGHT};
-    commandBuffers = vk::raii::CommandBuffers(device, allocInfo);
+
+    auto commandBuffers_result = device.allocateCommandBuffers(allocInfo);
+    if (commandBuffers_result.result != vk::Result::eSuccess) {
+      return BackendError(commandBuffers_result.result);
+    }
+    commandBuffers = std::move(commandBuffers_result.value);
+
+    return core::Status();
   }
 
-  void recordCommandBuffer(uint32_t imageIndex) {
+  core::Status recordCommandBuffer(uint32_t imageIndex) {
     auto &commandBuffer = commandBuffers[frameIndex];
-    commandBuffer.begin({});
+    {
+      const vk::Result result = commandBuffer.begin({});
+      if (result != vk::Result::eSuccess) {
+        return BackendError(result);
+      }
+    }
     // Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
     transition_image_layout(imageIndex, vk::ImageLayout::eUndefined,
                             vk::ImageLayout::eColorAttachmentOptimal,
@@ -467,7 +693,14 @@ class HelloTriangleApplication {
                             vk::PipelineStageFlagBits2::eColorAttachmentOutput,  // srcStage
                             vk::PipelineStageFlagBits2::eBottomOfPipe            // dstStage
     );
-    commandBuffer.end();
+    {
+      const vk::Result result = commandBuffer.end();
+      if (result != vk::Result::eSuccess) {
+        return BackendError(result);
+      }
+    }
+
+    return core::Status();
   }
 
   void transition_image_layout(uint32_t imageIndex, vk::ImageLayout old_layout,
@@ -495,36 +728,68 @@ class HelloTriangleApplication {
     commandBuffers[frameIndex].pipelineBarrier2(dependency_info);
   }
 
-  void createSyncObjects() {
+  core::Status createSyncObjects() {
     assert(presentCompleteSemaphores.empty() && renderFinishedSemaphores.empty() &&
            inFlightFences.empty());
 
     for (size_t i = 0; i < swapChainImages.size(); i++) {
-      renderFinishedSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
+      auto semaphore_result = device.createSemaphore(vk::SemaphoreCreateInfo());
+      if (semaphore_result.result != vk::Result::eSuccess) {
+        return BackendError(semaphore_result.result);
+      }
+      renderFinishedSemaphores.push_back(std::move(semaphore_result.value));
     }
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-      presentCompleteSemaphores.emplace_back(device, vk::SemaphoreCreateInfo());
-      inFlightFences.emplace_back(device,
-                                  vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+      auto semaphore_result = device.createSemaphore(vk::SemaphoreCreateInfo());
+      if (semaphore_result.result != vk::Result::eSuccess) {
+        return BackendError(semaphore_result.result);
+      }
+      presentCompleteSemaphores.push_back(std::move(semaphore_result.value));
+      auto fence_result = device.createFence(
+          vk::FenceCreateInfo{.flags = vk::FenceCreateFlagBits::eSignaled});
+      if (fence_result.result != vk::Result::eSuccess) {
+        return BackendError(fence_result.result);
+      }
+      inFlightFences.push_back(std::move(fence_result.value));
     }
+
+    return core::Status();
   }
 
-  void drawFrame() {
+  core::Status drawFrame() {
     // Note: inFlightFences, presentCompleteSemaphores, and commandBuffers are indexed by
     // frameIndex,
     //       while renderFinishedSemaphores is indexed by imageIndex
     auto fenceResult = device.waitForFences(*inFlightFences[frameIndex], vk::True, UINT64_MAX);
     if (fenceResult != vk::Result::eSuccess) {
-      throw std::runtime_error("failed to wait for fence!");
+      return core::Status(core::ErrorCode::kBackend,
+                          "failed to wait for fence!");
     }
-    device.resetFences(*inFlightFences[frameIndex]);
+    {
+      const vk::Result result = device.resetFences(*inFlightFences[frameIndex]);
+      if (result != vk::Result::eSuccess) {
+        return BackendError(result);
+      }
+    }
 
     auto [result, imageIndex] =
         swapChain.acquireNextImage(UINT64_MAX, *presentCompleteSemaphores[frameIndex], nullptr);
 
-    commandBuffers[frameIndex].reset();
-    recordCommandBuffer(imageIndex);
+    if (result != vk::Result::eSuccess &&
+        result != vk::Result::eSuboptimalKHR) {
+      return BackendError(result);
+    }
+    const vk::Result reset_result = commandBuffers[frameIndex].reset();
+    if (reset_result != vk::Result::eSuccess) {
+      return BackendError(reset_result);
+    }
+    {
+      const core::Status status = recordCommandBuffer(imageIndex);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     vk::PipelineStageFlags waitDestinationStageMask(
         vk::PipelineStageFlagBits::eColorAttachmentOutput);
@@ -535,7 +800,13 @@ class HelloTriangleApplication {
                                     .pCommandBuffers = &*commandBuffers[frameIndex],
                                     .signalSemaphoreCount = 1,
                                     .pSignalSemaphores = &*renderFinishedSemaphores[imageIndex]};
-    queue.submit(submitInfo, *inFlightFences[frameIndex]);
+    {
+      const vk::Result result =
+          queue.submit(submitInfo, *inFlightFences[frameIndex]);
+      if (result != vk::Result::eSuccess) {
+        return BackendError(result);
+      }
+    }
 
     const vk::PresentInfoKHR presentInfoKHR{
         .waitSemaphoreCount = 1,
@@ -551,17 +822,22 @@ class HelloTriangleApplication {
         std::cout << "vk::Queue::presentKHR returned vk::Result::eSuboptimalKHR !\n";
         break;
       default:
-        break;  // an unexpected result is returned!
+        return BackendError(result);
     }
     frameIndex = (frameIndex + 1) % MAX_FRAMES_IN_FLIGHT;
+
+    return core::Status();
   }
 
-  [[nodiscard]] vk::raii::ShaderModule createShaderModule(const std::vector<char> &code) const {
+  [[nodiscard]] core::Result<vk::raii::ShaderModule> createShaderModule(
+      const std::vector<char>& code) const {
     vk::ShaderModuleCreateInfo createInfo{.codeSize = code.size() * sizeof(char),
                                           .pCode = reinterpret_cast<const uint32_t *>(code.data())};
-    vk::raii::ShaderModule shaderModule{device, createInfo};
-
-    return shaderModule;
+    auto result = device.createShaderModule(createInfo);
+    if (result.result != vk::Result::eSuccess) {
+      return core::Result<vk::raii::ShaderModule>(BackendError(result.result));
+    }
+    return core::Result<vk::raii::ShaderModule>(std::move(result.value));
   }
 
   static uint32_t chooseSwapMinImageCount(vk::SurfaceCapabilitiesKHR const &surfaceCapabilities) {
@@ -637,27 +913,39 @@ class HelloTriangleApplication {
     return vk::False;
   }
 
-  static std::vector<char> readFile(const std::string &filename) {
+  static core::Result<std::vector<char>> readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
     if (!file.is_open()) {
-      throw std::runtime_error("failed to open file!");
+      return core::Result<std::vector<char>>(
+          core::Status(core::ErrorCode::kIo, "failed to open file!"));
     }
-    std::vector<char> buffer(file.tellg());
+    const std::streampos end = file.tellg();
+    if (end <= 0 ||
+        static_cast<std::uintmax_t>(end) >
+            static_cast<std::uintmax_t>(
+                std::numeric_limits<std::streamsize>::max()) ||
+        (end % 4) != 0) {
+      return core::Result<std::vector<char>>(
+          core::Status(core::ErrorCode::kIo, "Invalid shader file size"));
+    }
+    std::vector<char> buffer(static_cast<size_t>(end));
     file.seekg(0, std::ios::beg);
     file.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+    if (!file) {
+      return core::Result<std::vector<char>>(
+          core::Status(core::ErrorCode::kIo, "Failed to read shader file"));
+    }
     file.close();
-    return buffer;
+    return core::Result<std::vector<char>>(std::move(buffer));
   }
 };
 
 int main() {
-  try {
-    HelloTriangleApplication app;
-    app.run();
-  } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
+  HelloTriangleApplication app;
+  const core::Status status = app.run();
+  if (!status.ok()) {
+    std::cerr << status.message() << '\n';
     return EXIT_FAILURE;
   }
-
   return EXIT_SUCCESS;
 }

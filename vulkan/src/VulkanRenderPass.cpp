@@ -3,17 +3,46 @@
 namespace core {
 namespace vulkan {
 
-VulkanRenderPass::VulkanRenderPass(VulkanContext* context, VkFormat color_attachment_format,
-                                   const bool enable_depth_buffer)
-    : context_(context),
-      has_color_attachment_(color_attachment_format != VK_FORMAT_UNDEFINED),
-      has_depth_attachment_(enable_depth_buffer) {
+Result<std::unique_ptr<VulkanRenderPass>> VulkanRenderPass::Create(
+    VulkanContext* context, VkFormat color_attachment_format,
+    const bool enable_depth_buffer) {
+  std::unique_ptr<VulkanRenderPass> object(new VulkanRenderPass());
+  const Status status =
+      object->Init(context, color_attachment_format, enable_depth_buffer);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanRenderPass>>(status);
+  }
+  return Result<std::unique_ptr<VulkanRenderPass>>(std::move(object));
+}
+
+Status VulkanRenderPass::Init(VulkanContext* context,
+                              VkFormat color_attachment_format,
+                              const bool enable_depth_buffer) {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanRenderPass initialization is single-use");
+  }
+  initialized_ = true;
+  context_ = context;
+  if (context_ == nullptr || !context_->is_initialized()) {
+    return Status(ErrorCode::kInvalidState, "A live Vulkan device is required");
+  }
+
+  has_color_attachment_ = color_attachment_format != VK_FORMAT_UNDEFINED;
+  has_depth_attachment_ = enable_depth_buffer;
+
   // TODO: adapt to different rendering purposes
 
   if (enable_depth_buffer) {
-    depth_format = FindDepthFormat(
-        {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT},
-        VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    const auto depth_format_result =
+        FindDepthFormat({VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                         VK_FORMAT_D24_UNORM_S8_UINT},
+                        VK_IMAGE_TILING_OPTIMAL,
+                        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+    if (!depth_format_result.ok()) {
+      return depth_format_result.status();
+    }
+    depth_format = *depth_format_result;
   }
 
   VkAttachmentDescription color_attachment_description{};
@@ -92,29 +121,43 @@ VulkanRenderPass::VulkanRenderPass(VulkanContext* context, VkFormat color_attach
   VkResult result =
       vkCreateRenderPass(context_->logical_device, &render_pass_info, nullptr, &render_pass_);
   if (result != VK_SUCCESS) {
-    throw std::runtime_error("Failed to create render pass");
+    return Status(ErrorCode::kBackend, "Failed to create render pass", "Vulkan",
+                  result);
   }
+
+  return Status();
 }
 
 VulkanRenderPass::~VulkanRenderPass() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
+
   vkDestroyRenderPass(context_->logical_device, render_pass_, nullptr);
 }
 
-VkFormat VulkanRenderPass::FindDepthFormat(const std::vector<VkFormat>& candidates,
-                                           VkImageTiling tiling,
-                                           VkFormatFeatureFlags features) const {
+Result<VkFormat> VulkanRenderPass::FindDepthFormat(
+    const std::vector<VkFormat>& candidates, VkImageTiling tiling,
+    VkFormatFeatureFlags features) const {
+  if (context_ == nullptr) {
+    return Result<VkFormat>(
+        Status(ErrorCode::kInvalidState,
+               "VulkanRenderPass requires successful initialization"));
+  }
+
   for (VkFormat format : candidates) {
     VkFormatProperties props;
     vkGetPhysicalDeviceFormatProperties(context_->physical_device, format, &props);
 
     if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
-      return format;
+      return Result<VkFormat>(format);
     } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
                (props.optimalTilingFeatures & features) == features) {
-      return format;
+      return Result<VkFormat>(format);
     }
   }
-  throw std::runtime_error("failed to find supported format!");
+  return Result<VkFormat>(
+      Status(ErrorCode::kUnsupported, "failed to find supported format!"));
 }
 
 }  // namespace vulkan

@@ -15,8 +15,8 @@ class ComputeGaussianBlur : public VulkanCompute {
   ComputeGaussianBlur(VulkanContext* context, VulkanBuffer& src, VulkanBuffer& dst, const int width,
                       const int height);
 
-  void Init() override;
-  void Run(const VkCommandBuffer command_buffer);
+  core::Status Init() override;
+  core::Status Run(const VkCommandBuffer command_buffer);
 
   VulkanBuffer& src_buffer;
   VulkanBuffer& dst_buffer;

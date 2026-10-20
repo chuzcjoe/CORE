@@ -27,19 +27,20 @@ class VulkanBase {
   explicit VulkanBase(VulkanContext* context);
   virtual ~VulkanBase();
 
-  virtual void Init();
+  virtual Status Init();
 
   VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
   VkPipeline pipeline = VK_NULL_HANDLE;
 
  protected:
   virtual std::vector<BindingInfo> GetBindingInfo() const = 0;
-  virtual void CreatePipeline() = 0;
+  virtual Status CreatePipeline() = 0;
 
  protected:
   std::vector<VkDescriptorSetLayoutBinding> CreateDescriptorLayoutBindings() const;
   std::vector<DescriptorPoolInfo> CreateDescriptorPoolSizes() const;
-  VkShaderModule CreateShaderModule(const std::vector<uint32_t>& shader_code) const;
+  Result<VkShaderModule> CreateShaderModule(
+      const std::vector<uint32_t>& shader_code) const;
 
   void CreateUniformBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
   void CreateStorageBufferDescriptorSet(const uint32_t binding, const VulkanBuffer& buffer);
@@ -48,9 +49,9 @@ class VulkanBase {
                                                const VkSampler& sampler);
 
   VulkanContext* context_ = nullptr;
-  VkDescriptorSetLayout descriptor_set_layout_;
-  VkDescriptorPool descriptor_pool_;
-  VkDescriptorSet descriptor_set_;
+  VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
+  VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
+  VkDescriptorSet descriptor_set_ = VK_NULL_HANDLE;
 
   std::vector<VkDescriptorBufferInfo> buffer_infos_;
   std::vector<VkDescriptorImageInfo> image_infos_;
@@ -58,6 +59,8 @@ class VulkanBase {
 
  private:
   std::mutex write_mutex_;
+
+  bool initialized_ = false;
 
   int buffer_idx_ = 0;
   int image_idx_ = 0;

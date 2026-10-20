@@ -4,6 +4,8 @@
 
 #include <iostream>
 
+#include "Status.h"
+
 namespace core {
 namespace opengl {
 
@@ -20,7 +22,8 @@ class GLFrameBuffer {
   void AttachTexture2D(GLenum attachment, GLenum internal_format, GLsizei width, GLsizei height,
                        GLenum format, GLenum type) const;
 
-  void AttachRenderBuffer(GLenum internal_format, GLsizei width, GLsizei height) const;
+  Status AttachRenderBuffer(GLenum internal_format, GLsizei width,
+                            GLsizei height) const;
 
   bool IsComplete() const {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo_id_);
@@ -30,9 +33,9 @@ class GLFrameBuffer {
   };
 
  private:
-  unsigned int fbo_id_;
-  unsigned int rbo_id_;
-  unsigned int texture_id_;
+  unsigned int fbo_id_ = 0;
+  unsigned int rbo_id_ = 0;
+  unsigned int texture_id_ = 0;
 };
 
 }  // namespace opengl

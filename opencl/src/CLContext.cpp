@@ -6,15 +6,41 @@
 namespace core {
 namespace opencl {
 
-CLContext::CLContext() {
-  QueryPlatforms();
-  QueryDevices();
+Result<std::unique_ptr<CLContext>> CLContext::Create() {
+  std::unique_ptr<CLContext> object(new CLContext());
+  const Status status = object->Init();
+  if (!status.ok()) {
+    return Result<std::unique_ptr<CLContext>>(status);
+  }
+  return Result<std::unique_ptr<CLContext>>(std::move(object));
+}
+
+Status CLContext::Init() {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "CLContext initialization is single-use");
+  }
+  initialized_ = true;
+
+  if (cl_init() != CL_SUCCESS) {
+    return Status(ErrorCode::kBackend, "Failed to load OpenCL", "OpenCL");
+  }
+  Status status = QueryPlatforms();
+  if (!status.ok()) {
+    return status;
+  }
+  status = QueryDevices();
+  if (!status.ok()) {
+    return status;
+  }
 
   cl_int err = CL_SUCCESS;
   context = clCreateContext(nullptr, 1, &device, nullptr, nullptr, &err);
   if (err != CL_SUCCESS) {
-    throw std::runtime_error("clCreateContext failed");
+    return Status(ErrorCode::kBackend, "clCreateContext failed", "OpenCL", err);
   }
+
+  return Status();
 }
 
 CLContext::~CLContext() {
@@ -24,20 +50,39 @@ CLContext::~CLContext() {
   }
 }
 
-void CLContext::QueryPlatforms() {
-  cl_uint num_platforms = 0;
-  clGetPlatformIDs(0, nullptr, &num_platforms);
-  std::vector<cl_platform_id> platforms(num_platforms);
-  clGetPlatformIDs(num_platforms, platforms.data(), nullptr);
-  platform = platforms[0];
+Status CLContext::QueryPlatforms() {
+  cl_uint count = 0;
+  cl_int err = clGetPlatformIDs(0, nullptr, &count);
+  if (err != CL_SUCCESS || count == 0) {
+    return Status(ErrorCode::kNotFound, "No OpenCL platforms available",
+                  "OpenCL", err);
+  }
+  std::vector<cl_platform_id> items(count);
+  err = clGetPlatformIDs(count, items.data(), nullptr);
+  if (err != CL_SUCCESS) {
+    return Status(ErrorCode::kBackend, "OpenCL enumeration failed", "OpenCL",
+                  err);
+  }
+  platform = items[0];
+  return Status();
 }
 
-void CLContext::QueryDevices() {
-  cl_uint num_devices = 0;
-  clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &num_devices);
-  std::vector<cl_device_id> devices(num_devices);
-  clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, num_devices, devices.data(), nullptr);
-  device = devices[0];
+Status CLContext::QueryDevices() {
+  cl_uint count = 0;
+  cl_int err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 0, nullptr, &count);
+  if (err != CL_SUCCESS || count == 0) {
+    return Status(ErrorCode::kNotFound, "No OpenCL devices available", "OpenCL",
+                  err);
+  }
+  std::vector<cl_device_id> items(count);
+  err = clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, count, items.data(),
+                       nullptr);
+  if (err != CL_SUCCESS) {
+    return Status(ErrorCode::kBackend, "OpenCL enumeration failed", "OpenCL",
+                  err);
+  }
+  device = items[0];
+  return Status();
 }
 
 }  // namespace opencl

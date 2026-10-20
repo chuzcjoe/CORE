@@ -1,5 +1,7 @@
 #include "GLESTexture.h"
 
+#include "Status.h"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
@@ -23,30 +25,45 @@ GLESTexture::~GLESTexture() {
   }
 }
 
-void GLESTexture::Load2DTextureFromFile(const char* file_path, GLenum format, int texture_unit,
-                                        GLint wrap_type, GLint filter_type, bool flip_vertically) {
+Status GLESTexture::Load2DTextureFromFile(const char* file_path, GLenum format,
+                                          int texture_unit, GLint wrap_type,
+                                          GLint filter_type,
+                                          bool flip_vertically) {
   stbi_set_flip_vertically_on_load(flip_vertically);
 
   // If texture for the texture unit already exists, update it
   if (texture_ids_.find(texture_unit) != texture_ids_.end()) {
-    ReadImageData(file_path, texture_ids_[texture_unit], format);
-    return;
+    {
+      const core::Status status =
+          ReadImageData(file_path, texture_ids_[texture_unit], format);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    return Status();
   }
 
   GLuint texture_id;
   glGenTextures(1, &texture_id);
+  texture_ids_[texture_unit] = texture_id;
   glBindTexture(GL_TEXTURE_2D, texture_id);
   // Set texture parameters
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap_type);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap_type);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter_type);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter_type);
-  ReadImageData(file_path, texture_id, format);
+  {
+    const core::Status status = ReadImageData(file_path, texture_id, format);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  texture_ids_[texture_unit] = texture_id;
+  return Status();
 }
 
-void GLTexture::ReadImageData(const char* file_path, GLuint texture_id, GLenum format) {
+Status GLESTexture::ReadImageData(const char* file_path, GLuint texture_id,
+                                  GLenum format) {
   int width, height, channels;
   unsigned char* data = stbi_load(file_path, &width, &height, &channels, 0);
   if (data) {
@@ -55,9 +72,10 @@ void GLTexture::ReadImageData(const char* file_path, GLuint texture_id, GLenum f
     glGenerateMipmap(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);  // Unbind texture
   } else {
-    throw std::runtime_error("Failed to load texture image");
+    return Status(ErrorCode::kBackend, "Failed to load texture image");
   }
   stbi_image_free(data);
+  return Status();
 }
 
 }  // namespace opengles

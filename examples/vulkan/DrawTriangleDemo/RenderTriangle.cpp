@@ -1,40 +1,84 @@
 #include "RenderTriangle.h"
 
+#include "Status.h"
+
 namespace core {
 
 RenderTriangle::RenderTriangle(core::vulkan::VulkanContext* context,
                                core::vulkan::VulkanRenderPass* render_pass)
-    : core::vulkan::VulkanRender(context, render_pass) {
-  CreateVertexBuffer();
-}
+    : core::vulkan::VulkanRender(context, render_pass) {}
 
-RenderTriangle::RenderTriangle(core::vulkan::VulkanContext* context,
-                               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {
-  CreateVertexBuffer();
-}
+RenderTriangle::RenderTriangle(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {}
 
-void RenderTriangle::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderTriangle::Init() {
+  {
+    const core::Status status = CreateVertexBuffer();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  vertex_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-  });
-  index_buffer_staging_.MapData(
-      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
+  {
+    const core::Status status =
+        vertex_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, vertices_.data(),
+                 sizeof(vertices_[0]) * vertices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([this](void* data) {
-    uniform_data_.model = glm::mat4(1.0f);
-    uniform_data_.view = glm::mat4(1.0f);
-    uniform_data_.project = glm::mat4(1.0f);
-    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([this](void* data) {
+      uniform_data_.model = glm::mat4(1.0f);
+      uniform_data_.view = glm::mat4(1.0f);
+      uniform_data_.project = glm::mat4(1.0f);
+      memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+  {
+    const core::Status status =
+        vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderTriangle::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -105,34 +149,66 @@ std::vector<VkVertexInputAttributeDescription> RenderTriangle::GetVertexAttribut
   return attribute_descriptions;
 }
 
-void RenderTriangle::CreateVertexBuffer() {
+core::Status RenderTriangle::CreateVertexBuffer() {
   const VkDeviceSize vertex_buffer_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize index_buffer_size = sizeof(indices_[0]) * indices_.size();
 
-  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status = vertex_buffer_staging_.Init(
+        context_, vertex_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, vertex_buffer_size,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = vertex_buffer_local_.Init(
+        context_, vertex_buffer_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, index_buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, index_buffer_size,
-      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, index_buffer_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderTriangle::UpdateUniformBuffer(const int width, const int height) {
+core::Status RenderTriangle::UpdateUniformBuffer(const int width,
+                                                 const int height) {
   // printf("width: %d, height: %d\n", width, height);
   auto current_time = std::chrono::high_resolution_clock::now();
   float time =
@@ -140,17 +216,27 @@ void RenderTriangle::UpdateUniformBuffer(const int width, const int height) {
           .count();
 
   // TODO: maintain a persistent mapping pointer to avoid mapping every time
-  uniform_buffer_.MapData([this, time, width, height](void* data) {
-    uniform_data_.model =
-        glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    uniform_data_.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                     glm::vec3(0.0f, 0.0f, 1.0f));
-    uniform_data_.project =
-        glm::perspective(glm::radians(45.0f), (float)width / (float)height, 0.1f, 10.0f);
-    uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
+  {
+    const core::Status status =
+        uniform_buffer_.MapData([this, time, width, height](void* data) {
+          uniform_data_.model =
+              glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
+                          glm::vec3(0.0f, 0.0f, 1.0f));
+          uniform_data_.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f),
+                                           glm::vec3(0.0f, 0.0f, 0.0f),
+                                           glm::vec3(0.0f, 0.0f, 1.0f));
+          uniform_data_.project = glm::perspective(
+              glm::radians(45.0f), (float)width / (float)height, 0.1f, 10.0f);
+          uniform_data_.project[1][1] *= -1;  // Invert Y for Vulkan
 
-    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
-  });
+          memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

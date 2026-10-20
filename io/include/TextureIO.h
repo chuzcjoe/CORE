@@ -4,11 +4,13 @@
 
 #include <string>
 
+#include "Status.h"
+
 namespace core {
 namespace io {
 
-void WriteTextureToFile(const GLint texture, const int width, const int height,
-                        const std::string& file_path);
+Status WriteTextureToFile(const GLint texture, const int width,
+                          const int height, const std::string& file_path);
 
 }  // namespace io
 }  // namespace core

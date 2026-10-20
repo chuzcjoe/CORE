@@ -3,7 +3,9 @@
 #include <glad/glad.h>
 
 #include <iostream>
+#include <memory>
 
+#include "Status.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -13,7 +15,14 @@ namespace opengl {
 
 class GLProgram {
  public:
-  GLProgram(const char* vertex_shader_source, const char* fragment_shader_source);
+  GLProgram(const GLProgram&) = delete;
+  GLProgram& operator=(const GLProgram&) = delete;
+  GLProgram() = default;
+
+  static Result<std::unique_ptr<GLProgram>> Create(
+      const char* vertex_shader_source, const char* fragment_shader_source);
+  Status Init(const char* vertex_shader_source,
+              const char* fragment_shader_source);
   ~GLProgram();
 
   void Use() const;
@@ -42,7 +51,8 @@ class GLProgram {
   }
 
  private:
-  unsigned int program_id_;
+  unsigned int program_id_ = 0;
+  bool initialized_ = false;
 };
 
 }  // namespace opengl

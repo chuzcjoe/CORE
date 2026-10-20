@@ -1,6 +1,10 @@
 #include "VulkanCompute.h"
 
 #include <fstream>
+#include <memory>
+#include <type_traits>
+
+#include "Status.h"
 
 namespace core {
 namespace vulkan {
@@ -8,14 +12,36 @@ namespace vulkan {
 VulkanCompute::VulkanCompute(VulkanContext* context) : VulkanBase(context) {}
 
 VulkanCompute::~VulkanCompute() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
+
   vkDestroyPipelineCache(context_->logical_device, pipeline_cache_, nullptr);
 }
 
-void VulkanCompute::CreatePipeline() {
+Status VulkanCompute::CreatePipeline() {
   const auto shader_code = LoadShaderCode();
-  const VkShaderModule shader_module = CreateShaderModule(shader_code);
 
-  CreatePipelineCache(GetPipelineCache());
+  const auto shader_module_result = CreateShaderModule(shader_code);
+  if (!shader_module_result.ok()) {
+    return shader_module_result.status();
+  }
+  const VkShaderModule shader_module = *shader_module_result;
+  const auto release_shader_module = [this](VkShaderModule handle) {
+    if (handle != VK_NULL_HANDLE) {
+      vkDestroyShaderModule(context_->logical_device, handle, nullptr);
+    }
+  };
+  const std::unique_ptr<std::remove_pointer_t<VkShaderModule>,
+                        decltype(release_shader_module)>
+      shader_module_owner(shader_module, release_shader_module);
+
+  {
+    const core::Status status = CreatePipelineCache(GetPipelineCache());
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   VkPipelineShaderStageCreateInfo shader_stage_info{};
   shader_stage_info.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -28,10 +54,17 @@ void VulkanCompute::CreatePipeline() {
   pipeline_info.stage = shader_stage_info;
   pipeline_info.layout = pipeline_layout;
 
-  VK_CHECK(vkCreateComputePipelines(context_->logical_device, pipeline_cache_, 1, &pipeline_info,
-                                    nullptr, &pipeline));
+  {
+    const VkResult result =
+        vkCreateComputePipelines(context_->logical_device, pipeline_cache_, 1,
+                                 &pipeline_info, nullptr, &pipeline);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
-  vkDestroyShaderModule(context_->logical_device, shader_module, nullptr);
+  return Status();
 }
 
 const std::string VulkanCompute::GetPipelineCache() const { return ""; }
@@ -51,7 +84,7 @@ std::vector<char> VulkanCompute::LoadPipelineCache(const std::string& cache) {
   return buffer;
 }
 
-void VulkanCompute::CreatePipelineCache(const std::string& cache) {
+Status VulkanCompute::CreatePipelineCache(const std::string& cache) {
   std::vector<char> cache_data = LoadPipelineCache(cache);
   VkPipelineCacheCreateInfo cache_info{};
   cache_info.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
@@ -64,28 +97,53 @@ void VulkanCompute::CreatePipelineCache(const std::string& cache) {
     cache_info.pInitialData = cache_data.data();
   }
 
-  VK_CHECK(vkCreatePipelineCache(context_->logical_device, &cache_info, nullptr, &pipeline_cache_));
+  {
+    const VkResult result = vkCreatePipelineCache(
+        context_->logical_device, &cache_info, nullptr, &pipeline_cache_);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
+
+  return Status();
 }
 
-void VulkanCompute::SavePipelineCache(const std::string& cache) const {
+Status VulkanCompute::SavePipelineCache(const std::string& cache) const {
   if (pipeline_cache_ == VK_NULL_HANDLE) {
-    return;
+    return Status();
   }
 
   size_t cache_size = 0;
-  VK_CHECK(vkGetPipelineCacheData(context_->logical_device, pipeline_cache_, &cache_size, nullptr));
+  {
+    const VkResult result = vkGetPipelineCacheData(
+        context_->logical_device, pipeline_cache_, &cache_size, nullptr);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
   if (cache_size == 0) {
-    return;
+    return Status();
   }
 
   std::vector<char> cache_data(cache_size);
-  VK_CHECK(vkGetPipelineCacheData(context_->logical_device, pipeline_cache_, &cache_size,
-                                  cache_data.data()));
+  {
+    const VkResult result =
+        vkGetPipelineCacheData(context_->logical_device, pipeline_cache_,
+                               &cache_size, cache_data.data());
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   std::ofstream file(cache, std::ios::binary);
   if (file.is_open()) {
     file.write(cache_data.data(), cache_data.size());
   }
+
+  return Status();
 }
 
 }  // namespace vulkan

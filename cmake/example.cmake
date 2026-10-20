@@ -15,6 +15,7 @@ function(build_example target_name)
     endif()
 
     add_executable(${target_name} ${resolved_sources})
+    target_link_libraries(${target_name} PRIVATE core_error)
 
     if(ARG_PUBLIC_INCLUDES)
         target_include_directories(${target_name} PUBLIC ${ARG_PUBLIC_INCLUDES})

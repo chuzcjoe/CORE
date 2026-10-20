@@ -1,5 +1,8 @@
 #pragma once
 
+#include <memory>
+
+#include "Status.h"
 #include "VulkanContext.h"
 
 namespace core {
@@ -7,7 +10,13 @@ namespace vulkan {
 
 class VulkanDynamicRendering {
  public:
-  explicit VulkanDynamicRendering(VulkanContext* context);
+  VulkanDynamicRendering(const VulkanDynamicRendering&) = delete;
+  VulkanDynamicRendering& operator=(const VulkanDynamicRendering&) = delete;
+  VulkanDynamicRendering() = default;
+
+  static Result<std::unique_ptr<VulkanDynamicRendering>> Create(
+      VulkanContext* context);
+  Status Init(VulkanContext* context);
 
   void BeginDynamicRendering(VkCommandBuffer command_buffer, VkImageView target_image_view,
                              VkExtent2D extent, VkClearValue clear_value) const;
@@ -22,11 +31,14 @@ class VulkanDynamicRendering {
   void EndDynamicRendering(VkCommandBuffer command_buffer) const;
 
  private:
-  void LoadDynamicRenderingCommands();
+  Status LoadDynamicRenderingCommands();
 
   VulkanContext* context_ = nullptr;
   PFN_vkCmdBeginRendering vk_cmd_begin_rendering_ = nullptr;
   PFN_vkCmdEndRendering vk_cmd_end_rendering_ = nullptr;
+
+ private:
+  bool initialized_ = false;
 };
 
 }  // namespace vulkan

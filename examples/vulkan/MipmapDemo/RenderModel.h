@@ -34,12 +34,14 @@ class RenderModel : public core::vulkan::VulkanRender {
   RenderModel(core::vulkan::VulkanContext* context,
               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
-  void Init(const std::string& image_path, const std::string& model_path);
+  core::Status Init() override;
+  core::Status Init(const std::string& image_path,
+                    const std::string& model_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height, const glm::mat4& view_matrix,
-                           const float rotation);
+  core::Status UpdateUniformBuffer(const int width, const int height,
+                                   const glm::mat4& view_matrix,
+                                   const float rotation);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -54,7 +56,7 @@ class RenderModel : public core::vulkan::VulkanRender {
   std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
-  void CreateTextureImage(const std::string& image_path);
+  core::Status CreateTextureImage(const std::string& image_path);
 
   struct UniformBufferObject {
     glm::mat4 model;
@@ -62,8 +64,8 @@ class RenderModel : public core::vulkan::VulkanRender {
     glm::mat4 project;
   } uniform_data_;
 
-  void LoadModel(const std::string& model_path);
-  void CreateBuffers();
+  core::Status LoadModel(const std::string& model_path);
+  core::Status CreateBuffers();
 
   // vertex
   std::vector<Vertex> vertices_;

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+
+#include "Status.h"
+
 #if defined(__APPLE__)
 #include <GLFW/glfw3.h>
 #endif
@@ -18,17 +22,25 @@ struct SwapChainSupportDetails {
 
 class VulkanSwapChain {
  public:
-  VulkanSwapChain() = delete;
-  VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
-                  const bool enable_depth_buffer = false);
+  VulkanSwapChain(const VulkanSwapChain&) = delete;
+  VulkanSwapChain& operator=(const VulkanSwapChain&) = delete;
+  VulkanSwapChain() = default;
+
+  // The caller owns surface and must keep it alive until this swapchain is
+  // destroyed.
+  static Result<std::unique_ptr<VulkanSwapChain>> Create(
+      VulkanContext* context, VkSurfaceKHR surface,
+      const bool enable_depth_buffer = false);
+  Status Init(VulkanContext* context, VkSurfaceKHR surface,
+              const bool enable_depth_buffer = false);
   ~VulkanSwapChain();
 
   void UnInit();
 
-  void CreateFrameBuffers(VulkanRenderPass& render_pass);
+  Status CreateFrameBuffers(VulkanRenderPass& render_pass);
 
-  void TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
-                             VkImageLayout new_layout);
+  Status TransitionImageLayout(VkCommandBuffer command_buffer,
+                               uint32_t image_index, VkImageLayout new_layout);
 
   [[nodiscard]] VkResult Present(uint32_t image_index, VkSemaphore wait_semaphore) const;
 
@@ -40,13 +52,14 @@ class VulkanSwapChain {
   std::vector<VkImageView> swapchain_image_views;
 
  private:
-  SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device);
+  Result<SwapChainSupportDetails> QuerySwapChainSupport(
+      VkPhysicalDevice device);
   VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats);
   VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& present_modes);
   VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities);
 
-  void CreateImageViews();
-  void CreateDepthResources(VkFormat depth_format);
+  Status CreateImageViews();
+  Status CreateDepthResources(VkFormat depth_format);
 
   VulkanContext* context_ = nullptr;
   SwapChainSupportDetails swapchain_support_details_;
@@ -62,6 +75,8 @@ class VulkanSwapChain {
 #if defined(__APPLE__)
   GLFWwindow* window_;
 #endif
+ private:
+  bool initialized_ = false;
 };
 
 }  // namespace vulkan

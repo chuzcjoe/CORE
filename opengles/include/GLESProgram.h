@@ -3,7 +3,9 @@
 #include <glad/glad.h>
 
 #include <iostream>
+#include <memory>
 
+#include "Status.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/type_ptr.hpp"
@@ -13,7 +15,14 @@ namespace opengles {
 
 class GLESProgram {
  public:
-  GLESProgram(const char* vertex_shader_source, const char* fragment_shader_source);
+  GLESProgram(const GLESProgram&) = delete;
+  GLESProgram& operator=(const GLESProgram&) = delete;
+  GLESProgram() = default;
+
+  static Result<std::unique_ptr<GLESProgram>> Create(
+      const char* vertex_shader_source, const char* fragment_shader_source);
+  Status Init(const char* vertex_shader_source,
+              const char* fragment_shader_source);
   ~GLESProgram();
 
   void Use() const;
@@ -42,7 +51,8 @@ class GLESProgram {
   }
 
  private:
-  unsigned int program_id_;
+  unsigned int program_id_ = 0;
+  bool initialized_ = false;
 };
 
 }  // namespace opengles

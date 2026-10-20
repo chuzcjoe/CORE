@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "Status.h"
+
 namespace core {
 namespace vulkan {
 
@@ -92,19 +94,47 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
   return VK_FALSE;
 }
 
-VulkanContext::VulkanContext(const bool enable_validation_layers, QueueFamilyType queue_family_type,
-                             const VkSurfaceKHR surface)
-    : enable_validation_layers_(enable_validation_layers),
-      queue_family_type_(queue_family_type),
-      surface_(surface) {
-  CreateInstance(enable_validation_layers_);
+Result<std::unique_ptr<VulkanContext>> VulkanContext::Create(
+    const bool enable_validation_layers, QueueFamilyType queue_family_type,
+    const VkSurfaceKHR surface) {
+  std::unique_ptr<VulkanContext> context(new VulkanContext());
+  context->enable_validation_layers_ = enable_validation_layers;
+  context->queue_family_type_ = queue_family_type;
+  context->surface_ = surface;
+  const Status status = context->CreateInstance(enable_validation_layers);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanContext>>(status);
+  }
+  return Result<std::unique_ptr<VulkanContext>>(std::move(context));
 }
 
-void VulkanContext::Init(VkSurfaceKHR surface) {
+Status VulkanContext::Init(VkSurfaceKHR surface) {
+  if (device_init_attempted_) {
+    return Status(ErrorCode::kInvalidState,
+                  "Vulkan device initialization is single-use");
+  }
+  device_init_attempted_ = true;
   surface_ = surface;
-  PickPhysicalDevice(queue_family_type_);
-  CreateLogicalDevice();
-  SetupDebugMessenger();
+  {
+    const core::Status status = PickPhysicalDevice(queue_family_type_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = CreateLogicalDevice();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = SetupDebugMessenger();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  device_ready_ = true;
+  return Status();
 }
 
 VulkanContext::~VulkanContext() {
@@ -125,23 +155,23 @@ VulkanContext::~VulkanContext() {
   }
 }
 
-uint32_t VulkanContext::FindMemoryType(const uint32_t type_filter,
-                                       const VkMemoryPropertyFlags properties) const {
+Result<uint32_t> VulkanContext::FindMemoryType(
+    const uint32_t type_filter, const VkMemoryPropertyFlags properties) const {
   VkPhysicalDeviceMemoryProperties mem_properties;
   vkGetPhysicalDeviceMemoryProperties(physical_device, &mem_properties);
 
   for (uint32_t i = 0; i < mem_properties.memoryTypeCount; ++i) {
     if ((type_filter & (1 << i)) &&
         (mem_properties.memoryTypes[i].propertyFlags & properties) == properties) {
-      return i;
+      return Result<uint32_t>(i);
     }
   }
 
-  throw std::runtime_error("failed to find suitable memory type!");
-  return -1;
+  return Result<uint32_t>(
+      Status(ErrorCode::kUnsupported, "failed to find suitable memory type!"));
 }
 
-void VulkanContext::CreateInstance(const bool enable_validation_layers) {
+Status VulkanContext::CreateInstance(const bool enable_validation_layers) {
   const bool is_validation_supported = CheckValidationLayerSupport();
   // Get required extensions
   std::vector<const char*> extensions;
@@ -165,9 +195,25 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
 
   // Search for all support extensions
   uint32_t extensionCount = 0;
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
+
+  {
+    const VkResult error = vkEnumerateInstanceExtensionProperties(
+        nullptr, &extensionCount, nullptr);
+    if (error != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan",
+                    error);
+    }
+  }
   std::vector<VkExtensionProperties> support_extensions(extensionCount);
-  vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, support_extensions.data());
+
+  {
+    const VkResult error = vkEnumerateInstanceExtensionProperties(
+        nullptr, &extensionCount, support_extensions.data());
+    if (error != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan",
+                    error);
+    }
+  }
 
   // Check if required extensions are supported
   std::unordered_set<std::string> all_extensions;
@@ -177,8 +223,9 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
 
   for (const auto& extension : extensions) {
     if (all_extensions.find(extension) == all_extensions.end()) {
-      std::cerr << "Missing Vulkan extension: " << extension << "\n";
-      throw std::runtime_error("required Vulkan extension not supported");
+      return Status(
+          ErrorCode::kUnsupported,
+          std::string("Required Vulkan extension not supported: ") + extension);
     }
   }
 
@@ -209,20 +256,51 @@ void VulkanContext::CreateInstance(const bool enable_validation_layers) {
     ci.ppEnabledLayerNames = nullptr;
   }
 
-  VK_CHECK(vkCreateInstance(&ci, nullptr, &instance));
+  {
+    const VkResult result = vkCreateInstance(&ci, nullptr, &instance);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
+
+  return Status();
 }
 
-void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) {
+Status VulkanContext::PickPhysicalDevice(
+    const QueueFamilyType queue_family_type) {
   uint32_t device_count = 0;
-  vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+
+  {
+    const VkResult error =
+        vkEnumeratePhysicalDevices(instance, &device_count, nullptr);
+    if (error != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan",
+                    error);
+    }
+  }
   if (device_count == 0) {
-    throw std::runtime_error("failed to find GPUs with Vulkan support!");
+    return Status(ErrorCode::kBackend,
+                  "failed to find GPUs with Vulkan support!");
   }
   std::vector<VkPhysicalDevice> devices(device_count);
-  vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+
+  {
+    const VkResult error =
+        vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+    if (error != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan",
+                    error);
+    }
+  }
 
   for (const auto& device : devices) {
-    FindQueueFamilies(device, queue_family_type);
+    {
+      const core::Status status = FindQueueFamilies(device, queue_family_type);
+      if (!status.ok()) {
+        return status;
+      }
+    }
     if (queue_family_indices_.is_complete() && SupportsDynamicRendering(device)) {
       physical_device = device;
       break;
@@ -230,7 +308,7 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
   }
 
   if (physical_device == VK_NULL_HANDLE) {
-    throw std::runtime_error("failed to find a suitable GPU!");
+    return Status(ErrorCode::kBackend, "failed to find a suitable GPU!");
   }
 
   // Get Timestamp period
@@ -238,13 +316,15 @@ void VulkanContext::PickPhysicalDevice(const QueueFamilyType queue_family_type) 
   vkGetPhysicalDeviceProperties(physical_device, &properties);
   const float period = properties.limits.timestampPeriod;
   if (period == 0.0f) {
-    std::runtime_error("timestamp is 0");
+    return Status(ErrorCode::kUnsupported, "GPU timestamps are unavailable");
   }
   timestamp_period = period;
+
+  return Status();
 }
 
-void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
-                                      const QueueFamilyType queue_family_type) {
+Status VulkanContext::FindQueueFamilies(
+    VkPhysicalDevice device, const QueueFamilyType queue_family_type) {
   VkQueueFlags compute_flag = 0;
   VkQueueFlags graphics_flag = 0;
 
@@ -256,7 +336,8 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
       graphics_flag = VK_QUEUE_GRAPHICS_BIT;
       break;
     default:
-      throw std::runtime_error("Currently only support compute and graphics");
+      return Status(ErrorCode::kBackend,
+                    "Currently only support compute and graphics");
   }
 
   uint32_t queue_family_count = 0;
@@ -274,7 +355,12 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
     if (queue_family.queueFlags & graphics_flag) {
       queue_family_indices_.graphics_family = i;
       VkBool32 present_support = false;
-      vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface_, &present_support);
+      const VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(
+          device, i, surface_, &present_support);
+      if (result != VK_SUCCESS) {
+        return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                      result);
+      }
       if (present_support) {
         queue_family_indices_.present_family = i;
       }
@@ -284,9 +370,11 @@ void VulkanContext::FindQueueFamilies(VkPhysicalDevice device,
     }
     ++i;
   }
+
+  return Status();
 }
 
-void VulkanContext::CreateLogicalDevice(const float queuePriority) {
+Status VulkanContext::CreateLogicalDevice(const float queuePriority) {
   std::vector<VkDeviceQueueCreateInfo> queue_infos;
   // TODO: support present queue
   std::set<std::optional<uint32_t>> unique_queue_families;
@@ -306,7 +394,7 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
     }
     VkDeviceQueueCreateInfo queue_info{};
     queue_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    queue_info.queueFamilyIndex = family.value();
+    queue_info.queueFamilyIndex = *family;
     queue_info.queueCount = 1;
     queue_info.pQueuePriorities = &queuePriority;
     queue_infos.emplace_back(queue_info);
@@ -319,7 +407,8 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   features2.pNext = &dyn;
   vkGetPhysicalDeviceFeatures2(physical_device, &features2);
   if (dyn.dynamicRendering != VK_TRUE) {
-    throw std::runtime_error("Selected GPU does not support dynamic rendering");
+    return Status(ErrorCode::kUnsupported,
+                  "Selected GPU does not support dynamic rendering");
   }
   dyn.dynamicRendering = VK_TRUE;  // enable feature at device creation
 
@@ -330,27 +419,41 @@ void VulkanContext::CreateLogicalDevice(const float queuePriority) {
   device_create_info.queueCreateInfoCount = static_cast<uint32_t>(queue_infos.size());
   device_create_info.pNext = &dyn;
 
-  const auto extensions = GetRequiredDeviceExtensions();
+  const auto extensions_result = GetRequiredDeviceExtensions();
+  if (!extensions_result.ok()) {
+    return extensions_result.status();
+  }
+  const auto extensions = *extensions_result;
   device_create_info.enabledExtensionCount = static_cast<uint32_t>(extensions.size());
   device_create_info.ppEnabledExtensionNames = extensions.data();
 
-  VK_CHECK(vkCreateDevice(physical_device, &device_create_info, nullptr, &logical_device));
+  {
+    const VkResult result = vkCreateDevice(physical_device, &device_create_info,
+                                           nullptr, &logical_device);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   if (queue_family_indices_.compute_family.has_value()) {
-    vkGetDeviceQueue(logical_device, queue_family_indices_.compute_family.value(), 0,
+    vkGetDeviceQueue(logical_device, *queue_family_indices_.compute_family, 0,
                      &compute_queue_);
   }
   if (queue_family_indices_.graphics_family.has_value()) {
-    vkGetDeviceQueue(logical_device, queue_family_indices_.graphics_family.value(), 0,
+    vkGetDeviceQueue(logical_device, *queue_family_indices_.graphics_family, 0,
                      &graphics_queue_);
   }
   if (queue_family_indices_.present_family.has_value()) {
-    vkGetDeviceQueue(logical_device, queue_family_indices_.present_family.value(), 0,
+    vkGetDeviceQueue(logical_device, *queue_family_indices_.present_family, 0,
                      &present_queue_);
   }
+
+  return Status();
 }
 
-std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
+Result<std::vector<const char*>> VulkanContext::GetRequiredDeviceExtensions()
+    const {
   std::vector<const char*> extensions;
 
   // TODO: add more extensions if needed
@@ -372,10 +475,25 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
 
   // check if required extensions are supported
   uint32_t extensionCount = 0;
-  vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount, nullptr);
+
+  {
+    const VkResult error = vkEnumerateDeviceExtensionProperties(
+        physical_device, nullptr, &extensionCount, nullptr);
+    if (error != VK_SUCCESS) {
+      return Result<std::vector<const char*>>(
+          Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+    }
+  }
   std::vector<VkExtensionProperties> supportedExtensions(extensionCount);
-  vkEnumerateDeviceExtensionProperties(physical_device, nullptr, &extensionCount,
-                                       supportedExtensions.data());
+
+  {
+    const VkResult error = vkEnumerateDeviceExtensionProperties(
+        physical_device, nullptr, &extensionCount, supportedExtensions.data());
+    if (error != VK_SUCCESS) {
+      return Result<std::vector<const char*>>(
+          Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+    }
+  }
 
   std::unordered_set<std::string> availableExtensions;
   for (const auto& ext : supportedExtensions) {
@@ -384,16 +502,17 @@ std::vector<const char*> VulkanContext::GetRequiredDeviceExtensions() const {
 
   for (const auto& ext : extensions) {
     if (availableExtensions.find(ext) == availableExtensions.end()) {
-      std::cerr << "Missing device extension: " << ext << std::endl;
-      throw std::runtime_error("Required device extension not supported");
+      return Result<std::vector<const char*>>(Status(
+          ErrorCode::kUnsupported,
+          std::string("Required device extension not supported: ") + ext));
     }
   }
 
-  return extensions;
+  return Result<std::vector<const char*>>(extensions);
 }
 
-void VulkanContext::SetupDebugMessenger() {
-  if (!enable_validation_layers_) return;
+Status VulkanContext::SetupDebugMessenger() {
+  if (!enable_validation_layers_) return Status();
 
   VkDebugUtilsMessengerCreateInfoEXT create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -408,16 +527,28 @@ void VulkanContext::SetupDebugMessenger() {
   auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
       instance, "vkCreateDebugUtilsMessengerEXT");
   if (func != nullptr) {
-    func(instance, &create_info, nullptr, &debug_messenger_);
+    const VkResult result =
+        func(instance, &create_info, nullptr, &debug_messenger_);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
   }
+
+  return Status();
 }
 
 bool VulkanContext::CheckValidationLayerSupport() {
-  uint32_t layer_count;
-  vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
+  uint32_t layer_count = 0;
+  if (vkEnumerateInstanceLayerProperties(&layer_count, nullptr) != VK_SUCCESS) {
+    return false;
+  }
 
   std::vector<VkLayerProperties> available_layers(layer_count);
-  vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+  if (vkEnumerateInstanceLayerProperties(
+          &layer_count, available_layers.data()) != VK_SUCCESS) {
+    return false;
+  }
 
   for (const auto& layer : available_layers) {
     if (strcmp(kValidationLayerName[0], layer.layerName) == 0) {

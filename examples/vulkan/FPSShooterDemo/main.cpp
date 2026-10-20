@@ -1,3 +1,5 @@
+#include "Status.h"
+
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
@@ -65,7 +67,7 @@ bool first_mouse = true;
 void process_inputs(GLFWwindow* window, float dt, const std::vector<core::Target>& targets);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 
-int main() {
+core::Status RunApplication() {
   VkSurfaceKHR window_surface = VK_NULL_HANDLE;
   GLFWwindow* window;
   glfwInit();
@@ -73,42 +75,118 @@ int main() {
   window = glfwCreateWindow(kWidth, kHeight, "FPS Shooter Demo", nullptr, nullptr);
   if (!window) {
     glfwTerminate();
-    throw std::runtime_error("failed to create window");
+    return core::Status(core::ErrorCode::kBackend, "failed to create window");
   }
+  const auto close_window = [](GLFWwindow* value) {
+    glfwDestroyWindow(value);
+    glfwTerminate();
+  };
+  const std::unique_ptr<GLFWwindow, decltype(close_window)> window_owner(
+      window, close_window);
 
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   glfwSetCursorPosCallback(window, mouse_callback);
 
   core::vulkan::QueueFamilyType queue_family_type = core::vulkan::QueueFamilyType::Graphics;
-  core::vulkan::VulkanContext context(true, queue_family_type, nullptr);
-  std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
+
+  auto context_result =
+      core::vulkan::VulkanContext::Create(true, queue_family_type, nullptr);
+  if (!context_result.ok()) {
+    return context_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanContext> context_owner =
+      std::move(*context_result);
+  core::vulkan::VulkanContext& context = *context_owner;
 
   if (glfwCreateWindowSurface(context.instance, window, nullptr, &window_surface) != VK_SUCCESS) {
-    throw std::runtime_error("failed to create window surface");
+    return core::Status(core::ErrorCode::kBackend,
+                        "failed to create window surface");
   }
+  const auto destroy_surface = [&context](VkSurfaceKHR value) {
+    vkDestroySurfaceKHR(context.instance, value, nullptr);
+  };
+  const std::unique_ptr<std::remove_pointer_t<VkSurfaceKHR>,
+                        decltype(destroy_surface)>
+      surface_owner(window_surface, destroy_surface);
+  std::unique_ptr<core::vulkan::VulkanSwapChain> swap_chain;
 
-  context.Init(window_surface);
+  {
+    const core::Status status = context.Init(window_surface);
+    if (!status.ok()) {
+      return status;
+    }
+  }
   if (window_surface != VK_NULL_HANDLE) {
-    swap_chain = std::make_unique<core::vulkan::VulkanSwapChain>(&context, window_surface);
+    auto swap_chain_creation =
+        core::vulkan::VulkanSwapChain::Create(&context, window_surface);
+    if (!swap_chain_creation.ok()) {
+      return swap_chain_creation.status();
+    }
+    swap_chain = std::move(*swap_chain_creation);
   }
 
-  // Manually-managed depth image for the dynamic rendering path.
-  core::vulkan::VulkanImage depth_image(
-      &context, swap_chain->swapchain_extent.width, swap_chain->swapchain_extent.height,
-      kDepthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+  auto depth_image_result = core::vulkan::VulkanImage::Create(
+      &context, swap_chain->swapchain_extent.width,
+      swap_chain->swapchain_extent.height, kDepthFormat,
+      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
       VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
-  depth_image.TransitionDepthImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, kDepthFormat);
+  if (!depth_image_result.ok()) {
+    return depth_image_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanImage> depth_image_owner =
+      std::move(*depth_image_result);
+  core::vulkan::VulkanImage& depth_image = *depth_image_owner;
+  {
+    const core::Status status = depth_image.TransitionDepthImageLayout(
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, kDepthFormat);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  core::vulkan::VulkanCommandBuffer command_buffer(&context);
-  core::vulkan::VulkanDynamicRendering dynamic_rendering(&context);
-  core::vulkan::VulkanSemaphore image_available_semaphore(&context);
+  auto command_buffer_result =
+      core::vulkan::VulkanCommandBuffer::Create(&context);
+  if (!command_buffer_result.ok()) {
+    return command_buffer_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanCommandBuffer> command_buffer_owner =
+      std::move(*command_buffer_result);
+  core::vulkan::VulkanCommandBuffer& command_buffer = *command_buffer_owner;
+
+  auto dynamic_rendering_result =
+      core::vulkan::VulkanDynamicRendering::Create(&context);
+  if (!dynamic_rendering_result.ok()) {
+    return dynamic_rendering_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanDynamicRendering>
+      dynamic_rendering_owner = std::move(*dynamic_rendering_result);
+  core::vulkan::VulkanDynamicRendering& dynamic_rendering =
+      *dynamic_rendering_owner;
+
+  auto image_available_semaphore_result =
+      core::vulkan::VulkanSemaphore::Create(&context);
+  if (!image_available_semaphore_result.ok()) {
+    return image_available_semaphore_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanSemaphore>
+      image_available_semaphore_owner =
+          std::move(*image_available_semaphore_result);
+  core::vulkan::VulkanSemaphore& image_available_semaphore =
+      *image_available_semaphore_owner;
   // One render-finished (present) semaphore per swapchain image. A binary
   // semaphore used for presentation cannot be reused until its image is
   // re-acquired, so indexing by image avoids the swapchain semaphore-reuse
   // validation error.
   std::vector<std::unique_ptr<core::vulkan::VulkanSemaphore>> render_finished_semaphores;
-  core::vulkan::VulkanFence in_flight_fence(&context);
+
+  auto in_flight_fence_result = core::vulkan::VulkanFence::Create(&context);
+  if (!in_flight_fence_result.ok()) {
+    return in_flight_fence_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanFence> in_flight_fence_owner =
+      std::move(*in_flight_fence_result);
+  core::vulkan::VulkanFence& in_flight_fence = *in_flight_fence_owner;
 
   core::vulkan::DynamicRenderingInfo dynamic_rendering_info{};
   dynamic_rendering_info.color_formats = {swap_chain->swapchain_image_format};
@@ -134,15 +212,45 @@ int main() {
   float flash = 0.0f;
   float fire_timer = 0.0f;
   for (size_t i = 0; i < swap_chain->swapchain_image_views.size(); ++i) {
-    render_finished_semaphores.push_back(std::make_unique<core::vulkan::VulkanSemaphore>(&context));
+    auto created_resource_4 = core::vulkan::VulkanSemaphore::Create(&context);
+    if (!created_resource_4.ok()) {
+      return created_resource_4.status();
+    }
+    render_finished_semaphores.push_back(std::move(*created_resource_4));
   }
 
-  floor->Init();
-  targets->Init();
-  bullets->Init();
-  gun->Init(kGunTexturePath, kGunModelPath);
+  {
+    const core::Status status = floor->Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = targets->Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = bullets->Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = gun->Init(kGunTexturePath, kGunModelPath);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   auto last_time = std::chrono::high_resolution_clock::now();
+
+  const auto wait_for_device = [](core::vulkan::VulkanContext* value) {
+    static_cast<void>(vkDeviceWaitIdle(value->logical_device));
+  };
+  const std::unique_ptr<core::vulkan::VulkanContext, decltype(wait_for_device)>
+      device_idle_guard(&context, wait_for_device);
 
   while (!glfwWindowShouldClose(window)) {
     glfwPollEvents();
@@ -178,7 +286,12 @@ int main() {
       const glm::vec3 color = glm::mix(t.color, glm::vec3(1.0f, 1.0f, 1.0f), t.hit_flash);
       target_instances.push_back({model, color});
     }
-    targets->SetInstances(target_instances);
+    {
+      const core::Status status = targets->SetInstances(target_instances);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     std::vector<core::CubeInstance> bullet_instances;
     for (const auto& b : game.bullets()) {
@@ -199,10 +312,20 @@ int main() {
                         glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.05f, 0.32f));
       bullet_instances.push_back({model, glm::vec3(1.0f, 0.85f, 0.30f)});
     }
-    bullets->SetInstances(bullet_instances);
+    {
+      const core::Status status = bullets->SetInstances(bullet_instances);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     vkWaitForFences(context.logical_device, 1, &(in_flight_fence.fence), VK_TRUE, UINT64_MAX);
-    in_flight_fence.Reset();
+    {
+      const core::Status status = in_flight_fence.Reset();
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     uint32_t image_index;
     vkAcquireNextImageKHR(context.logical_device, swap_chain->swapchain, UINT64_MAX,
@@ -215,9 +338,24 @@ int main() {
                              static_cast<float>(swap_chain->swapchain_extent.height),
                          0.1f, 200.0f);
 
-    floor->UpdateUniformBuffer(view, project);
-    targets->UpdateUniformBuffer(view, project);
-    bullets->UpdateUniformBuffer(view, project);
+    {
+      const core::Status status = floor->UpdateUniformBuffer(view, project);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = targets->UpdateUniformBuffer(view, project);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = bullets->UpdateUniformBuffer(view, project);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     // Place the weapon model in view space (lower-right), rotated so its barrel
     // points forward; recoil pulls it toward the camera and dips it slightly.
@@ -228,12 +366,29 @@ int main() {
                        glm::vec3(0.14f, -0.23f - 0.03f * recoil, -0.55f + 0.06f * recoil)) *
         glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0f, 1.0f, 0.0f)) *
         glm::scale(glm::mat4(1.0f), glm::vec3(0.2f));
-    gun->UpdateUniformBuffer(project, viewmodel, flash);
+    {
+      const core::Status status =
+          gun->UpdateUniformBuffer(project, viewmodel, flash);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
-    command_buffer.BeginCommandBufferWithReset();
+    {
+      const core::Status status = command_buffer.BeginCommandBufferWithReset();
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
-    swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
-                                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+    {
+      const core::Status status = swap_chain->TransitionImageLayout(
+          command_buffer.buffer(), image_index,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     dynamic_rendering.BeginDynamicRendering(
         command_buffer.buffer(), swap_chain->swapchain_image_views[image_index],
@@ -246,28 +401,46 @@ int main() {
     gun->Render(command_buffer.buffer(), swap_chain->swapchain_extent);
     dynamic_rendering.EndDynamicRendering(command_buffer.buffer());
 
-    swap_chain->TransitionImageLayout(command_buffer.buffer(), image_index,
-                                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+    {
+      const core::Status status = swap_chain->TransitionImageLayout(
+          command_buffer.buffer(), image_index,
+          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
-    command_buffer.Submit(
-        in_flight_fence.fence,
-        core::vulkan::SubmitSyncInfo{
-            .wait_semaphores = {image_available_semaphore.semaphore},
-            .wait_stage_masks = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-            .signal_semaphores = {render_finished_semaphores[image_index]->semaphore},
-        });
+    {
+      const core::Status status = command_buffer.Submit(
+          in_flight_fence.fence,
+          core::vulkan::SubmitSyncInfo{
+              .wait_semaphores = {image_available_semaphore.semaphore},
+              .wait_stage_masks =
+                  {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
+              .signal_semaphores =
+                  {render_finished_semaphores[image_index]->semaphore},
+          });
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     const VkResult present_result =
         swap_chain->Present(image_index, render_finished_semaphores[image_index]->semaphore);
     if (present_result != VK_SUCCESS && present_result != VK_SUBOPTIMAL_KHR) {
-      VK_CHECK(present_result);
+      {
+        const VkResult error = present_result;
+        if (error != VK_SUCCESS) {
+          return core::Status(core::ErrorCode::kBackend,
+                              core::vulkan::VkErrorMessages(error), "Vulkan",
+                              error);
+        }
+      }
     }
   }
   vkDeviceWaitIdle(context.logical_device);
 
-  glfwDestroyWindow(window);
-  glfwTerminate();
-  return EXIT_SUCCESS;
+  return core::Status();
 }
 
 void process_inputs(GLFWwindow* window, float dt, const std::vector<core::Target>& targets) {
@@ -369,4 +542,13 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
   front.y = std::sin(glm::radians(camera->pitch));
   front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
   camera->camera_front = glm::normalize(front);
+}
+
+int main() {
+  const core::Status status = RunApplication();
+  if (!status.ok()) {
+    std::fprintf(stderr, "%s\n", status.message().c_str());
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

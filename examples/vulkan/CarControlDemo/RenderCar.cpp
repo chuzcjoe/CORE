@@ -2,33 +2,80 @@
 
 #include <cstring>
 
+#include "Status.h"
+
 namespace core {
 
-RenderCar::RenderCar(core::vulkan::VulkanContext* context,
-                     const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {
-  BuildGeometry();
-  CreateBuffers();
-}
+RenderCar::RenderCar(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {}
 
-void RenderCar::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderCar::Init() {
+  BuildGeometry();
+  {
+    const core::Status status = CreateBuffers();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  vertex_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-  });
-  index_buffer_staging_.MapData(
-      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
-  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+  {
+    const core::Status status =
+        vertex_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, vertices_.data(),
+                 sizeof(vertices_[0]) * vertices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([](void* data) {
-    UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f), glm::mat4(1.0f)};
-    memcpy(data, &init, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([](void* data) {
+      UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f),
+                               glm::mat4(1.0f)};
+      memcpy(data, &init, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderCar::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -57,13 +104,21 @@ void RenderCar::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
-void RenderCar::UpdateUniformBuffer(const glm::mat4& model, const glm::mat4& view,
-                                    const glm::mat4& project) {
-  uniform_buffer_.MapData([&](void* data) {
-    UniformBufferObject ubo{model, view, project};
-    ubo.project[1][1] *= -1;  // Vulkan Y-flip
-    memcpy(data, &ubo, sizeof(UniformBufferObject));
-  });
+core::Status RenderCar::UpdateUniformBuffer(const glm::mat4& model,
+                                            const glm::mat4& view,
+                                            const glm::mat4& project) {
+  {
+    const core::Status status = uniform_buffer_.MapData([&](void* data) {
+      UniformBufferObject ubo{model, view, project};
+      ubo.project[1][1] *= -1;  // Vulkan Y-flip
+      memcpy(data, &ubo, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 std::vector<core::vulkan::BindingInfo> RenderCar::GetBindingInfo() const {
@@ -161,27 +216,60 @@ void RenderCar::BuildGeometry() {
   AppendBox({-wheel_dx, 0.30f, -wheel_dz}, {0.30f, 0.60f, 0.70f}, wheel_color);
 }
 
-void RenderCar::CreateBuffers() {
+core::Status RenderCar::CreateBuffers() {
   const VkDeviceSize v_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize i_size = sizeof(indices_[0]) * indices_.size();
 
-  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = vertex_buffer_staging_.Init(
+        context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = vertex_buffer_local_.Init(
+        context_, v_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, i_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

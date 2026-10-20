@@ -1,14 +1,47 @@
 #include "VulkanSwapChain.h"
 
+#include "Status.h"
 #include "VulkanCommandBuffer.h"
 
 namespace core {
 namespace vulkan {
 
-VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
-                                 const bool enable_depth_buffer)
-    : context_(context), surface_(surface), enable_depth_buffer_(enable_depth_buffer) {
-  swapchain_support_details_ = QuerySwapChainSupport(context_->physical_device);
+Result<std::unique_ptr<VulkanSwapChain>> VulkanSwapChain::Create(
+    VulkanContext* context, VkSurfaceKHR surface,
+    const bool enable_depth_buffer) {
+  std::unique_ptr<VulkanSwapChain> object(new VulkanSwapChain());
+  const Status status = object->Init(context, surface, enable_depth_buffer);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanSwapChain>>(status);
+  }
+  return Result<std::unique_ptr<VulkanSwapChain>>(std::move(object));
+}
+
+Status VulkanSwapChain::Init(VulkanContext* context, VkSurfaceKHR surface,
+                             const bool enable_depth_buffer) {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSwapChain initialization is single-use");
+  }
+  initialized_ = true;
+  context_ = context;
+  if (context_ == nullptr || !context_->is_initialized()) {
+    return Status(ErrorCode::kInvalidState, "A live Vulkan device is required");
+  }
+
+  surface_ = surface;
+  enable_depth_buffer_ = enable_depth_buffer;
+
+  auto support = QuerySwapChainSupport(context_->physical_device);
+  if (!support.ok()) {
+    return support.status();
+  }
+  swapchain_support_details_ = std::move(*support);
+  if (swapchain_support_details_.formats.empty() ||
+      swapchain_support_details_.present_modes.empty()) {
+    return Status(ErrorCode::kUnsupported,
+                  "Surface has no supported formats or presentation modes");
+  }
   surface_format_ = ChooseSwapSurfaceFormat(swapchain_support_details_.formats);
   present_mode_ = ChooseSwapPresentMode(swapchain_support_details_.present_modes);
   swapchain_extent = ChooseSwapExtent(swapchain_support_details_.capabilities);
@@ -31,8 +64,13 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
   QueueFamilyIndices indices = context_->GetQueueFamilyIndices();
-  uint32_t queue_family_indices[] = {indices.graphics_family.value(),
-                                     indices.present_family.value()};
+  if (!indices.graphics_family.has_value() ||
+      !indices.present_family.has_value()) {
+    return Status(ErrorCode::kInvalidState,
+                  "Swapchains require graphics and present queues");
+  }
+  uint32_t queue_family_indices[] = {*indices.graphics_family,
+                                     *indices.present_family};
 
   if (indices.graphics_family != indices.present_family) {
     create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
@@ -50,7 +88,8 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   VkResult result =
       vkCreateSwapchainKHR(context_->logical_device, &create_info, nullptr, &swapchain);
   if (result != VK_SUCCESS) {
-    throw std::runtime_error("create swap chain failed");
+    return Status(ErrorCode::kBackend, "create swap chain failed", "Vulkan",
+                  result);
   }
 
   vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count, nullptr);
@@ -59,29 +98,44 @@ VulkanSwapChain::VulkanSwapChain(VulkanContext* context, VkSurfaceKHR surface,
   result = vkGetSwapchainImagesKHR(context_->logical_device, swapchain, &image_count,
                                    swapchain_images.data());
   if (result != VK_SUCCESS) {
-    throw std::runtime_error("get swap chain images failed");
+    return Status(ErrorCode::kBackend, "get swap chain images failed", "Vulkan",
+                  result);
   }
   swapchain_image_format = surface_format_.format;
 
-  CreateImageViews();
+  {
+    const core::Status status = CreateImageViews();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
 VulkanSwapChain::~VulkanSwapChain() {
-  UnInit();
-  if (context_ && surface_ != VK_NULL_HANDLE) {
-    vkDestroySurfaceKHR(context_->instance, surface_, nullptr);
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
   }
+
+  UnInit();
 }
 
 void VulkanSwapChain::UnInit() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
   for (auto framebuffer : swapchain_framebuffers) {
     vkDestroyFramebuffer(context_->logical_device, framebuffer, nullptr);
   }
+  swapchain_framebuffers.clear();
   for (auto imageview : swapchain_image_views) {
     vkDestroyImageView(context_->logical_device, imageview, nullptr);
   }
-  if (swapchain) {
+  swapchain_image_views.clear();
+  if (swapchain != VK_NULL_HANDLE) {
     vkDestroySwapchainKHR(context_->logical_device, swapchain, nullptr);
+    swapchain = VK_NULL_HANDLE;
   }
 }
 
@@ -96,25 +150,65 @@ VkResult VulkanSwapChain::Present(uint32_t image_index, VkSemaphore wait_semapho
   return vkQueuePresentKHR(context_->present_queue(), &present_info);
 }
 
-SwapChainSupportDetails VulkanSwapChain::QuerySwapChainSupport(VkPhysicalDevice device) {
+Result<SwapChainSupportDetails> VulkanSwapChain::QuerySwapChainSupport(
+    VkPhysicalDevice device) {
   SwapChainSupportDetails details;
-  vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface_, &details.capabilities);
+
+  {
+    const VkResult error = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+        device, surface_, &details.capabilities);
+    if (error != VK_SUCCESS) {
+      return Result<SwapChainSupportDetails>(
+          Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+    }
+  }
 
   uint32_t format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_count, nullptr);
+
+  {
+    const VkResult error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+        device, surface_, &format_count, nullptr);
+    if (error != VK_SUCCESS) {
+      return Result<SwapChainSupportDetails>(
+          Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+    }
+  }
   if (format_count != 0) {
     details.formats.resize(format_count);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface_, &format_count, details.formats.data());
+
+    {
+      const VkResult error = vkGetPhysicalDeviceSurfaceFormatsKHR(
+          device, surface_, &format_count, details.formats.data());
+      if (error != VK_SUCCESS) {
+        return Result<SwapChainSupportDetails>(Status(
+            ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+      }
+    }
   }
 
   uint32_t present_mode_count;
-  vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &present_mode_count, nullptr);
+
+  {
+    const VkResult error = vkGetPhysicalDeviceSurfacePresentModesKHR(
+        device, surface_, &present_mode_count, nullptr);
+    if (error != VK_SUCCESS) {
+      return Result<SwapChainSupportDetails>(
+          Status(ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+    }
+  }
   if (present_mode_count != 0) {
     details.present_modes.resize(present_mode_count);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface_, &present_mode_count,
-                                              details.present_modes.data());
+
+    {
+      const VkResult error = vkGetPhysicalDeviceSurfacePresentModesKHR(
+          device, surface_, &present_mode_count, details.present_modes.data());
+      if (error != VK_SUCCESS) {
+        return Result<SwapChainSupportDetails>(Status(
+            ErrorCode::kBackend, VkErrorMessages(error), "Vulkan", error));
+      }
+    }
   }
-  return details;
+  return Result<SwapChainSupportDetails>(std::move(details));
 }
 
 VkSurfaceFormatKHR VulkanSwapChain::ChooseSwapSurfaceFormat(
@@ -159,7 +253,12 @@ VkExtent2D VulkanSwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
   return capabilities.currentExtent;
 }
 
-void VulkanSwapChain::CreateImageViews() {
+Status VulkanSwapChain::CreateImageViews() {
+  if (context_ == nullptr || swapchain == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSwapChain requires successful initialization");
+  }
+
   swapchain_image_views.resize(swapchain_images.size());
   for (size_t i = 0; i < swapchain_images.size(); ++i) {
     VkImageViewCreateInfo create_info{};
@@ -177,24 +276,62 @@ void VulkanSwapChain::CreateImageViews() {
     create_info.subresourceRange.baseArrayLayer = 0;
     create_info.subresourceRange.layerCount = 1;
 
-    VK_CHECK(vkCreateImageView(context_->logical_device, &create_info, nullptr,
-                               &swapchain_image_views[i]));
+    {
+      const VkResult result =
+          vkCreateImageView(context_->logical_device, &create_info, nullptr,
+                            &swapchain_image_views[i]);
+      if (result != VK_SUCCESS) {
+        return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                      result);
+      }
+    }
   }
+
+  return Status();
 }
 
-void VulkanSwapChain::CreateDepthResources(VkFormat depth_format) {
-  depth_image_ = core::vulkan::VulkanImage(
-      context_, swapchain_extent.width, swapchain_extent.height, depth_format,
-      VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+Status VulkanSwapChain::CreateDepthResources(VkFormat depth_format) {
+  if (context_ == nullptr || swapchain == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSwapChain requires successful initialization");
+  }
 
-  depth_image_.TransitionDepthImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_format);
+  {
+    const core::Status status = depth_image_.Init(
+        context_, swapchain_extent.width, swapchain_extent.height, depth_format,
+        VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_ASPECT_DEPTH_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = depth_image_.TransitionDepthImageLayout(
+        VK_IMAGE_LAYOUT_UNDEFINED,
+        VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, depth_format);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
-void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
+Status VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
+  if (context_ == nullptr || swapchain == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSwapChain requires successful initialization");
+  }
+
   if (enable_depth_buffer_) {
-    CreateDepthResources(render_pass.depth_format);
+    {
+      const core::Status status =
+          CreateDepthResources(render_pass.depth_format);
+      if (!status.ok()) {
+        return status;
+      }
+    }
   }
 
   swapchain_framebuffers.resize(swapchain_image_views.size());
@@ -215,15 +352,30 @@ void VulkanSwapChain::CreateFrameBuffers(VulkanRenderPass& render_pass) {
     framebuffer_info.height = swapchain_extent.height;
     framebuffer_info.layers = 1;
 
-    VK_CHECK(vkCreateFramebuffer(context_->logical_device, &framebuffer_info, nullptr,
-                                 &swapchain_framebuffers[i]));
+    {
+      const VkResult result =
+          vkCreateFramebuffer(context_->logical_device, &framebuffer_info,
+                              nullptr, &swapchain_framebuffers[i]);
+      if (result != VK_SUCCESS) {
+        return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                      result);
+      }
+    }
   }
+
+  return Status();
 }
 
-void VulkanSwapChain::TransitionImageLayout(VkCommandBuffer command_buffer, uint32_t image_index,
-                                            VkImageLayout new_layout) {
+Status VulkanSwapChain::TransitionImageLayout(VkCommandBuffer command_buffer,
+                                              uint32_t image_index,
+                                              VkImageLayout new_layout) {
+  if (context_ == nullptr || swapchain == VK_NULL_HANDLE) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanSwapChain requires successful initialization");
+  }
+
   if (image_index >= swapchain_images.size()) {
-    throw std::out_of_range("swapchain image index out of range");
+    return Status(ErrorCode::kOutOfRange, "swapchain image index out of range");
   }
 
   VkImageLayout old_layout = swapchain_image_layouts_[image_index];
@@ -263,13 +415,16 @@ void VulkanSwapChain::TransitionImageLayout(VkCommandBuffer command_buffer, uint
     source_stage = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
     destination_stage = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
   } else {
-    throw std::invalid_argument("unsupported swapchain image layout transition!");
+    return Status(ErrorCode::kInvalidArgument,
+                  "unsupported swapchain image layout transition!");
   }
 
   swapchain_image_layouts_[image_index] = new_layout;
 
   vkCmdPipelineBarrier(command_buffer, source_stage, destination_stage, 0, 0, nullptr, 0, nullptr,
                        1, &barrier);
+
+  return Status();
 }
 
 }  // namespace vulkan

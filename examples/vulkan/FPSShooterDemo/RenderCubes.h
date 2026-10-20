@@ -27,12 +27,13 @@ class RenderCubes : public core::vulkan::VulkanRender {
               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
               uint32_t max_instances);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& view,
+                                   const glm::mat4& project);
   // Upload the instances to draw this frame (clamped to max_instances).
-  void SetInstances(const std::vector<CubeInstance>& instances);
+  core::Status SetInstances(const std::vector<CubeInstance>& instances);
 
  protected:
   // Targets tumble freely, so don't cull either winding.
@@ -59,7 +60,7 @@ class RenderCubes : public core::vulkan::VulkanRender {
   };
 
   void BuildGeometry();
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   uint32_t max_instances_ = 0;
   uint32_t instance_count_ = 0;

@@ -1,0 +1,2 @@
+add_library(core_error INTERFACE)
+target_include_directories(core_error INTERFACE include)

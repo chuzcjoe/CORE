@@ -18,6 +18,9 @@ jobs:
         with:
           submodules: recursive
       
+      - name: Check explicit error handling
+        run: python3 scripts/check_no_exceptions.py
+
       # -------------------------
       # Install base tools
       # -------------------------

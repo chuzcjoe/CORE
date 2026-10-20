@@ -3,17 +3,9 @@
 #include <vulkan/vulkan_core.h>
 
 #include <glm/glm.hpp>
-#include <stdexcept>
 #include <string>
 
-#define VK_CHECK(x)                                                 \
-  do {                                                              \
-    VkResult err = x;                                               \
-    if (err != VK_SUCCESS) {                                        \
-      printf("Detected Vulkan error: %d\n", err);                   \
-      throw std::runtime_error(core::vulkan::VkErrorMessages(err)); \
-    }                                                               \
-  } while (0)
+#include "Status.h"
 
 namespace core {
 namespace vulkan {

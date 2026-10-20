@@ -18,10 +18,11 @@ class RenderFloor : public core::vulkan::VulkanRender {
   RenderFloor(core::vulkan::VulkanContext* context,
               const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& view,
+                                   const glm::mat4& project);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
@@ -41,7 +42,7 @@ class RenderFloor : public core::vulkan::VulkanRender {
     glm::mat4 project;
   };
 
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   // Big quad on the xz plane.
   static constexpr float kHalf = 30.0f;

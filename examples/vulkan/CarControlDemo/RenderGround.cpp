@@ -1,7 +1,8 @@
 #include "RenderGround.h"
 
 #include <cstring>
-#include <stdexcept>
+
+#include "Status.h"
 
 // stb_image's implementation lives in RenderSkybox.cpp; include the header
 // here without the implementation define.
@@ -9,35 +10,98 @@
 
 namespace core {
 
-RenderGround::RenderGround(core::vulkan::VulkanContext* context,
-                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info), sampler_(context) {}
+RenderGround::RenderGround(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info) {}
 
-void RenderGround::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderGround::Init() {
+  {
+    const core::Status status = sampler_.Init(context_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   CreateCombinedImageSamplerDescriptorSet(1, texture_image_.image_view, sampler_.sampler);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  vertex_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-  });
-  index_buffer_staging_.MapData(
-      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
-  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+  {
+    const core::Status status =
+        vertex_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, vertices_.data(),
+                 sizeof(vertices_[0]) * vertices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([](void* data) {
-    UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f)};
-    memcpy(data, &init, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([](void* data) {
+      UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f)};
+      memcpy(data, &init, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderGround::Init(const std::string& texture_path) {
-  CreateTextureImage(texture_path);
-  CreateBuffers();
-  Init();
+core::Status RenderGround::Init(const std::string& texture_path) {
+  {
+    const core::Status status = CreateTextureImage(texture_path);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = CreateBuffers();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderGround::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -66,12 +130,20 @@ void RenderGround::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
   vkCmdDrawIndexed(command_buffer, static_cast<uint32_t>(indices_.size()), 1, 0, 0, 0);
 }
 
-void RenderGround::UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project) {
-  uniform_buffer_.MapData([&](void* data) {
-    UniformBufferObject ubo{view, project};
-    ubo.project[1][1] *= -1;  // Vulkan Y-flip
-    memcpy(data, &ubo, sizeof(UniformBufferObject));
-  });
+core::Status RenderGround::UpdateUniformBuffer(const glm::mat4& view,
+                                               const glm::mat4& project) {
+  {
+    const core::Status status = uniform_buffer_.MapData([&](void* data) {
+      UniformBufferObject ubo{view, project};
+      ubo.project[1][1] *= -1;  // Vulkan Y-flip
+      memcpy(data, &ubo, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 std::vector<core::vulkan::BindingInfo> RenderGround::GetBindingInfo() const {
@@ -111,56 +183,129 @@ std::vector<VkVertexInputAttributeDescription> RenderGround::GetVertexAttributeD
   return {a};
 }
 
-void RenderGround::CreateTextureImage(const std::string& texture_path) {
+core::Status RenderGround::CreateTextureImage(const std::string& texture_path) {
   int w = 0;
   int h = 0;
   int c = 0;
   stbi_uc* pixels = stbi_load(texture_path.c_str(), &w, &h, &c, STBI_rgb_alpha);
   if (!pixels) {
-    throw std::runtime_error("failed to load ground texture: " + texture_path);
+    return core::Status(core::ErrorCode::kBackend,
+                        "failed to load ground texture: " + texture_path);
   }
   const VkDeviceSize image_size = static_cast<VkDeviceSize>(w) * h * 4;
 
-  core::vulkan::VulkanBuffer staging_buffer(
+  auto staging_buffer_result = core::vulkan::VulkanBuffer::Create(
       context_, image_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  staging_buffer.MapData(
-      [&](void* data) { memcpy(data, pixels, static_cast<size_t>(image_size)); });
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  if (!staging_buffer_result.ok()) {
+    return staging_buffer_result.status();
+  }
+  std::unique_ptr<core::vulkan::VulkanBuffer> staging_buffer_owner =
+      std::move(*staging_buffer_result);
+  core::vulkan::VulkanBuffer& staging_buffer = *staging_buffer_owner;
+  {
+    const core::Status status = staging_buffer.MapData([&](void* data) {
+      memcpy(data, pixels, static_cast<size_t>(image_size));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
   stbi_image_free(pixels);
 
-  texture_image_ = core::vulkan::VulkanImage(
-      context_, static_cast<uint32_t>(w), static_cast<uint32_t>(h), VK_FORMAT_R8G8B8A8_SRGB,
-      VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_IMAGE_TILING_OPTIMAL);
-  texture_image_.TransitionImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
-  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(w), static_cast<uint32_t>(h));
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                       VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-                                       VK_FORMAT_R8G8B8A8_SRGB);
+  {
+    const core::Status status = texture_image_.Init(
+        context_, static_cast<uint32_t>(w), static_cast<uint32_t>(h),
+        VK_FORMAT_R8G8B8A8_SRGB,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        VK_IMAGE_TILING_OPTIMAL);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = texture_image_.TransitionImageLayout(
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_FORMAT_R8G8B8A8_SRGB);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = staging_buffer.CopyToImage(
+        texture_image_, static_cast<uint32_t>(w), static_cast<uint32_t>(h));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = texture_image_.TransitionImageLayout(
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderGround::CreateBuffers() {
+core::Status RenderGround::CreateBuffers() {
   const VkDeviceSize v_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize i_size = sizeof(indices_[0]) * indices_.size();
 
-  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = vertex_buffer_staging_.Init(
+        context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = vertex_buffer_local_.Init(
+        context_, v_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, i_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

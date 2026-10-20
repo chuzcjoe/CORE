@@ -1,3 +1,7 @@
+#include <memory>
+
+#include "Status.h"
+
 // clang-format off
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -41,7 +45,7 @@ std::unique_ptr<core::opengl::GLCamera> camera =
 
 // Object shaders
 const char* obj_vertex_shader_source = OPENGL_VERTEX_SHADER(
-    layout(location = 0) in vec3 aPos; 
+    layout(location = 0) in vec3 aPos;
     layout(location = 1) in vec3 aNormal;
     layout(location = 2) in vec2 aTexCoord;
 
@@ -78,7 +82,7 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     in vec3 Normal;
     in vec3 FragPos;
     in vec2 TexCoord;
-    out vec4 FragColor; 
+    out vec4 FragColor;
     uniform vec3 viewPos;
 
     uniform Material material;
@@ -90,7 +94,7 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
 
         // ambient
         vec3 ambient = diffuseColor * light.ambient;
-        
+
         // diffuse
         vec3 norm = normalize(Normal);
         vec3 lightDir = normalize(light.position - FragPos);
@@ -111,7 +115,7 @@ const char* obj_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
 
 // Light shaders
 const char* light_vertex_shader_source = OPENGL_VERTEX_SHADER(
-    layout(location = 0) in vec3 aPos; 
+    layout(location = 0) in vec3 aPos;
     uniform mat4 model;
     uniform mat4 view;
     uniform mat4 projection;
@@ -122,14 +126,14 @@ const char* light_vertex_shader_source = OPENGL_VERTEX_SHADER(
 
 const char* light_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
     out vec4 FragColor;
-    uniform vec3 lightColor; 
-    void main() { 
+    uniform vec3 lightColor;
+    void main() {
         FragColor = vec4(lightColor, 1.0f);
     }
 );
 // clang-format on
 
-int main() {
+core::Status RunApplication() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -143,15 +147,22 @@ int main() {
   if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
-    return -1;
+    return core::Status(core::ErrorCode::kBackend, "Application failed");
   }
+  const auto close_window = [](GLFWwindow* value) {
+    glfwDestroyWindow(value);
+    glfwTerminate();
+  };
+  const std::unique_ptr<GLFWwindow, decltype(close_window)> window_owner(
+      window, close_window);
+
   glfwMakeContextCurrent(window);
   //   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
   //   glfwSetCursorPosCallback(window, mouse_callback);
 
   // glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    throw std::runtime_error("Failed to initialize GLAD");
+    return core::Status(core::ErrorCode::kBackend, "Failed to initialize GLAD");
   }
 
   // imgui setup
@@ -164,15 +175,41 @@ int main() {
   ImGui_ImplGlfw_InitForOpenGL(window, true);
   ImGui_ImplOpenGL3_Init("#version 330");
 
-  // Use GL after glad is initialized
-  core::opengl::GLProgram obj_program(obj_vertex_shader_source, obj_fragment_shader_source);
-  core::opengl::GLProgram light_program(light_vertex_shader_source, light_fragment_shader_source);
+  auto obj_program_result = core::opengl::GLProgram::Create(
+      obj_vertex_shader_source, obj_fragment_shader_source);
+  if (!obj_program_result.ok()) {
+    return obj_program_result.status();
+  }
+  std::unique_ptr<core::opengl::GLProgram> obj_program_owner =
+      std::move(*obj_program_result);
+  core::opengl::GLProgram& obj_program = *obj_program_owner;
+
+  auto light_program_result = core::opengl::GLProgram::Create(
+      light_vertex_shader_source, light_fragment_shader_source);
+  if (!light_program_result.ok()) {
+    return light_program_result.status();
+  }
+  std::unique_ptr<core::opengl::GLProgram> light_program_owner =
+      std::move(*light_program_result);
+  core::opengl::GLProgram& light_program = *light_program_owner;
   core::opengl::GLVertexArray obj_vao;
   core::opengl::GLVertexArray light_vao;
   core::opengl::GLVertexBuffer vbo;  // share between object and light
   core::opengl::GLTexture texture(GL_TEXTURE_2D);
-  texture.Load2DTextureFromFile("./examples/data/container2.png", GL_RGBA, 0);
-  texture.Load2DTextureFromFile("./examples/data/container2_specular.png", GL_RGBA, 1);
+  {
+    const core::Status status = texture.Load2DTextureFromFile(
+        "./examples/data/container2.png", GL_RGBA, 0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = texture.Load2DTextureFromFile(
+        "./examples/data/container2_specular.png", GL_RGBA, 1);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // clang-format off
   float vertices[] = {
@@ -226,15 +263,39 @@ int main() {
 
   // setup object cube
   obj_vao.AttachVertexBuffer(vbo.id());
-  obj_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-  obj_vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                                 (void*)(3 * sizeof(float)));
-  obj_vao.SetVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                                 (void*)(6 * sizeof(float)));
+  {
+    const core::Status status = obj_vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = obj_vao.SetVertexAttribPointer(
+        1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+        (void*)(3 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = obj_vao.SetVertexAttribPointer(
+        2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
+        (void*)(6 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // setup light cube
   light_vao.AttachVertexBuffer(vbo.id());
-  light_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+  {
+    const core::Status status = light_vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   glEnable(GL_DEPTH_TEST);
 
@@ -289,8 +350,18 @@ int main() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // texture
-    texture.ActivateBind(GL_TEXTURE_2D, 0);
-    texture.ActivateBind(GL_TEXTURE_2D, 1);
+    {
+      const core::Status status = texture.ActivateBind(GL_TEXTURE_2D, 0);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = texture.ActivateBind(GL_TEXTURE_2D, 1);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     // draw light
     light_program.Use();
@@ -323,7 +394,7 @@ int main() {
   ImGui::DestroyContext();
 
   glfwTerminate();
-  return 0;
+  return core::Status();
 }
 
 void process_inputs(GLFWwindow* window) {
@@ -363,4 +434,12 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
   front.y = std::sin(glm::radians(camera->pitch));
   front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
   camera->camera_front = glm::normalize(front);
+}
+int main() {
+  const core::Status status = RunApplication();
+  if (!status.ok()) {
+    std::fprintf(stderr, "%s\n", status.message().c_str());
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

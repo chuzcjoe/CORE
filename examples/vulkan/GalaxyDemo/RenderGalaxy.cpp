@@ -5,31 +5,66 @@
 #include <cstring>
 #include <random>
 
+#include "Status.h"
+
 namespace core {
 
-RenderGalaxy::RenderGalaxy(core::vulkan::VulkanContext* context,
-                           const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
-                           uint32_t star_count)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info), star_count_(star_count) {
-  GenerateStars();
-  CreateBuffers();
-}
+RenderGalaxy::RenderGalaxy(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+    uint32_t star_count)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info),
+      star_count_(star_count) {}
 
-void RenderGalaxy::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderGalaxy::Init() {
+  GenerateStars();
+  {
+    const core::Status status = CreateBuffers();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  quad_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, quad_corners_.data(), sizeof(quad_corners_[0]) * quad_corners_.size());
-  });
-  index_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, quad_indices_.data(), sizeof(quad_indices_[0]) * quad_indices_.size());
-  });
-  instance_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, instances_.data(), sizeof(InstanceData) * instances_.size());
-  });
+  {
+    const core::Status status =
+        quad_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, quad_corners_.data(),
+                 sizeof(quad_corners_[0]) * quad_corners_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, quad_indices_.data(),
+                 sizeof(quad_indices_[0]) * quad_indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        instance_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, instances_.data(),
+                 sizeof(InstanceData) * instances_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   std::array<core::vulkan::BatchBufferCopy, 3> uploads{};
   uploads[0].source = &quad_buffer_staging_;
@@ -38,16 +73,29 @@ void RenderGalaxy::Init() {
   uploads[1].destination = &index_buffer_local_;
   uploads[2].source = &instance_buffer_staging_;
   uploads[2].destination = &instance_buffer_local_;
-  core::vulkan::VulkanBuffer::CopyBuffers(uploads);
+  {
+    const core::Status status =
+        core::vulkan::VulkanBuffer::CopyBuffers(uploads);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([this](void* data) {
-    uniform_data_.model = glm::mat4(1.0f);
-    uniform_data_.view = glm::mat4(1.0f);
-    uniform_data_.project = glm::mat4(1.0f);
-    uniform_data_.time = 0.0f;
-    uniform_data_.aspect = 1.0f;
-    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([this](void* data) {
+      uniform_data_.model = glm::mat4(1.0f);
+      uniform_data_.view = glm::mat4(1.0f);
+      uniform_data_.project = glm::mat4(1.0f);
+      uniform_data_.time = 0.0f;
+      uniform_data_.aspect = 1.0f;
+      memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderGalaxy::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -240,57 +288,115 @@ void RenderGalaxy::GenerateStars() {
   }
 }
 
-void RenderGalaxy::CreateBuffers() {
+core::Status RenderGalaxy::CreateBuffers() {
   const VkDeviceSize quad_size = sizeof(quad_corners_[0]) * quad_corners_.size();
   const VkDeviceSize idx_size = sizeof(quad_indices_[0]) * quad_indices_.size();
   const VkDeviceSize inst_size = sizeof(InstanceData) * instances_.size();
 
-  quad_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, quad_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  quad_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, quad_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = quad_buffer_staging_.Init(
+        context_, quad_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = quad_buffer_local_.Init(
+        context_, quad_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, idx_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, idx_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, idx_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, idx_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  instance_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, inst_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  instance_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, inst_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = instance_buffer_staging_.Init(
+        context_, inst_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = instance_buffer_local_.Init(
+        context_, inst_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderGalaxy::UpdateUniformBuffer(uint32_t width, uint32_t height) {
+core::Status RenderGalaxy::UpdateUniformBuffer(uint32_t width,
+                                               uint32_t height) {
   auto current_time = std::chrono::high_resolution_clock::now();
   const float time =
       std::chrono::duration<float, std::chrono::seconds::period>(current_time - start_time_)
           .count();
 
-  uniform_buffer_.MapData([this, time, width, height](void* data) {
-    // Tilt the galaxy so we see it edge-on-ish
-    glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-65.0f), glm::vec3(1, 0, 0));
-    uniform_data_.model = model;
+  {
+    const core::Status status = uniform_buffer_.MapData([this, time, width,
+                                                         height](void* data) {
+      // Tilt the galaxy so we see it edge-on-ish
+      glm::mat4 model = glm::rotate(glm::mat4(1.0f), glm::radians(-65.0f),
+                                    glm::vec3(1, 0, 0));
+      uniform_data_.model = model;
 
-    uniform_data_.view = glm::lookAt(glm::vec3(0.0f, 0.0f, 7.0f), glm::vec3(0.0f, 0.0f, 0.0f),
-                                     glm::vec3(0.0f, 1.0f, 0.0f));
-    uniform_data_.project = glm::perspective(
-        glm::radians(45.0f), static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
-    uniform_data_.project[1][1] *= -1;  // Vulkan Y-flip
-    uniform_data_.time = time;
-    uniform_data_.aspect = static_cast<float>(width) / static_cast<float>(height);
-    memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
-  });
+      uniform_data_.view =
+          glm::lookAt(glm::vec3(0.0f, 0.0f, 7.0f), glm::vec3(0.0f, 0.0f, 0.0f),
+                      glm::vec3(0.0f, 1.0f, 0.0f));
+      uniform_data_.project = glm::perspective(
+          glm::radians(45.0f),
+          static_cast<float>(width) / static_cast<float>(height), 0.1f, 100.0f);
+      uniform_data_.project[1][1] *= -1;  // Vulkan Y-flip
+      uniform_data_.time = time;
+      uniform_data_.aspect =
+          static_cast<float>(width) / static_cast<float>(height);
+      memcpy(data, &uniform_data_, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

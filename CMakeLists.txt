@@ -13,6 +13,8 @@ elseif (BUILD_VARIANT STREQUAL vulkan_tutorial)
 endif()
 set(ANDROID_STL "c++_shared")
 
+add_subdirectory(error)
+
 # Core module build options. All modules are enabled by default and can be
 # disabled from the CMake command line, for example: -DENABLE_VULKAN=OFF.
 option(ENABLE_EXTERNAL "Build external dependencies" ON)

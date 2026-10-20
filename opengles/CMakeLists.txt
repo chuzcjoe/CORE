@@ -14,3 +14,4 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Android")
         gles_glad
         stb)
 endif()
+target_link_libraries(opengles PUBLIC core_error)

@@ -1,12 +1,40 @@
 #include "VulkanDynamicRendering.h"
 
+#include "Status.h"
 #include "VulkanUtils.h"
 
 namespace core {
 namespace vulkan {
 
-VulkanDynamicRendering::VulkanDynamicRendering(VulkanContext* context) : context_(context) {
-  LoadDynamicRenderingCommands();
+Result<std::unique_ptr<VulkanDynamicRendering>> VulkanDynamicRendering::Create(
+    VulkanContext* context) {
+  std::unique_ptr<VulkanDynamicRendering> object(new VulkanDynamicRendering());
+  const Status status = object->Init(context);
+  if (!status.ok()) {
+    return Result<std::unique_ptr<VulkanDynamicRendering>>(status);
+  }
+  return Result<std::unique_ptr<VulkanDynamicRendering>>(std::move(object));
+}
+
+Status VulkanDynamicRendering::Init(VulkanContext* context) {
+  if (initialized_) {
+    return Status(ErrorCode::kInvalidState,
+                  "VulkanDynamicRendering initialization is single-use");
+  }
+  initialized_ = true;
+  context_ = context;
+  if (context_ == nullptr || !context_->is_initialized()) {
+    return Status(ErrorCode::kInvalidState, "A live Vulkan device is required");
+  }
+
+  {
+    const core::Status status = LoadDynamicRenderingCommands();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return Status();
 }
 
 void VulkanDynamicRendering::BeginDynamicRendering(VkCommandBuffer command_buffer,
@@ -69,14 +97,17 @@ void VulkanDynamicRendering::EndDynamicRendering(VkCommandBuffer command_buffer)
   vk_cmd_end_rendering_(command_buffer);
 }
 
-void VulkanDynamicRendering::LoadDynamicRenderingCommands() {
+Status VulkanDynamicRendering::LoadDynamicRenderingCommands() {
   const auto commands = core::vulkan::LoadDynamicRenderingCommands(context_->logical_device);
   vk_cmd_begin_rendering_ = commands.vkCmdBeginRendering;
   vk_cmd_end_rendering_ = commands.vkCmdEndRendering;
 
   if (!vk_cmd_begin_rendering_ || !vk_cmd_end_rendering_) {
-    throw std::runtime_error("failed to load dynamic rendering commands");
+    return Status(ErrorCode::kBackend,
+                  "failed to load dynamic rendering commands");
   }
+
+  return Status();
 }
 
 }  // namespace vulkan

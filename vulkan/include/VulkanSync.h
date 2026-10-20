@@ -1,33 +1,42 @@
 #pragma once
 
+#include <memory>
+
+#include "Status.h"
 #include "VulkanContext.h"
 
-namespace core {
-namespace vulkan {
+namespace core::vulkan {
 
 class VulkanFence {
  public:
-  explicit VulkanFence(VulkanContext* context);
+  VulkanFence() = default;
+  VulkanFence(const VulkanFence&) = delete;
+  VulkanFence& operator=(const VulkanFence&) = delete;
+  static Result<std::unique_ptr<VulkanFence>> Create(VulkanContext* context);
+  Status Init(VulkanContext* context);
   ~VulkanFence();
-
-  void Reset();
-
+  Status Reset();
   VkFence fence = VK_NULL_HANDLE;
 
  private:
   VulkanContext* context_ = nullptr;
+  bool initialized_ = false;
 };
 
 class VulkanSemaphore {
  public:
-  explicit VulkanSemaphore(VulkanContext* context);
+  VulkanSemaphore() = default;
+  VulkanSemaphore(const VulkanSemaphore&) = delete;
+  VulkanSemaphore& operator=(const VulkanSemaphore&) = delete;
+  static Result<std::unique_ptr<VulkanSemaphore>> Create(
+      VulkanContext* context);
+  Status Init(VulkanContext* context);
   ~VulkanSemaphore();
-
   VkSemaphore semaphore = VK_NULL_HANDLE;
 
  private:
   VulkanContext* context_ = nullptr;
+  bool initialized_ = false;
 };
 
-}  // namespace vulkan
-}  // namespace core
+}  // namespace core::vulkan

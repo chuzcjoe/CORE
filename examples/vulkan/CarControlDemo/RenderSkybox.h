@@ -24,15 +24,16 @@ class RenderSkybox : public core::vulkan::VulkanRender {
   RenderSkybox(core::vulkan::VulkanContext* context,
                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
+  core::Status Init() override;
   // Faces must be supplied in Vulkan cubemap layer order: +X, -X, +Y, -Y, +Z, -Z
   // (i.e. right, left, top, bottom, front, back).
-  void Init(const std::array<std::string, 6>& face_paths);
+  core::Status Init(const std::array<std::string, 6>& face_paths);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   // Pass the camera view matrix; the translation component is stripped so the
   // skybox stays centered on the camera.
-  void UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& view,
+                                   const glm::mat4& project);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
@@ -52,8 +53,8 @@ class RenderSkybox : public core::vulkan::VulkanRender {
     glm::mat4 project;
   };
 
-  void LoadCubeMap(const std::array<std::string, 6>& face_paths);
-  void CreateBuffers();
+  core::Status LoadCubeMap(const std::array<std::string, 6>& face_paths);
+  core::Status CreateBuffers();
 
   core::vulkan::VulkanBuffer vertex_buffer_staging_;
   core::vulkan::VulkanBuffer vertex_buffer_local_;

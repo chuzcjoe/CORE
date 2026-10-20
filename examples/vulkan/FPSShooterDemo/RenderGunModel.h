@@ -24,12 +24,14 @@ class RenderGunModel : public core::vulkan::VulkanRender {
                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
   // Loads the texture + OBJ mesh, then sets up GPU resources.
-  void Init(const std::string& image_path, const std::string& model_path);
+  core::Status Init(const std::string& image_path,
+                    const std::string& model_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
   // viewmodel places the weapon in camera space (recoil already baked in);
   // flash is the 0..1 muzzle-flash intensity this frame.
-  void UpdateUniformBuffer(const glm::mat4& project, const glm::mat4& viewmodel, float flash);
+  core::Status UpdateUniformBuffer(const glm::mat4& project,
+                                   const glm::mat4& viewmodel, float flash);
 
  protected:
   // The mesh is close to the camera, so normal depth testing keeps it on top of
@@ -39,7 +41,7 @@ class RenderGunModel : public core::vulkan::VulkanRender {
   VkBool32 SetDepthTesting() const override { return VK_TRUE; }
   VkBool32 SetDepthWriting() const override { return VK_TRUE; }
 
-  void Init() override;
+  core::Status Init() override;
 
   std::vector<core::vulkan::BindingInfo> GetBindingInfo() const override;
   const std::vector<uint32_t> LoadVertexShader() const override;
@@ -64,10 +66,10 @@ class RenderGunModel : public core::vulkan::VulkanRender {
     float pad2;
   };
 
-  void LoadModel(const std::string& model_path);
+  core::Status LoadModel(const std::string& model_path);
   void AppendCrosshair();
-  void CreateTextureImage(const std::string& image_path);
-  void CreateBuffers();
+  core::Status CreateTextureImage(const std::string& image_path);
+  core::Status CreateBuffers();
 
   std::vector<Vertex> vertices_;
   std::vector<uint32_t> indices_;

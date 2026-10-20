@@ -20,11 +20,11 @@ class RenderDepth : public core::vulkan::VulkanRender {
  public:
   RenderDepth(core::vulkan::VulkanContext* context, core::vulkan::VulkanRenderPass* render_pass);
 
-  void Init() override;
-  void Init(const std::string& image_path);
+  core::Status Init() override;
+  core::Status Init(const std::string& image_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height);
+  core::Status UpdateUniformBuffer(const int width, const int height);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -39,7 +39,7 @@ class RenderDepth : public core::vulkan::VulkanRender {
   std::vector<VkVertexInputAttributeDescription> GetVertexAttributeDescriptions() const override;
 
  private:
-  void CreateTextureImage(const std::string& image_path);
+  core::Status CreateTextureImage(const std::string& image_path);
 
   struct Vertex {
     glm::vec3 pos;
@@ -53,7 +53,7 @@ class RenderDepth : public core::vulkan::VulkanRender {
     glm::mat4 project;
   } uniform_data_;
 
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   // pos, color, text_coord
   const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},

@@ -4,8 +4,10 @@
 
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <span>
 
+#include "Status.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanContext.h"
 #include "VulkanSync.h"
@@ -26,26 +28,32 @@ struct BatchBufferCopy {
 
 class VulkanBuffer {
  public:
-  // VulkanBuffer() = delete;  // Buffers must be explicitly initialized
+  VulkanBuffer(const VulkanBuffer&) = delete;
+  VulkanBuffer& operator=(const VulkanBuffer&) = delete;
   VulkanBuffer() = default;
-  VulkanBuffer(VulkanContext* context, const VkDeviceSize size, const VkBufferUsageFlags usage,
-               const VkMemoryPropertyFlags properties);
+
+  static Result<std::unique_ptr<VulkanBuffer>> Create(
+      VulkanContext* context, const VkDeviceSize size,
+      const VkBufferUsageFlags usage, const VkMemoryPropertyFlags properties);
+  Status Init(VulkanContext* context, const VkDeviceSize size,
+              const VkBufferUsageFlags usage,
+              const VkMemoryPropertyFlags properties);
   ~VulkanBuffer();
 
   VulkanBuffer& operator=(VulkanBuffer&&);
 
-  void CopyToBuffer(VulkanBuffer& dst_buffer);
+  Status CopyToBuffer(VulkanBuffer& dst_buffer);
 
   // Execute copies in order with one submission and fence wait. VK_WHOLE_SIZE
   // copies the source's remaining bytes. All buffers must share one context.
   // Validate the entire batch before recording; an empty batch is a no-op.
   // Access to the context's queue must be externally synchronized.
-  static void CopyBuffers(std::span<const BatchBufferCopy> copies);
+  static Status CopyBuffers(std::span<const BatchBufferCopy> copies);
 
-  void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
-                   const uint32_t layers = 1);
+  Status CopyToImage(VulkanImage& dst_image, const uint32_t width,
+                     const uint32_t height, const uint32_t layers = 1);
 
-  void MapData(const std::function<void(void*)>& func);
+  Status MapData(const std::function<void(void*)>& func);
 
   VkDeviceSize Size() const { return buffer_size_; }
 
@@ -58,6 +66,7 @@ class VulkanBuffer {
   VkMemoryPropertyFlags memory_properties_ = 0;
   VkBufferUsageFlags usage_ = 0;
   VkDeviceMemory buffer_memory_ = VK_NULL_HANDLE;
+  bool initialized_ = false;
 };
 
 }  // namespace vulkan

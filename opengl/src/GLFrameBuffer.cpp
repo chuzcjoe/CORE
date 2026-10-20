@@ -1,5 +1,7 @@
 #include "GLFrameBuffer.h"
 
+#include "Status.h"
+
 namespace core {
 namespace opengl {
 
@@ -28,16 +30,18 @@ void GLFrameBuffer::AttachTexture2D(GLenum attachment, GLenum internal_format, G
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void GLFrameBuffer::AttachRenderBuffer(GLenum internal_format, GLsizei width,
-                                       GLsizei height) const {
+Status GLFrameBuffer::AttachRenderBuffer(GLenum internal_format, GLsizei width,
+                                         GLsizei height) const {
   if (rbo_id_ == 0) {
-    throw std::runtime_error("Renderbuffer not initialized");
+    return Status(ErrorCode::kBackend, "Renderbuffer not initialized");
   }
   glBindFramebuffer(GL_FRAMEBUFFER, fbo_id_);
   glBindRenderbuffer(GL_RENDERBUFFER, rbo_id_);
   glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
   glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo_id_);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+  return Status();
 }
 
 }  // namespace opengl

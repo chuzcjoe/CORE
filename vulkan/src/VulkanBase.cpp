@@ -8,21 +8,38 @@ namespace vulkan {
 VulkanBase::VulkanBase(VulkanContext* context) : context_(context) {}
 
 VulkanBase::~VulkanBase() {
+  if (context_ == nullptr || context_->logical_device == VK_NULL_HANDLE) {
+    return;
+  }
+
   vkDestroyPipeline(context_->logical_device, pipeline, nullptr);
   vkDestroyPipelineLayout(context_->logical_device, pipeline_layout, nullptr);
   vkDestroyDescriptorPool(context_->logical_device, descriptor_pool_, nullptr);
   vkDestroyDescriptorSetLayout(context_->logical_device, descriptor_set_layout_, nullptr);
 }
 
-void VulkanBase::Init() {
+Status VulkanBase::Init() {
+  if (initialized_ || context_ == nullptr || !context_->is_initialized()) {
+    return Status(
+        ErrorCode::kInvalidState,
+        "Pipeline initialization requires a live device and is single-use");
+  }
+  initialized_ = true;
   // 1. Create descriptor set layout
   VkDescriptorSetLayoutCreateInfo layout_info{};
   layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   const auto binding_info = CreateDescriptorLayoutBindings();
   layout_info.bindingCount = static_cast<uint32_t>(binding_info.size());
   layout_info.pBindings = binding_info.data();
-  VK_CHECK(vkCreateDescriptorSetLayout(context_->logical_device, &layout_info, nullptr,
-                                       &descriptor_set_layout_));
+  {
+    const VkResult result =
+        vkCreateDescriptorSetLayout(context_->logical_device, &layout_info,
+                                    nullptr, &descriptor_set_layout_);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   // 2. Create descriptor sets
   const auto pool_info = CreateDescriptorPoolSizes();
@@ -38,15 +55,29 @@ void VulkanBase::Init() {
   pool_create_info.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
   pool_create_info.pPoolSizes = pool_sizes.data();
   pool_create_info.maxSets = 1;
-  VK_CHECK(vkCreateDescriptorPool(context_->logical_device, &pool_create_info, nullptr,
-                                  &descriptor_pool_));
+  {
+    const VkResult result =
+        vkCreateDescriptorPool(context_->logical_device, &pool_create_info,
+                               nullptr, &descriptor_pool_);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   VkDescriptorSetAllocateInfo alloc_info{};
   alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
   alloc_info.descriptorPool = descriptor_pool_;
   alloc_info.descriptorSetCount = 1;
   alloc_info.pSetLayouts = &descriptor_set_layout_;
-  VK_CHECK(vkAllocateDescriptorSets(context_->logical_device, &alloc_info, &descriptor_set_));
+  {
+    const VkResult result = vkAllocateDescriptorSets(
+        context_->logical_device, &alloc_info, &descriptor_set_);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   // 3. Create pipeline layout
   VkPipelineLayoutCreateInfo pipeline_layout_info{};
@@ -55,11 +86,18 @@ void VulkanBase::Init() {
   pipeline_layout_info.pSetLayouts = &descriptor_set_layout_;
   pipeline_layout_info.pushConstantRangeCount = 0;
   pipeline_layout_info.pPushConstantRanges = nullptr;
-  VK_CHECK(vkCreatePipelineLayout(context_->logical_device, &pipeline_layout_info, nullptr,
-                                  &pipeline_layout));
+  {
+    const VkResult result =
+        vkCreatePipelineLayout(context_->logical_device, &pipeline_layout_info,
+                               nullptr, &pipeline_layout);
+    if (result != VK_SUCCESS) {
+      return Status(ErrorCode::kBackend, VkErrorMessages(result), "Vulkan",
+                    result);
+    }
+  }
 
   // 4. Create pipeline
-  CreatePipeline();
+  return CreatePipeline();
 }
 
 std::vector<VkDescriptorSetLayoutBinding> VulkanBase::CreateDescriptorLayoutBindings() const {
@@ -91,15 +129,23 @@ std::vector<DescriptorPoolInfo> VulkanBase::CreateDescriptorPoolSizes() const {
   return pool_info;
 }
 
-VkShaderModule VulkanBase::CreateShaderModule(const std::vector<uint32_t>& shader_code) const {
+Result<VkShaderModule> VulkanBase::CreateShaderModule(
+    const std::vector<uint32_t>& shader_code) const {
   VkShaderModuleCreateInfo create_info{};
   create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   create_info.codeSize = shader_code.size() * sizeof(uint32_t);
   create_info.pCode = shader_code.data();
 
   VkShaderModule shader_module;
-  VK_CHECK(vkCreateShaderModule(context_->logical_device, &create_info, nullptr, &shader_module));
-  return shader_module;
+  {
+    const VkResult result = vkCreateShaderModule(
+        context_->logical_device, &create_info, nullptr, &shader_module);
+    if (result != VK_SUCCESS) {
+      return Result<VkShaderModule>(Status(
+          ErrorCode::kBackend, VkErrorMessages(result), "Vulkan", result));
+    }
+  };
+  return Result<VkShaderModule>(shader_module);
 }
 
 void VulkanBase::CreateUniformBufferDescriptorSet(const uint32_t binding,

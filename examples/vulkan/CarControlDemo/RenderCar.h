@@ -20,10 +20,12 @@ class RenderCar : public core::vulkan::VulkanRender {
   RenderCar(core::vulkan::VulkanContext* context,
             const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const glm::mat4& model, const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& model,
+                                   const glm::mat4& view,
+                                   const glm::mat4& project);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -51,7 +53,7 @@ class RenderCar : public core::vulkan::VulkanRender {
   };
 
   void BuildGeometry();
-  void CreateBuffers();
+  core::Status CreateBuffers();
   // Emits 24 vertices + 36 indices for one axis-aligned box (center, size, color).
   void AppendBox(const glm::vec3& center, const glm::vec3& size, const glm::vec3& color);
 

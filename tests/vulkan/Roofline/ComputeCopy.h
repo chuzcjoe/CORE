@@ -17,8 +17,8 @@ class ComputeCopy : public VulkanCompute {
   // count is the number of vec4 (16-byte) elements to copy.
   ComputeCopy(VulkanContext* context, VulkanBuffer& src, VulkanBuffer& dst, const int count);
 
-  void Init() override;
-  void Run(const VkCommandBuffer command_buffer);
+  core::Status Init() override;
+  core::Status Run(const VkCommandBuffer command_buffer);
 
  protected:
   std::vector<BindingInfo> GetBindingInfo() const override;

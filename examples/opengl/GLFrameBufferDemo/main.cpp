@@ -1,3 +1,7 @@
+#include <memory>
+
+#include "Status.h"
+
 // clang-format off
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -46,7 +50,7 @@ const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
   uniform mat4 projection;
 
   void main() {
-    TexCoords = aTexCoords;    
+    TexCoords = aTexCoords;
     gl_Position = projection * view * model * vec4(aPos, 1.0);
   }
 );
@@ -56,9 +60,9 @@ const char* screen_vertex_shader_source = OPENGL_VERTEX_SHADER(
   layout (location = 1) in vec2 aTexCoords;
   out vec2 TexCoords;
   void main() {
-      gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0); 
+      gl_Position = vec4(aPos.x, aPos.y, 0.0, 1.0);
       TexCoords = aTexCoords;
-  } 
+  }
 );
 
 const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
@@ -80,7 +84,7 @@ const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
         // discard transparent fragments
         if (FragColor.a < 0.1) {
           discard;
-        }    
+        }
       } else {
         FragColor = vec4(0.0, 1.0, 0.0, 1.0);
       }
@@ -91,7 +95,7 @@ const char* screen_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
   out vec4 FragColor;
   in vec2 TexCoords;
   uniform sampler2D screenTexture;
-  const float offset = 1.0 / 300.0;  
+  const float offset = 1.0 / 300.0;
   void main() {
       vec2 offsets[9] = vec2[](
           vec2(-offset,  offset), // top-left
@@ -102,7 +106,7 @@ const char* screen_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
           vec2( offset,  0.0f),   // center-right
           vec2(-offset, -offset), // bottom-left
           vec2( 0.0f,   -offset), // bottom-center
-          vec2( offset, -offset)  // bottom-right    
+          vec2( offset, -offset)  // bottom-right
       );
 
       float kernel[9] = float[](
@@ -110,7 +114,7 @@ const char* screen_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
           -1,  9, -1,
           -1, -1, -1
       );
-      
+
       vec3 sampleTex[9];
       for(int i = 0; i < 9; i++) {
           sampleTex[i] = vec3(texture(screenTexture, TexCoords.st + offsets[i]));
@@ -120,11 +124,11 @@ const char* screen_fragment_shader_source = OPENGL_FRAGMENT_SHADER(
         col += sampleTex[i] * kernel[i];
       }
       FragColor = vec4(col, 1.0);
-  } 
+  }
 );
 // clang-format on
 
-int main() {
+core::Status RunApplication() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -138,8 +142,15 @@ int main() {
   if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
-    return -1;
+    return core::Status(core::ErrorCode::kBackend, "Application failed");
   }
+  const auto close_window = [](GLFWwindow* value) {
+    glfwDestroyWindow(value);
+    glfwTerminate();
+  };
+  const std::unique_ptr<GLFWwindow, decltype(close_window)> window_owner(
+      window, close_window);
+
   glfwMakeContextCurrent(window);
   glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -147,13 +158,26 @@ int main() {
 
   // glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-    throw std::runtime_error("Failed to initialize GLAD");
+    return core::Status(core::ErrorCode::kBackend, "Failed to initialize GLAD");
   }
 
-  // Use GL after glad is initialized
-  core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
-  core::opengl::GLProgram screen_program(screen_vertex_shader_source,
-                                         screen_fragment_shader_source);
+  auto program_result = core::opengl::GLProgram::Create(vertex_shader_source,
+                                                        fragment_shader_source);
+  if (!program_result.ok()) {
+    return program_result.status();
+  }
+  std::unique_ptr<core::opengl::GLProgram> program_owner =
+      std::move(*program_result);
+  core::opengl::GLProgram& program = *program_owner;
+
+  auto screen_program_result = core::opengl::GLProgram::Create(
+      screen_vertex_shader_source, screen_fragment_shader_source);
+  if (!screen_program_result.ok()) {
+    return screen_program_result.status();
+  }
+  std::unique_ptr<core::opengl::GLProgram> screen_program_owner =
+      std::move(*screen_program_result);
+  core::opengl::GLProgram& screen_program = *screen_program_owner;
   core::opengl::GLVertexArray cube_vao;
   core::opengl::GLVertexArray plane_vao;
   core::opengl::GLVertexArray transparent_vao;
@@ -165,10 +189,28 @@ int main() {
   core::opengl::GLTexture texture(GL_TEXTURE_2D);
   core::opengl::GLFrameBuffer framebuffer(true);  // use renderbuffer
 
-  texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
-  texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
-  texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2, GL_CLAMP_TO_EDGE,
-                                GL_LINEAR, false);
+  {
+    const core::Status status =
+        texture.Load2DTextureFromFile("./examples/data/metal.png", GL_RGB, 0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        texture.Load2DTextureFromFile("./examples/data/marble.jpg", GL_RGB, 1);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        texture.Load2DTextureFromFile("./examples/data/grass.png", GL_RGBA, 2,
+                                      GL_CLAMP_TO_EDGE, GL_LINEAR, false);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // clang-format off
   float cube_vertices[] = {
@@ -215,7 +257,7 @@ int main() {
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
-    
+
   float plane_vertices[] = {
         // positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
          5.0f, -0.5f - 0.01f,  5.0f,  2.0f, 0.0f,
@@ -224,7 +266,7 @@ int main() {
 
          5.0f, -0.5f - 0.01f,  5.0f,  2.0f, 0.0f,
         -5.0f, -0.5f - 0.01f, -5.0f,  0.0f, 2.0f,
-         5.0f, -0.5f - 0.01f, -5.0f,  2.0f, 2.0f								
+         5.0f, -0.5f - 0.01f, -5.0f,  2.0f, 2.0f
   };
 
   float transparent_vertices[] = {
@@ -253,35 +295,89 @@ int main() {
   // config cube vao
   cube_vbo.SetData(cube_vertices, sizeof(cube_vertices), GL_STATIC_DRAW);
   cube_vao.AttachVertexBuffer(cube_vbo.id());
-  cube_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-  cube_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                                  (void*)(3 * sizeof(float)));
+  {
+    const core::Status status = cube_vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = cube_vao.SetVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+        (void*)(3 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // config plane vao
   plane_vbo.SetData(plane_vertices, sizeof(plane_vertices), GL_STATIC_DRAW);
   plane_vao.AttachVertexBuffer(plane_vbo.id());
-  plane_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-  plane_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                                   (void*)(3 * sizeof(float)));
+  {
+    const core::Status status = plane_vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = plane_vao.SetVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+        (void*)(3 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // config transparent vao
   transparent_vbo.SetData(transparent_vertices, sizeof(transparent_vertices), GL_STATIC_DRAW);
   transparent_vao.AttachVertexBuffer(transparent_vbo.id());
-  transparent_vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-  transparent_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
-                                         (void*)(3 * sizeof(float)));
+  {
+    const core::Status status = transparent_vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = transparent_vao.SetVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float),
+        (void*)(3 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // config screen vao
   screen_vbo.SetData(quad_vertices, sizeof(quad_vertices), GL_STATIC_DRAW);
   screen_vao.AttachVertexBuffer(screen_vbo.id());
-  screen_vao.SetVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-  screen_vao.SetVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-                                    (void*)(2 * sizeof(float)));
+  {
+    const core::Status status = screen_vao.SetVertexAttribPointer(
+        0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = screen_vao.SetVertexAttribPointer(
+        1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+        (void*)(2 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // config framebuffer
   framebuffer.AttachTexture2D(GL_COLOR_ATTACHMENT0, GL_RGB, kWidth, kHeight, GL_RGB,
                               GL_UNSIGNED_BYTE);
-  framebuffer.AttachRenderBuffer(GL_DEPTH24_STENCIL8, kWidth, kHeight);
+  {
+    const core::Status status =
+        framebuffer.AttachRenderBuffer(GL_DEPTH24_STENCIL8, kWidth, kHeight);
+    if (!status.ok()) {
+      return status;
+    }
+  }
   if (!framebuffer.IsComplete()) {
     std::cout << "ERROR: Framebuffer is not complete!" << std::endl;
   } else {
@@ -334,9 +430,24 @@ int main() {
     program.SetUniformMat4f("view", view);
 
     // bind textures
-    texture.ActivateBind(GL_TEXTURE_2D, 0);
-    texture.ActivateBind(GL_TEXTURE_2D, 1);
-    texture.ActivateBind(GL_TEXTURE_2D, 2);
+    {
+      const core::Status status = texture.ActivateBind(GL_TEXTURE_2D, 0);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = texture.ActivateBind(GL_TEXTURE_2D, 1);
+      if (!status.ok()) {
+        return status;
+      }
+    }
+    {
+      const core::Status status = texture.ActivateBind(GL_TEXTURE_2D, 2);
+      if (!status.ok()) {
+        return status;
+      }
+    }
 
     model = glm::mat4(1.0f);
     // draw two cubes
@@ -415,7 +526,7 @@ int main() {
   }
 
   glfwTerminate();
-  return 0;
+  return core::Status();
 }
 
 void framebuffer_size_callback([[maybe_unused]] GLFWwindow* window, int width, int height) {
@@ -459,4 +570,12 @@ void mouse_callback([[maybe_unused]] GLFWwindow* window, double xpos, double ypo
   front.y = std::sin(glm::radians(camera->pitch));
   front.z = std::sin(glm::radians(camera->yaw)) * std::cos(glm::radians(camera->pitch));
   camera->camera_front = glm::normalize(front);
+}
+int main() {
+  const core::Status status = RunApplication();
+  if (!status.ok()) {
+    std::fprintf(stderr, "%s\n", status.message().c_str());
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <memory>
+
+#include "Status.h"
+
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_COCOA
@@ -25,8 +29,15 @@ Ret ObjcCall(id obj, const char* selector, Args... args) {
 
 class MTLContext {
  public:
-  MTLContext();
-  MTLContext(GLFWwindow* window);
+  MTLContext(const MTLContext&) = delete;
+  MTLContext& operator=(const MTLContext&) = delete;
+  MTLContext() = default;
+
+  static Result<std::unique_ptr<MTLContext>> Create();
+  Status Init();
+
+  static Result<std::unique_ptr<MTLContext>> Create(GLFWwindow* window);
+  Status Init(GLFWwindow* window);
   ~MTLContext();
 
   MTL::Device* device() const { return metal_device_; }
@@ -35,13 +46,16 @@ class MTLContext {
   MTL::Function* fragment_function() const { return fragment_fn_; }
 
  private:
-  void CreateMetalLayerForWindow(GLFWwindow* window);
+  Status CreateMetalLayerForWindow(GLFWwindow* window);
 
-  MTL::Device* metal_device_;
-  CA::MetalLayer* metal_layer_;
+  MTL::Device* metal_device_ = nullptr;
+  CA::MetalLayer* metal_layer_ = nullptr;
 
-  MTL::Function* vertex_fn_;
-  MTL::Function* fragment_fn_;
+  MTL::Function* vertex_fn_ = nullptr;
+  MTL::Function* fragment_fn_ = nullptr;
+
+ private:
+  bool initialized_ = false;
 };
 
 }  // namespace metal

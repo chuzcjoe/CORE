@@ -19,10 +19,10 @@ class RenderTriangle : public core::vulkan::VulkanRender {
   RenderTriangle(core::vulkan::VulkanContext* context,
                  const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const int width, const int height);
+  core::Status UpdateUniformBuffer(const int width, const int height);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_BACK_BIT; }
@@ -46,7 +46,7 @@ class RenderTriangle : public core::vulkan::VulkanRender {
     glm::mat4 project;
   } uniform_data_;
 
-  void CreateVertexBuffer();
+  core::Status CreateVertexBuffer();
 
   // pos, color
   const std::vector<Vertex> vertices_ = {{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},

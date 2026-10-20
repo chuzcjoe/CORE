@@ -27,3 +27,5 @@ if(APPLE)
         glfw
         stb)
 endif()
+
+target_link_libraries(core_metal PUBLIC core_error)

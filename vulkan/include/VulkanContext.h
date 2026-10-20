@@ -7,6 +7,7 @@
 
 #include <vulkan/vulkan.h>
 
+#include <memory>
 #include <optional>
 #include <set>
 #include <unordered_map>
@@ -40,16 +41,22 @@ Vulkan context manages:
 
 class VulkanContext {
  public:
-  VulkanContext(const bool enable_validation_layers = false,
-                const QueueFamilyType queue_family_type = QueueFamilyType::Compute,
-                const VkSurfaceKHR surface = VK_NULL_HANDLE);
+  static Result<std::unique_ptr<VulkanContext>> Create(
+      const bool enable_validation_layers = false,
+      const QueueFamilyType queue_family_type = QueueFamilyType::Compute,
+      const VkSurfaceKHR surface = VK_NULL_HANDLE);
   ~VulkanContext();
+  VulkanContext(const VulkanContext&) = delete;
+  VulkanContext& operator=(const VulkanContext&) = delete;
 
-  void Init(VkSurfaceKHR surface = VK_NULL_HANDLE);
+  Status Init(VkSurfaceKHR surface = VK_NULL_HANDLE);
 
-  uint32_t FindMemoryType(const uint32_t type_filter, const VkMemoryPropertyFlags properties) const;
+  Result<uint32_t> FindMemoryType(const uint32_t type_filter,
+                                  const VkMemoryPropertyFlags properties) const;
 
   QueueFamilyIndices GetQueueFamilyIndices() const { return queue_family_indices_; }
+
+  bool is_initialized() const { return device_ready_; }
 
   VkQueue compute_queue() const { return compute_queue_; }
   VkQueue graphics_queue() const { return graphics_queue_; }
@@ -57,11 +64,14 @@ class VulkanContext {
   QueueFamilyType queue_family_type() const { return queue_family_type_; }
 
   VkInstance instance = VK_NULL_HANDLE;
-  VkDevice logical_device;
-  VkPhysicalDevice physical_device;
-  float timestamp_period;
+  VkDevice logical_device = VK_NULL_HANDLE;
+  VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+  float timestamp_period = 0.0f;
 
  private:
+  VulkanContext() = default;
+  bool device_init_attempted_ = false;
+  bool device_ready_ = false;
   bool enable_validation_layers_;
   QueueFamilyType queue_family_type_;
   QueueFamilyIndices queue_family_indices_;
@@ -70,15 +80,16 @@ class VulkanContext {
   VkQueue present_queue_ = VK_NULL_HANDLE;
   VkSurfaceKHR surface_ = VK_NULL_HANDLE;
 
-  VkDebugUtilsMessengerEXT debug_messenger_;
+  VkDebugUtilsMessengerEXT debug_messenger_ = VK_NULL_HANDLE;
 
   bool CheckValidationLayerSupport();
-  void CreateInstance(const bool enable_validation_layers);
-  void PickPhysicalDevice(const QueueFamilyType queue_family_type);
-  void FindQueueFamilies(VkPhysicalDevice device, const QueueFamilyType queue_family_type);
-  void CreateLogicalDevice(const float queuePriority = 1.0f);
-  std::vector<const char*> GetRequiredDeviceExtensions() const;
-  void SetupDebugMessenger();
+  Status CreateInstance(const bool enable_validation_layers);
+  Status PickPhysicalDevice(const QueueFamilyType queue_family_type);
+  Status FindQueueFamilies(VkPhysicalDevice device,
+                           const QueueFamilyType queue_family_type);
+  Status CreateLogicalDevice(const float queuePriority = 1.0f);
+  Result<std::vector<const char*>> GetRequiredDeviceExtensions() const;
+  Status SetupDebugMessenger();
 };
 }  // namespace vulkan
 }  // namespace core

@@ -3,34 +3,81 @@
 #include <algorithm>
 #include <cstring>
 
+#include "Status.h"
+
 namespace core {
 
-RenderCubes::RenderCubes(core::vulkan::VulkanContext* context,
-                         const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
-                         uint32_t max_instances)
-    : core::vulkan::VulkanRender(context, dynamic_rendering_info), max_instances_(max_instances) {
-  BuildGeometry();
-  CreateBuffers();
-}
+RenderCubes::RenderCubes(
+    core::vulkan::VulkanContext* context,
+    const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
+    uint32_t max_instances)
+    : core::vulkan::VulkanRender(context, dynamic_rendering_info),
+      max_instances_(max_instances) {}
 
-void RenderCubes::Init() {
-  core::vulkan::VulkanRender::Init();
+core::Status RenderCubes::Init() {
+  BuildGeometry();
+  {
+    const core::Status status = CreateBuffers();
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  {
+    const core::Status status = core::vulkan::VulkanRender::Init();
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   CreateUniformBufferDescriptorSet(0, uniform_buffer_);
   vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
 
-  vertex_buffer_staging_.MapData([this](void* data) {
-    memcpy(data, vertices_.data(), sizeof(vertices_[0]) * vertices_.size());
-  });
-  index_buffer_staging_.MapData(
-      [this](void* data) { memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size()); });
-  vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
-  index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+  {
+    const core::Status status =
+        vertex_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, vertices_.data(),
+                 sizeof(vertices_[0]) * vertices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.MapData([this](void* data) {
+          memcpy(data, indices_.data(), sizeof(indices_[0]) * indices_.size());
+        });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        vertex_buffer_staging_.CopyToBuffer(vertex_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        index_buffer_staging_.CopyToBuffer(index_buffer_local_);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_.MapData([](void* data) {
-    UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f)};
-    memcpy(data, &init, sizeof(UniformBufferObject));
-  });
+  {
+    const core::Status status = uniform_buffer_.MapData([](void* data) {
+      UniformBufferObject init{glm::mat4(1.0f), glm::mat4(1.0f)};
+      memcpy(data, &init, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 void RenderCubes::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
@@ -62,19 +109,36 @@ void RenderCubes::Render(VkCommandBuffer command_buffer, VkExtent2D extent) {
                    0);
 }
 
-void RenderCubes::UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project) {
-  uniform_buffer_.MapData([&](void* data) {
-    UniformBufferObject ubo{view, project};
-    ubo.project[1][1] *= -1;  // Vulkan Y-flip
-    memcpy(data, &ubo, sizeof(UniformBufferObject));
-  });
+core::Status RenderCubes::UpdateUniformBuffer(const glm::mat4& view,
+                                              const glm::mat4& project) {
+  {
+    const core::Status status = uniform_buffer_.MapData([&](void* data) {
+      UniformBufferObject ubo{view, project};
+      ubo.project[1][1] *= -1;  // Vulkan Y-flip
+      memcpy(data, &ubo, sizeof(UniformBufferObject));
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
-void RenderCubes::SetInstances(const std::vector<CubeInstance>& instances) {
+core::Status RenderCubes::SetInstances(
+    const std::vector<CubeInstance>& instances) {
   instance_count_ = std::min(static_cast<uint32_t>(instances.size()), max_instances_);
-  if (instance_count_ == 0) return;
-  instance_buffer_.MapData(
-      [&](void* data) { memcpy(data, instances.data(), sizeof(CubeInstance) * instance_count_); });
+  if (instance_count_ == 0) return core::Status();
+  {
+    const core::Status status = instance_buffer_.MapData([&](void* data) {
+      memcpy(data, instances.data(), sizeof(CubeInstance) * instance_count_);
+    });
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 std::vector<core::vulkan::BindingInfo> RenderCubes::GetBindingInfo() const {
@@ -155,32 +219,71 @@ void RenderCubes::BuildGeometry() {
   }
 }
 
-void RenderCubes::CreateBuffers() {
+core::Status RenderCubes::CreateBuffers() {
   const VkDeviceSize v_size = sizeof(vertices_[0]) * vertices_.size();
   const VkDeviceSize i_size = sizeof(indices_[0]) * indices_.size();
   const VkDeviceSize inst_size = sizeof(CubeInstance) * max_instances_;
 
-  vertex_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  vertex_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, v_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = vertex_buffer_staging_.Init(
+        context_, v_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = vertex_buffer_local_.Init(
+        context_, v_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  index_buffer_staging_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  index_buffer_local_ = core::vulkan::VulkanBuffer(
-      context_, i_size, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  {
+    const core::Status status = index_buffer_staging_.Init(
+        context_, i_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status = index_buffer_local_.Init(
+        context_, i_size,
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  instance_buffer_ = core::vulkan::VulkanBuffer(
-      context_, inst_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status = instance_buffer_.Init(
+        context_, inst_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
-  uniform_buffer_ = core::vulkan::VulkanBuffer(
-      context_, sizeof(UniformBufferObject), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  {
+    const core::Status status =
+        uniform_buffer_.Init(context_, sizeof(UniformBufferObject),
+                             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                 VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+
+  return core::Status();
 }
 
 }  // namespace core

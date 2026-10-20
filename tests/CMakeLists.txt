@@ -1,3 +1,5 @@
+add_subdirectory(error)
+
 if(ENABLE_MAT)
   add_subdirectory(mat)
 endif()

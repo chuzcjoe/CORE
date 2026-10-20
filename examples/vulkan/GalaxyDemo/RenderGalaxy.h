@@ -18,10 +18,10 @@ class RenderGalaxy : public core::vulkan::VulkanRender {
                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info,
                uint32_t star_count);
 
-  void Init() override;
+  core::Status Init() override;
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(uint32_t width, uint32_t height);
+  core::Status UpdateUniformBuffer(uint32_t width, uint32_t height);
 
  protected:
   // Points/sprites — no triangle culling
@@ -53,7 +53,7 @@ class RenderGalaxy : public core::vulkan::VulkanRender {
   } uniform_data_;
 
   void GenerateStars();
-  void CreateBuffers();
+  core::Status CreateBuffers();
 
   uint32_t star_count_;
   std::vector<InstanceData> instances_;

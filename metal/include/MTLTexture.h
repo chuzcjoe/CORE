@@ -1,6 +1,7 @@
 #pragma once
 
 #include "MTLContext.h"
+#include "Status.h"
 
 namespace core {
 namespace metal {
@@ -10,7 +11,7 @@ class MTLTexture {
   MTLTexture(MTLContext* context);
   ~MTLTexture();
 
-  void LoadTextureFromFile(const char* file_path);
+  Status LoadTextureFromFile(const char* file_path);
 
   MTL::Texture* texture() const { return texture_; }
 

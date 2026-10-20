@@ -1,3 +1,7 @@
+#include <memory>
+
+#include "Status.h"
+
 // clang-format off
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -16,9 +20,9 @@ const unsigned int kHeight = 600;
 
 // clang-format off
 const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
-    layout(location = 0) in vec3 aPos; 
+    layout(location = 0) in vec3 aPos;
     layout(location = 1) in vec3 aColor;
-    out vec3 outColor; 
+    out vec3 outColor;
     void main() {
         gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);
         outColor = aColor;
@@ -26,16 +30,16 @@ const char* vertex_shader_source = OPENGL_VERTEX_SHADER(
 );
 
 const char* fragment_shader_source = OPENGL_FRAGMENT_SHADER(
-    out vec4 FragColor; 
+    out vec4 FragColor;
     in vec3 outColor;
     uniform float alpha_weight;
-    void main() { 
-        FragColor = vec4(outColor, alpha_weight); 
+    void main() {
+        FragColor = vec4(outColor, alpha_weight);
     }
 );
 // clang-format on
 
-int main() {
+core::Status RunApplication() {
   glfwInit();
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -49,18 +53,31 @@ int main() {
   if (window == nullptr) {
     std::cout << "Failed to create GLFW window" << std::endl;
     glfwTerminate();
-    return -1;
+    return core::Status(core::ErrorCode::kBackend, "Application failed");
   }
+  const auto close_window = [](GLFWwindow* value) {
+    glfwDestroyWindow(value);
+    glfwTerminate();
+  };
+  const std::unique_ptr<GLFWwindow, decltype(close_window)> window_owner(
+      window, close_window);
+
   glfwMakeContextCurrent(window);
 
   // glad: load all OpenGL function pointers
   if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
     std::cout << "Failed to initialize GLAD" << std::endl;
-    return -1;
+    return core::Status(core::ErrorCode::kBackend, "Application failed");
   }
 
-  // Use GL after glad is initialized
-  core::opengl::GLProgram program(vertex_shader_source, fragment_shader_source);
+  auto program_result = core::opengl::GLProgram::Create(vertex_shader_source,
+                                                        fragment_shader_source);
+  if (!program_result.ok()) {
+    return program_result.status();
+  }
+  std::unique_ptr<core::opengl::GLProgram> program_owner =
+      std::move(*program_result);
+  core::opengl::GLProgram& program = *program_owner;
   core::opengl::GLVertexArray vao;
   core::opengl::GLVertexBuffer vbo(GL_ARRAY_BUFFER);
 
@@ -81,9 +98,21 @@ int main() {
   // Setup VAO (handle vao binding internally)
   vao.AttachVertexBuffer(vbo.id());
   vao.SetElementData(indices, sizeof(indices), GL_STATIC_DRAW);
-  vao.SetVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-  vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-                             (void*)(3 * sizeof(float)));
+  {
+    const core::Status status = vao.SetVertexAttribPointer(
+        0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    if (!status.ok()) {
+      return status;
+    }
+  }
+  {
+    const core::Status status =
+        vao.SetVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+                                   (void*)(3 * sizeof(float)));
+    if (!status.ok()) {
+      return status;
+    }
+  }
 
   // Enable blending for transparency
   glEnable(GL_BLEND);
@@ -114,5 +143,13 @@ int main() {
   }
 
   glfwTerminate();
-  return 0;
+  return core::Status();
+}
+int main() {
+  const core::Status status = RunApplication();
+  if (!status.ok()) {
+    std::fprintf(stderr, "%s\n", status.message().c_str());
+    return EXIT_FAILURE;
+  }
+  return EXIT_SUCCESS;
 }

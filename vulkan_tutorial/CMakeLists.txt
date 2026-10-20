@@ -43,7 +43,7 @@ function(add_exmaple target)
     endif()
 
     add_executable(${target} ${AE_SRCS})
-    target_link_libraries(${target} PUBLIC ${AE_DEPS})
+    target_link_libraries(${target} PUBLIC ${AE_DEPS} core_error)
     set_target_properties(${target} PROPERTIES CXX_STANDARD 20)
 
     if(AE_SHADERS)

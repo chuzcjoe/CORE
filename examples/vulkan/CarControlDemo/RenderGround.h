@@ -23,11 +23,12 @@ class RenderGround : public core::vulkan::VulkanRender {
   RenderGround(core::vulkan::VulkanContext* context,
                const core::vulkan::DynamicRenderingInfo& dynamic_rendering_info);
 
-  void Init() override;
-  void Init(const std::string& texture_path);
+  core::Status Init() override;
+  core::Status Init(const std::string& texture_path);
   void Render(VkCommandBuffer command_buffer, VkExtent2D extent);
 
-  void UpdateUniformBuffer(const glm::mat4& view, const glm::mat4& project);
+  core::Status UpdateUniformBuffer(const glm::mat4& view,
+                                   const glm::mat4& project);
 
  protected:
   VkCullModeFlags SetCullMode() const override { return VK_CULL_MODE_NONE; }
@@ -47,8 +48,8 @@ class RenderGround : public core::vulkan::VulkanRender {
     glm::mat4 project;
   };
 
-  void CreateTextureImage(const std::string& texture_path);
-  void CreateBuffers();
+  core::Status CreateTextureImage(const std::string& texture_path);
+  core::Status CreateBuffers();
 
   static constexpr float kHalf = 80.0f;
   const std::vector<glm::vec3> vertices_ = {
