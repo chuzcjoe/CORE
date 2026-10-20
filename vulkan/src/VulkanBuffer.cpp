@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "VulkanBufferTransfer.h"
 #include "VulkanImage.h"
 
 namespace core {
@@ -84,20 +85,30 @@ void VulkanBuffer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
   if (copies.empty()) {
     return;
   }
+  if (copies.front().source == nullptr || copies.front().source->context_ == nullptr) {
+    throw std::invalid_argument("Buffer copy requires a live source buffer");
+  }
+  VulkanBufferTransfer transfer(*copies.front().source->context_);
+  transfer.CopyBuffers(copies);
+}
 
-  VulkanContext* context = nullptr;
-  std::vector<VkBufferCopy> regions;
-  regions.reserve(copies.size());
+VulkanBufferTransfer::VulkanBufferTransfer(VulkanContext& context)
+    : context_(context), command_buffer_(&context), fence_(&context) {}
+
+void VulkanBufferTransfer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
+  if (copies.empty()) {
+    return;
+  }
+
+  regions_.clear();
+  regions_.reserve(copies.size());
   for (const BatchBufferCopy& copy : copies) {
     if (copy.source == nullptr || copy.destination == nullptr) {
       throw std::invalid_argument("Buffer copy requires source and destination");
     }
     const VulkanBuffer& source = *copy.source;
     const VulkanBuffer& destination = *copy.destination;
-    if (context == nullptr) {
-      context = source.context_;
-    }
-    if (context == nullptr || source.context_ != context || destination.context_ != context ||
+    if (source.context_ != &context_ || destination.context_ != &context_ ||
         source.buffer == VK_NULL_HANDLE || destination.buffer == VK_NULL_HANDLE) {
       throw std::invalid_argument("Buffer copies require live buffers from one context");
     }
@@ -121,21 +132,30 @@ void VulkanBuffer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
         copy.destination_offset < copy.source_offset + size) {
       throw std::invalid_argument("Buffer copy source and destination overlap");
     }
-    regions.push_back(VkBufferCopy{
+    regions_.push_back(VkBufferCopy{
         .srcOffset = copy.source_offset,
         .dstOffset = copy.destination_offset,
         .size = size,
     });
   }
 
-  const VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context);
+  // The previous non-empty call waited for completion before returning, so the
+  // command buffer and fence are no longer in use by the device.
+  command_buffer_.Reset();
+  const VkCommandBufferBeginInfo begin_info{
+      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+      .pNext = nullptr,
+      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+      .pInheritanceInfo = nullptr,
+  };
+  VK_CHECK(vkBeginCommandBuffer(command_buffer_.buffer(), &begin_info));
   const VkMemoryBarrier before{
       .sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
       .pNext = nullptr,
       .srcAccessMask = VK_ACCESS_MEMORY_WRITE_BIT,
       .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
   };
-  vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+  vkCmdPipelineBarrier(command_buffer_.buffer(), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
                        VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &before, 0, nullptr, 0, nullptr);
 
   const VkMemoryBarrier between{
@@ -147,11 +167,11 @@ void VulkanBuffer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
   for (size_t index = 0; index < copies.size(); ++index) {
     if (index != 0) {
       // Preserve array order, including read-after-write and overlapping writes.
-      vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+      vkCmdPipelineBarrier(command_buffer_.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
                            VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &between, 0, nullptr, 0, nullptr);
     }
-    vkCmdCopyBuffer(command_buffer.buffer(), copies[index].source->buffer,
-                    copies[index].destination->buffer, 1, &regions[index]);
+    vkCmdCopyBuffer(command_buffer_.buffer(), copies[index].source->buffer,
+                    copies[index].destination->buffer, 1, &regions_[index]);
   }
 
   const VkMemoryBarrier after{
@@ -161,14 +181,14 @@ void VulkanBuffer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
       .dstAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT |
                        VK_ACCESS_HOST_READ_BIT,
   };
-  vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+  vkCmdPipelineBarrier(command_buffer_.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT | VK_PIPELINE_STAGE_HOST_BIT, 0, 1,
                        &after, 0, nullptr, 0, nullptr);
 
-  VulkanFence fence(context);
-  fence.Reset();
-  command_buffer.Submit(fence.fence);
-  VK_CHECK(vkWaitForFences(context->logical_device, 1, &fence.fence, VK_TRUE, UINT64_MAX));
+  fence_.Reset();
+  VkSubmitInfo submit_info{};
+  command_buffer_.Submit(fence_.fence, submit_info);
+  VK_CHECK(vkWaitForFences(context_.logical_device, 1, &fence_.fence, VK_TRUE, UINT64_MAX));
 }
 
 void VulkanBuffer::CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,

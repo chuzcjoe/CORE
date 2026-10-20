@@ -15,6 +15,7 @@ namespace vulkan {
 
 class VulkanImage;
 class VulkanBuffer;
+class VulkanBufferTransfer;
 
 struct BatchBufferCopy {
   const VulkanBuffer* source = nullptr;
@@ -53,6 +54,8 @@ class VulkanBuffer {
 
   // TODO: keep them public
  private:
+  friend class VulkanBufferTransfer;
+
   VulkanContext* context_ = nullptr;
   VkDeviceSize buffer_size_ = 0;
   VkMemoryPropertyFlags memory_properties_ = 0;

@@ -4,6 +4,12 @@ add_vulkan_shader_target(vulkan_example_shaders
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/vulkan
     OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
+if(ENABLE_VULKAN)
+    build_example(vk_stream_upload_demo
+        SOURCES vulkan/StreamUpload/main.cpp
+        LIBRARIES vulkan)
+endif()
+
 if(ENABLE_IO AND ENABLE_MAT)
     build_example(bitmap_demo
         SOURCES bitmap/main.cpp

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <limits>
@@ -8,6 +9,7 @@
 #include <utility>
 
 #include "VulkanBuffer.h"
+#include "VulkanBufferTransfer.h"
 #include "VulkanContext.h"
 
 namespace core {
@@ -150,6 +152,81 @@ TEST_F(VulkanBufferTransferTest, EmptyBatchIsANoOpAndLegacyCopyStillWorks) {
   source->MapData([](void* data) { *static_cast<uint32_t*>(data) = 321; });
   source->CopyToBuffer(*destination);
   destination->MapData([](void* data) { EXPECT_EQ(*static_cast<uint32_t*>(data), 321U); });
+}
+
+TEST_F(VulkanBufferTransferTest, ReusesSessionAcrossChangingBatchesAndBufferLifetimes) {
+  vulkan::VulkanBufferTransfer transfer(context_);
+  for (uint32_t frame = 0; frame < 24; ++frame) {
+    // Destroy each batch's resources before the next call. Reset must handle a
+    // command buffer invalidated by destruction of its previous references.
+    std::unique_ptr<vulkan::VulkanBuffer> source = MakeBuffer();
+    std::unique_ptr<vulkan::VulkanBuffer> destination = MakeBuffer();
+    source->MapData([frame](void* data) {
+      uint32_t* words = static_cast<uint32_t*>(data);
+      for (uint32_t index = 0; index < 16; ++index) {
+        words[index] = frame * 100 + index;
+      }
+    });
+    destination->MapData([](void* data) {
+      std::fill_n(static_cast<uint32_t*>(data), 16, 9999U);
+    });
+    std::array<vulkan::BatchBufferCopy, 3> copies{};
+    const size_t count = 1 + frame % copies.size();
+    for (size_t index = 0; index < count; ++index) {
+      copies[index] = vulkan::BatchBufferCopy{
+          .source = source.get(), .destination = destination.get(),
+          .source_offset = index * 4, .destination_offset = 8, .size = 4};
+    }
+    transfer.CopyBuffers(std::span(copies.data(), count));
+    destination->MapData([frame, count](void* data) {
+      const uint32_t* words = static_cast<const uint32_t*>(data);
+      for (uint32_t index = 0; index < 16; ++index) {
+        const uint32_t expected = index == 2 ? frame * 100 + static_cast<uint32_t>(count - 1)
+                                             : 9999U;
+        EXPECT_EQ(words[index], expected);
+      }
+    });
+    transfer.CopyBuffers({});
+  }
+}
+
+TEST_F(VulkanBufferTransferTest, RejectedBatchPreservesDataAndSessionRemainsUsable) {
+  vulkan::VulkanBufferTransfer transfer(context_);
+  std::unique_ptr<vulkan::VulkanBuffer> source = MakeBuffer();
+  std::unique_ptr<vulkan::VulkanBuffer> destination = MakeBuffer();
+  std::unique_ptr<vulkan::VulkanBuffer> readback = MakeBuffer();
+  source->MapData([](void* data) { *static_cast<uint32_t*>(data) = 42; });
+  destination->MapData([](void* data) { *static_cast<uint32_t*>(data) = 17; });
+  std::array<vulkan::BatchBufferCopy, 2> copies{};
+  copies[0].source = source.get();
+  copies[0].destination = destination.get();
+  copies[1].source = destination.get();
+  copies[1].destination = readback.get();
+  copies[1].size = 65;
+  EXPECT_THROW(transfer.CopyBuffers(copies), std::out_of_range);
+  destination->MapData([](void* data) { EXPECT_EQ(*static_cast<uint32_t*>(data), 17U); });
+  copies[1].size = VK_WHOLE_SIZE;
+  transfer.CopyBuffers(copies);
+  readback->MapData([](void* data) { EXPECT_EQ(*static_cast<uint32_t*>(data), 42U); });
+  copies[1].destination = nullptr;
+  EXPECT_THROW(transfer.CopyBuffers(copies), std::invalid_argument);
+  copies[1].destination = readback.get();
+  source->MapData([](void* data) { *static_cast<uint32_t*>(data) = 81; });
+  transfer.CopyBuffers(copies);
+  readback->MapData([](void* data) { EXPECT_EQ(*static_cast<uint32_t*>(data), 81U); });
+}
+
+TEST_F(VulkanBufferTransferTest, SessionRejectsBatchFromAnotherContext) {
+  vulkan::VulkanContext other(true, vulkan::QueueFamilyType::Compute, VK_NULL_HANDLE);
+  other.Init();
+  vulkan::VulkanBufferTransfer transfer(other);
+  std::unique_ptr<vulkan::VulkanBuffer> source = MakeBuffer();
+  std::unique_ptr<vulkan::VulkanBuffer> destination = MakeBuffer();
+  const vulkan::BatchBufferCopy copy{
+      .source = source.get(), .destination = destination.get(),
+      .source_offset = 0, .destination_offset = 0, .size = VK_WHOLE_SIZE};
+  EXPECT_THROW(transfer.CopyBuffers(std::span(&copy, 1)), std::invalid_argument);
+  EXPECT_NO_THROW(transfer.CopyBuffers({}));
 }
 
 }  // namespace test

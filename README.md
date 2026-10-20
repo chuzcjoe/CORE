@@ -10,7 +10,7 @@ compute and rendering tasks easier to implement.
 
 To get started with CORE, see [CORE quickstart guide](https://core-computings.github.io/)
 
-For batched Vulkan buffer uploads and partial copies, see the
+For batched Vulkan buffer uploads, partial copies and reusable transfer sessions, see the
 [buffer transfer guide](docs/vulkan_buffer_transfers.md).
 
 For saving and reloading device-specific OpenCL programs, see the

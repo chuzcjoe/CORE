@@ -31,3 +31,6 @@ target_link_libraries(vulkan_tests
 
 add_executable(vulkan_transfer_benchmark benchmarks/BufferTransferBenchmark.cpp)
 target_link_libraries(vulkan_transfer_benchmark PRIVATE vulkan)
+
+add_executable(vulkan_repeated_transfer_benchmark benchmarks/RepeatedBufferTransferBenchmark.cpp)
+target_link_libraries(vulkan_repeated_transfer_benchmark PRIVATE vulkan)
