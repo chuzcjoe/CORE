@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
-#include <exception>
 #include <memory>
 #include <stdexcept>
 #include <vector>
@@ -93,20 +92,15 @@ void Benchmark(VulkanContext& context, size_t count, VkDeviceSize bytes) {
 }  // namespace
 
 int main() {
-  try {
-    VulkanContext context(true, core::vulkan::QueueFamilyType::Compute, VK_NULL_HANDLE);
-    context.Init();
-    VkPhysicalDeviceProperties properties{};
-    vkGetPhysicalDeviceProperties(context.physical_device, &properties);
-    std::printf("GPU: %s; wall time includes recording, pool/fence allocation, submit and wait; "
-                "validation requested; buffer allocation/fill/readback excluded\n",
-                properties.deviceName);
-    Benchmark(context, 3, 4096);
-    Benchmark(context, 16, 65536);
-    Benchmark(context, 16, 1048576);
-  } catch (const std::exception& error) {
-    std::fprintf(stderr, "%s\n", error.what());
-    return 1;
-  }
+  VulkanContext context(true, core::vulkan::QueueFamilyType::Compute, VK_NULL_HANDLE);
+  context.Init();
+  VkPhysicalDeviceProperties properties{};
+  vkGetPhysicalDeviceProperties(context.physical_device, &properties);
+  std::printf("GPU: %s; wall time includes recording, pool/fence allocation, submit and wait; "
+              "validation requested; buffer allocation/fill/readback excluded\n",
+              properties.deviceName);
+  Benchmark(context, 3, 4096);
+  Benchmark(context, 16, 65536);
+  Benchmark(context, 16, 1048576);
   return 0;
 }

@@ -85,6 +85,8 @@ Platform-specific sources and targets are selected with CMake conditions such as
   [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
 - Naming, indentation, header include order, comment style, and related conventions must follow
   that guide.
+- Do not use `catch` clauses in project code. Throwing exceptions with `throw` is allowed;
+  let exceptions propagate and use RAII for resource cleanup.
 
 ### Simplicity
 

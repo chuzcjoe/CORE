@@ -100,10 +100,7 @@ class ThreadPool {
         ++active_;
       }
 
-      try {
-        task();
-      } catch (...) { /* packaged_task handles exceptions */
-      }
+      task();
 
       // NEW: notify whenever the pool is idle
       {

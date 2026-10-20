@@ -1,5 +1,4 @@
 #include <cstddef>
-#include <exception>
 #include <fstream>
 #include <iostream>
 #include <iterator>
@@ -53,45 +52,40 @@ int main(int argc, char** argv) {
                  "       cl_program_binary_demo load <program.bin>\n";
     return 1;
   }
-  try {
-    if (core::opencl::cl_init() != CL_SUCCESS) {
-      throw std::runtime_error("Failed to initialize OpenCL loader");
-    }
-    core::opencl::CLContext context;
-    std::unique_ptr<core::opencl::CLProgram> program;
-    if (save) {
-      program = std::make_unique<core::opencl::CLProgram>(&context, std::string(argv[2]));
-      const std::vector<unsigned char> binary = program->GetBinary();
-      if (binary.size() > static_cast<size_t>(std::numeric_limits<std::streamsize>::max())) {
-        throw std::runtime_error("Binary is too large to write");
-      }
-      std::ofstream output(argv[3], std::ios::binary);
-      output.write(reinterpret_cast<const char*>(binary.data()),
-                   static_cast<std::streamsize>(binary.size()));
-      output.close();
-      if (!output) {
-        throw std::runtime_error("Failed to write program binary");
-      }
-      std::cout << "Saved " << binary.size() << " binary bytes\n";
-    } else {
-      std::ifstream input(argv[2], std::ios::binary);
-      if (!input) {
-        throw std::runtime_error("Failed to open program binary");
-      }
-      const std::string bytes((std::istreambuf_iterator<char>(input)),
-                              std::istreambuf_iterator<char>());
-      if (input.bad()) {
-        throw std::runtime_error("Failed to read program binary");
-      }
-      const std::span<const unsigned char> binary(
-          reinterpret_cast<const unsigned char*>(bytes.data()), bytes.size());
-      program = std::make_unique<core::opencl::CLProgram>(&context, binary);
-      std::cout << "Loaded " << binary.size() << " binary bytes\n";
-    }
-    RunVectorAdd(&context, program.get());
-  } catch (const std::exception& error) {
-    std::cerr << error.what() << '\n';
-    return 1;
+  if (core::opencl::cl_init() != CL_SUCCESS) {
+    throw std::runtime_error("Failed to initialize OpenCL loader");
   }
+  core::opencl::CLContext context;
+  std::unique_ptr<core::opencl::CLProgram> program;
+  if (save) {
+    program = std::make_unique<core::opencl::CLProgram>(&context, std::string(argv[2]));
+    const std::vector<unsigned char> binary = program->GetBinary();
+    if (binary.size() > static_cast<size_t>(std::numeric_limits<std::streamsize>::max())) {
+      throw std::runtime_error("Binary is too large to write");
+    }
+    std::ofstream output(argv[3], std::ios::binary);
+    output.write(reinterpret_cast<const char*>(binary.data()),
+                 static_cast<std::streamsize>(binary.size()));
+    output.close();
+    if (!output) {
+      throw std::runtime_error("Failed to write program binary");
+    }
+    std::cout << "Saved " << binary.size() << " binary bytes\n";
+  } else {
+    std::ifstream input(argv[2], std::ios::binary);
+    if (!input) {
+      throw std::runtime_error("Failed to open program binary");
+    }
+    const std::string bytes((std::istreambuf_iterator<char>(input)),
+                            std::istreambuf_iterator<char>());
+    if (input.bad()) {
+      throw std::runtime_error("Failed to read program binary");
+    }
+    const std::span<const unsigned char> binary(
+        reinterpret_cast<const unsigned char*>(bytes.data()), bytes.size());
+    program = std::make_unique<core::opencl::CLProgram>(&context, binary);
+    std::cout << "Loaded " << binary.size() << " binary bytes\n";
+  }
+  RunVectorAdd(&context, program.get());
   return 0;
 }

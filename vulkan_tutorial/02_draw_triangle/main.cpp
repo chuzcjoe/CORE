@@ -116,12 +116,7 @@ class HelloTriangleApplication {
   }
 
   void createInstance() {
-    uint32_t supportedVersion = 0;
-    try {
-      supportedVersion = context.enumerateInstanceVersion();
-    } catch (...) {
-      supportedVersion = VK_API_VERSION_1_0;
-    }
+    const uint32_t supportedVersion = context.enumerateInstanceVersion();
 
     uint32_t desiredVersion = VK_API_VERSION_1_3;
     uint32_t apiVersion = std::min(supportedVersion, desiredVersion);
@@ -651,13 +646,8 @@ class HelloTriangleApplication {
 };
 
 int main() {
-  try {
-    HelloTriangleApplication app;
-    app.run();
-  } catch (const std::exception &e) {
-    std::cerr << e.what() << std::endl;
-    return EXIT_FAILURE;
-  }
+  HelloTriangleApplication app;
+  app.run();
 
   return EXIT_SUCCESS;
 }
