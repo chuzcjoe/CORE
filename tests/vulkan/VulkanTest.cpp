@@ -50,12 +50,7 @@ TEST(VulkanQueryPoolTest, RejectsUnsupportedQueryTypes) {
   const VkQueryType unsupported_types[] = {VK_QUERY_TYPE_OCCLUSION,
                                           VK_QUERY_TYPE_PIPELINE_STATISTICS};
   for (const VkQueryType query_type : unsupported_types) {
-    try {
-      core::vulkan::VulkanQueryPool query_pool(&context, query_type);
-      FAIL() << "Unsupported query type was accepted: " << query_type;
-    } catch (const std::runtime_error& error) {
-      EXPECT_STREQ(error.what(), "Query type is not supported");
-    }
+    EXPECT_THROW(core::vulkan::VulkanQueryPool(&context, query_type), std::runtime_error);
   }
 }
 

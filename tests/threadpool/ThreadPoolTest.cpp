@@ -27,6 +27,17 @@ TEST(ThreadPoolTest, SingleWorkerExecutesTasks) {
   EXPECT_EQ(result.get(), 42);
 }
 
+TEST(ThreadPoolTest, ThrowingTaskPropagatesThroughFutureAndWorkerContinues) {
+  core::ThreadPool pool(1U);
+  std::future<void> failed = pool.submit([] { throw std::runtime_error("Task failed"); });
+
+  EXPECT_THROW(failed.get(), std::runtime_error);
+
+  std::future<int> result = pool.submit([] { return 42; });
+  EXPECT_EQ(result.get(), 42);
+  pool.wait_idle();
+}
+
 // This test case compute the sum of 30000 elements in a vector using 3 tasks
 
 TEST(ThreadPoolTest, test) {

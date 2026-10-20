@@ -1,8 +1,10 @@
 #include "CLProgram.h"
 
 #include <fstream>
+#include <memory>
 #include <sstream>
 #include <stdexcept>
+#include <type_traits>
 
 #include "CLLoader.h"
 
@@ -61,27 +63,24 @@ CLProgram::~CLProgram() {
 }
 
 void CLProgram::Build(const char* build_options) {
-  try {
-    const cl_int err = clBuildProgram(program, 1, &context_->device, build_options, nullptr, nullptr);
-    if (err == CL_SUCCESS) {
-      return;
-    }
-    // Fetch build log for diagnostics
-    size_t log_size = 0;
-    clGetProgramBuildInfo(program, context_->device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
-    std::string log;
-    if (log_size > 1) {
-      log.resize(log_size);
-      clGetProgramBuildInfo(program, context_->device, CL_PROGRAM_BUILD_LOG, log_size, log.data(),
-                            nullptr);
-    }
-    throw std::runtime_error(std::string("clBuildProgram failed: ") +
-                             (log.empty() ? "(no log)" : log.c_str()));
-  } catch (...) {
-    clReleaseProgram(program);
-    program = nullptr;
-    throw;
+  std::unique_ptr<std::remove_pointer_t<cl_program>, PFN_CLRELEASEPROGRAM> program_guard(
+      program, clReleaseProgram);
+  const cl_int err = clBuildProgram(program, 1, &context_->device, build_options, nullptr, nullptr);
+  if (err == CL_SUCCESS) {
+    program_guard.release();
+    return;
   }
+  // Fetch build log for diagnostics
+  size_t log_size = 0;
+  clGetProgramBuildInfo(program, context_->device, CL_PROGRAM_BUILD_LOG, 0, nullptr, &log_size);
+  std::string log;
+  if (log_size > 1) {
+    log.resize(log_size);
+    clGetProgramBuildInfo(program, context_->device, CL_PROGRAM_BUILD_LOG, log_size, log.data(),
+                          nullptr);
+  }
+  throw std::runtime_error(std::string("clBuildProgram failed: ") +
+                           (log.empty() ? "(no log)" : log.c_str()));
 }
 
 std::vector<unsigned char> CLProgram::GetBinary() const {
