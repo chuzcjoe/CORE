@@ -1,5 +1,8 @@
 #include "IOUtils.h"
 
+#include <cstddef>
+#include <cstring>
+
 namespace core {
 namespace io {
 
@@ -78,8 +81,9 @@ Bitmap ConvertVerticalCrossToCubeMapFaces(const Bitmap& src) {
   Bitmap cubemap(face_width, face_height, 6 * src.depth, src.format);
   cubemap.type = BitmapType::BitmapType_Cube;
 
-  const uint8_t* src_ptr = src.pixel.data();
-  uint8_t* dst_ptr = cubemap.pixel.data();
+  if (cubemap.pixel.empty()) {
+    return cubemap;
+  }
 
   /*
       ------
@@ -93,55 +97,39 @@ Bitmap ConvertVerticalCrossToCubeMapFaces(const Bitmap& src) {
       ------
   */
 
-  const int pixel_size = src.depth * Bitmap::GetBytesPerComponent(src.format);
+  const std::size_t pixel_size = static_cast<std::size_t>(src.depth) *
+      static_cast<std::size_t>(Bitmap::GetBytesPerComponent(src.format));
+  const std::size_t row_bytes = static_cast<std::size_t>(face_width) * pixel_size;
+  const std::size_t src_stride = static_cast<std::size_t>(src.width) * pixel_size;
+  uint8_t* dst_ptr = cubemap.pixel.data();
 
-  for (int face = 0; face != 6; ++face) {
-    for (int j = 0; j != face_height; ++j) {
-      for (int i = 0; i != face_width; ++i) {
-        int x = 0;
-        int y = 0;
+  struct FaceOrigin {
+    int x;
+    int y;
+  };
+  // +X, -X, +Y, -Y, +Z are contiguous rows; only -Z needs a 180-degree rotation.
+  const FaceOrigin kOrigins[] = {
+      {.x = 2 * face_width, .y = face_height}, {.x = 0, .y = face_height},
+      {.x = face_width, .y = 0}, {.x = face_width, .y = 2 * face_height},
+      {.x = face_width, .y = face_height}};
+  for (const FaceOrigin& origin : kOrigins) {
+    const uint8_t* src_row = src.pixel.data() +
+        static_cast<std::size_t>(origin.y) * src_stride +
+        static_cast<std::size_t>(origin.x) * pixel_size;
+    for (int row = 0; row < face_height; ++row) {
+      std::memcpy(dst_ptr, src_row, row_bytes);
+      dst_ptr += row_bytes;
+      src_row += src_stride;
+    }
+  }
 
-        switch (face) {
-          // CUBE_MAP_POSITIVE_X
-          case 0:
-            x = 2 * face_width + i;
-            y = 1 * face_height + j;
-            break;
-
-          // CUBE_MAP_NEGATIVE_X
-          case 1:
-            x = i;
-            y = face_height + j;
-            break;
-
-          // CUBE_MAP_POSITIVE_Y
-          case 2:
-            x = 1 * face_width + i;
-            y = j;
-            break;
-
-          // CUBE_MAP_NEGATIVE_Y
-          case 3:
-            x = 1 * face_width + i;
-            y = 2 * face_height + j;
-            break;
-
-          // CUBE_MAP_POSITIVE_Z
-          case 4:
-            x = face_width + i;
-            y = face_height + j;
-            break;
-
-          // CUBE_MAP_NEGATIVE_Z
-          case 5:
-            x = 2 * face_width - (i + 1);
-            y = src.height - (j + 1);
-            break;
-        }
-
-        memcpy(dst_ptr, src_ptr + (y * src.width + x) * pixel_size, pixel_size);
-        dst_ptr += pixel_size;
-      }
+  for (int row = 0; row < face_height; ++row) {
+    const uint8_t* src_row = src.pixel.data() +
+        static_cast<std::size_t>(src.height - row - 1) * src_stride +
+        static_cast<std::size_t>(2 * face_width - 1) * pixel_size;
+    for (int col = 0; col < face_width; ++col) {
+      std::memcpy(dst_ptr, src_row - static_cast<std::size_t>(col) * pixel_size, pixel_size);
+      dst_ptr += pixel_size;
     }
   }
 
