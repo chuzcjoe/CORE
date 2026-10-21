@@ -16,3 +16,8 @@ imgui.*
 build_apps/
 debug.keystore
 *.cache
+/.agents/skills/j-mode
+/.codex/agents/j-agent.toml
+/.codex/agents/j-agent.md
+/.claude/skills/j-mode
+/.claude/agents/j-agent.md

@@ -23,3 +23,6 @@
 	path = external/metal_cpp
 	url = https://github.com/bkaradzic/metal-cpp.git
 	branch = metal-cpp_26
+[submodule "jstack"]
+	path = jstack
+	url = git@github.com:chuzcjoe/jstack.git
