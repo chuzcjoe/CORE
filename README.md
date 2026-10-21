@@ -16,6 +16,9 @@ For batched Vulkan buffer uploads and partial copies, see the
 For saving and reloading device-specific OpenCL programs, see the
 [program binary guide](docs/opencl_program_binaries.md).
 
+For vertical-cross cubemap face layout and copy benchmarks, see the
+[cubemap copy guide](docs/cubemap_copy.md).
+
 ## 1. Supported Platforms
 
 - **macOS**: build and run locally.
