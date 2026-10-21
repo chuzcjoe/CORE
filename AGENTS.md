@@ -79,12 +79,17 @@ Platform-specific sources and targets are selected with CMake conditions such as
 
 ## Development Guidelines
 
+### Code Comments
+
+- Do not add comments when writing or modifying code in any language, including inline comments,
+  block comments, documentation comments, and commented-out code.
+- This rule takes precedence over comment requirements in external style guides.
+
 ### C++ Code Style
 
 - All C++ code must comply with the
   [Google C++ Style Guide](https://google.github.io/styleguide/cppguide.html).
-- Naming, indentation, header include order, comment style, and related conventions must follow
-  that guide.
+- Naming, indentation, header include order, and related conventions must follow that guide.
 - Do not use `catch` clauses in project code. Throwing exceptions with `throw` is allowed;
   let exceptions propagate and use RAII for resource cleanup.
 
