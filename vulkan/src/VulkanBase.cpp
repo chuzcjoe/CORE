@@ -1,5 +1,7 @@
 #include "VulkanBase.h"
 
+#include <stdexcept>
+
 namespace core {
 namespace vulkan {
 
@@ -15,6 +17,23 @@ VulkanBase::~VulkanBase() {
 }
 
 void VulkanBase::Init() {
+  const std::vector<VkPushConstantRange> push_constant_ranges =
+      GetPushConstantRanges();
+  if (!push_constant_ranges.empty()) {
+    VkPhysicalDeviceProperties properties{};
+    vkGetPhysicalDeviceProperties(context_->physical_device, &properties);
+    const uint32_t limit = properties.limits.maxPushConstantsSize;
+    VkShaderStageFlags used_stages = 0;
+    for (const VkPushConstantRange& range : push_constant_ranges) {
+      if (range.stageFlags == 0 || (range.stageFlags & used_stages) != 0 ||
+          range.size == 0 || range.offset % 4 != 0 || range.size % 4 != 0 ||
+          range.offset >= limit || range.size > limit - range.offset) {
+        throw std::invalid_argument("Invalid push constant range");
+      }
+      used_stages |= range.stageFlags;
+    }
+  }
+
   // 1. Create descriptor set layout
   VkDescriptorSetLayoutCreateInfo layout_info{};
   layout_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -53,13 +72,18 @@ void VulkanBase::Init() {
   pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   pipeline_layout_info.setLayoutCount = 1;
   pipeline_layout_info.pSetLayouts = &descriptor_set_layout_;
-  pipeline_layout_info.pushConstantRangeCount = 0;
-  pipeline_layout_info.pPushConstantRanges = nullptr;
+  pipeline_layout_info.pushConstantRangeCount =
+      static_cast<uint32_t>(push_constant_ranges.size());
+  pipeline_layout_info.pPushConstantRanges = push_constant_ranges.data();
   VK_CHECK(vkCreatePipelineLayout(context_->logical_device, &pipeline_layout_info, nullptr,
                                   &pipeline_layout));
 
   // 4. Create pipeline
   CreatePipeline();
+}
+
+std::vector<VkPushConstantRange> VulkanBase::GetPushConstantRanges() const {
+  return {};
 }
 
 std::vector<VkDescriptorSetLayoutBinding> VulkanBase::CreateDescriptorLayoutBindings() const {

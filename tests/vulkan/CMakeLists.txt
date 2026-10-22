@@ -12,14 +12,22 @@ file(GLOB test_src
 
 add_executable(vulkan_tests ${test_src})
 
+add_vulkan_shader_target(vulkan_rasterizer_test_shader
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/examples/vulkan/ComputeBarycentricRasterizer
+  OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/shaders)
+
+target_sources(vulkan_tests PRIVATE
+  ${PROJECT_SOURCE_DIR}/examples/vulkan/ComputeBarycentricRasterizer/ComputeBarycentric.cpp)
+
 target_include_directories(vulkan_tests
   PRIVATE
   ComputeSum
   ComputeGaussianBlur
   Roofline
+  ${PROJECT_SOURCE_DIR}/examples/vulkan/ComputeBarycentricRasterizer
   ${CMAKE_CURRENT_BINARY_DIR}/shaders)
 
-add_dependencies(vulkan_tests vulkan_shaders)
+add_dependencies(vulkan_tests vulkan_shaders vulkan_rasterizer_test_shader)
 
 target_link_libraries(vulkan_tests
   PRIVATE

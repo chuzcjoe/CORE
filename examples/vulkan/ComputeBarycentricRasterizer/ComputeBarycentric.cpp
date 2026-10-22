@@ -1,56 +1,86 @@
 #include "ComputeBarycentric.h"
 
+#include <cstring>
+#include <stdexcept>
+
 namespace core {
 namespace example {
 
-ComputeBarycentric::ComputeBarycentric(core::vulkan::VulkanContext* context, const int width,
-                                       const int height)
-    : core::vulkan::VulkanCompute(context),
-      uniform_buffer_(context, sizeof(UniformData), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-      uniform_data_{.width = width, .height = height} {
+ComputeBarycentric::ComputeBarycentric(core::vulkan::VulkanContext* context,
+                                       const int width, const int height)
+    : core::vulkan::VulkanCompute(context), width_(width), height_(height) {
+  if (width_ <= 0 || height_ <= 0 || width_ > 16384 || height_ > 16384) {
+    throw std::invalid_argument(
+        "Rasterizer dimensions must be between 1 and 16384");
+  }
   CreateBuffers();
 }
 
 void ComputeBarycentric::Init() {
   core::vulkan::VulkanCompute::Init();
 
-  // Copy uniform data to the uniform buffer
-  // Fill uniform with randon A, B, C vertex coordinates
-  uniform_buffer_.MapData([this](void* data) {
-    uniform_data_.vertex_a = glm::vec2(300, 800);
-    uniform_data_.vertex_b = glm::vec2(500, 100);
-    uniform_data_.vertex_c = glm::vec2(700, 800);
-    memcpy(data, &uniform_data_, sizeof(UniformData));
-  });
-
-  // Fill rasterized with all 0s
   rasterized.MapData([this](void* data) {
-    core::Mat<int, 1> mat(uniform_data_.height, uniform_data_.width);
-    mat.Fill(0);
-    memcpy(data, mat.data(), mat.total() * sizeof(int));
+    std::memset(data, 0, static_cast<size_t>(rasterized.Size()));
   });
 
-  CreateUniformBufferDescriptorSet(0, uniform_buffer_);
-  CreateStorageBufferDescriptorSet(1, rasterized);
+  CreateStorageBufferDescriptorSet(0, rasterized);
 
-  vkUpdateDescriptorSets(context_->logical_device, writes_.size(), writes_.data(), 0, nullptr);
+  vkUpdateDescriptorSets(context_->logical_device,
+                         static_cast<uint32_t>(writes_.size()), writes_.data(),
+                         0, nullptr);
 }
 
 void ComputeBarycentric::Run(const VkCommandBuffer command_buffer) {
-  // Record commands to dispatch the compute shader
+  Run(command_buffer, Triangle{.a = glm::ivec2(300, 800),
+                               .b = glm::ivec2(500, 100),
+                               .c = glm::ivec2(700, 800)});
+}
+
+void ComputeBarycentric::Run(VkCommandBuffer command_buffer,
+                             const Triangle& triangle) {
+  for (const glm::ivec2& vertex : {triangle.a, triangle.b, triangle.c}) {
+    if (vertex.x < -16383 || vertex.x > 16383 || vertex.y < -16383 ||
+        vertex.y > 16383) {
+      throw std::invalid_argument(
+          "Rasterizer coordinates must be between -16383 and 16383");
+    }
+  }
+  const PushConstants parameters{.width = width_,
+                                 .height = height_,
+                                 .vertex_a = triangle.a,
+                                 .vertex_b = triangle.b,
+                                 .vertex_c = triangle.c};
+  VkMemoryBarrier barrier{};
+  barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  barrier.dstAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                       VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 1, &barrier, 0,
+                       nullptr, 0, nullptr);
+
   vkCmdBindPipeline(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
   vkCmdBindDescriptorSets(command_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline_layout, 0, 1,
                           &descriptor_set_, 0, nullptr);
+  vkCmdPushConstants(command_buffer, pipeline_layout,
+                     VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                     static_cast<uint32_t>(sizeof(parameters)), &parameters);
 
-  const uint32_t group_x = (uniform_data_.width + 15) / 16;
-  const uint32_t group_y = (uniform_data_.height + 15) / 16;
+  const uint32_t group_x = (static_cast<uint32_t>(width_) + 15) / 16;
+  const uint32_t group_y = (static_cast<uint32_t>(height_) + 15) / 16;
   vkCmdDispatch(command_buffer, group_x, group_y, 1);
 }
 
 std::vector<core::vulkan::BindingInfo> ComputeBarycentric::GetBindingInfo() const {
-  return {{0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT},
-          {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_COMPUTE_BIT}};
+  return {{.binding = 0,
+           .descriptor_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+           .shader_stage = VK_SHADER_STAGE_COMPUTE_BIT}};
+}
+
+std::vector<VkPushConstantRange> ComputeBarycentric::GetPushConstantRanges()
+    const {
+  return {{.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+           .offset = 0,
+           .size = static_cast<uint32_t>(sizeof(PushConstants))}};
 }
 
 const std::vector<uint32_t>& ComputeBarycentric::LoadShaderCode() const {
@@ -61,7 +91,8 @@ const std::vector<uint32_t>& ComputeBarycentric::LoadShaderCode() const {
 }
 
 void ComputeBarycentric::CreateBuffers() {
-  const VkDeviceSize size = uniform_data_.width * uniform_data_.height * sizeof(int);
+  const VkDeviceSize size = static_cast<VkDeviceSize>(width_) *
+                            static_cast<VkDeviceSize>(height_) * sizeof(int);
   rasterized = core::vulkan::VulkanBuffer(
       context_, size, VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
       VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);

@@ -34,6 +34,7 @@ class VulkanBase {
 
  protected:
   virtual std::vector<BindingInfo> GetBindingInfo() const = 0;
+  virtual std::vector<VkPushConstantRange> GetPushConstantRanges() const;
   virtual void CreatePipeline() = 0;
 
  protected:
@@ -48,9 +49,9 @@ class VulkanBase {
                                                const VkSampler& sampler);
 
   VulkanContext* context_ = nullptr;
-  VkDescriptorSetLayout descriptor_set_layout_;
-  VkDescriptorPool descriptor_pool_;
-  VkDescriptorSet descriptor_set_;
+  VkDescriptorSetLayout descriptor_set_layout_ = VK_NULL_HANDLE;
+  VkDescriptorPool descriptor_pool_ = VK_NULL_HANDLE;
+  VkDescriptorSet descriptor_set_ = VK_NULL_HANDLE;
 
   std::vector<VkDescriptorBufferInfo> buffer_infos_;
   std::vector<VkDescriptorImageInfo> image_infos_;

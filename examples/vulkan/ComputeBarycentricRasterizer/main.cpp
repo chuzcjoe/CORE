@@ -36,7 +36,19 @@ int main() {
   query_pool.Reset(command_buffer.buffer());
   query_pool.Query(command_buffer.buffer(), 0, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
   barycentric->Run(command_buffer.buffer());
+  barycentric->Run(
+      command_buffer.buffer(),
+      core::example::ComputeBarycentric::Triangle{.a = glm::ivec2(50, 450),
+                                                  .b = glm::ivec2(150, 50),
+                                                  .c = glm::ivec2(250, 450)});
   query_pool.Query(command_buffer.buffer(), 1, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
+  VkMemoryBarrier host_barrier{};
+  host_barrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+  host_barrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+  host_barrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+  vkCmdPipelineBarrier(
+      command_buffer.buffer(), VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+      VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &host_barrier, 0, nullptr, 0, nullptr);
   command_buffer.Submit(fence.fence, core::vulkan::SubmitSyncInfo{});
 
   vkWaitForFences(context.logical_device, 1, &fence.fence, VK_TRUE, UINT64_MAX);
