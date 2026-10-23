@@ -45,6 +45,9 @@ class VulkanBuffer {
   void CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
                    const uint32_t layers = 1);
 
+  void CopyToImage(VkCommandBuffer command_buffer, VulkanImage& dst_image, uint32_t width,
+                   uint32_t height, uint32_t layers = 1);
+
   void MapData(const std::function<void(void*)>& func);
 
   VkDeviceSize Size() const { return buffer_size_; }

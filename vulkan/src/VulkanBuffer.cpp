@@ -173,10 +173,19 @@ void VulkanBuffer::CopyBuffers(std::span<const BatchBufferCopy> copies) {
 
 void VulkanBuffer::CopyToImage(VulkanImage& dst_image, const uint32_t width, const uint32_t height,
                                const uint32_t layers) {
-  const auto command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  const VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  CopyToImage(command_buffer.buffer(), dst_image, width, height, layers);
+  command_buffer.EndOneTimeCommands();
+}
+
+void VulkanBuffer::CopyToImage(VkCommandBuffer command_buffer, VulkanImage& dst_image,
+                             uint32_t width, uint32_t height, uint32_t layers) {
+  if (layers == 0) {
+    throw std::invalid_argument("Image copy requires at least one layer");
+  }
 
   std::vector<VkBufferImageCopy> regions(layers);
-  VkDeviceSize layer_size = buffer_size_ / layers;
+  const VkDeviceSize layer_size = buffer_size_ / layers;
 
   for (uint32_t i = 0; i < layers; ++i) {
     VkBufferImageCopy region{};
@@ -185,16 +194,14 @@ void VulkanBuffer::CopyToImage(VulkanImage& dst_image, const uint32_t width, con
     region.imageSubresource.mipLevel = 0;
     region.imageSubresource.baseArrayLayer = i;
     region.imageSubresource.layerCount = 1;
-    region.imageOffset = {0, 0, 0};
-    region.imageExtent = {width, height, 1};
+    region.imageOffset = {.x = 0, .y = 0, .z = 0};
+    region.imageExtent = {.width = width, .height = height, .depth = 1};
 
     regions[i] = region;
   }
 
-  vkCmdCopyBufferToImage(command_buffer.buffer(), buffer, dst_image.image,
-                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, regions.size(), regions.data());
-
-  command_buffer.EndOneTimeCommands();
+  vkCmdCopyBufferToImage(command_buffer, buffer, dst_image.image,
+                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layers, regions.data());
 }
 
 void VulkanBuffer::MapData(const std::function<void(void*)>& func) {
