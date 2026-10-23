@@ -175,14 +175,17 @@ void RenderCubeMap::CreateTextureImage(const std::string& image_path) {
                                 6                                     // layers
       );
 
-  cube_map_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+  const vulkan::VulkanCommandBuffer upload =
+      vulkan::VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  cube_map_image_.TransitionImageLayout(upload.buffer(), VK_IMAGE_LAYOUT_UNDEFINED,
                                         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_FORMAT_R8G8B8A8_SRGB, 1, 6);
-  staging_buffer.CopyToImage(cube_map_image_, static_cast<uint32_t>(out.width),
+  staging_buffer.CopyToImage(upload.buffer(), cube_map_image_, static_cast<uint32_t>(out.width),
                              static_cast<uint32_t>(out.height), 6);
-  cube_map_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+  cube_map_image_.TransitionImageLayout(upload.buffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                         VK_FORMAT_R8G8B8A8_SRGB, 1, 6);
+  upload.EndOneTimeCommands();
 }
 
 }  // namespace core

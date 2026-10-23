@@ -27,10 +27,16 @@ class VulkanImage {
                              [[maybe_unused]] const VkFormat format, const uint32_t mip_levels = 1,
                              const uint32_t layers = 1);
 
+  void TransitionImageLayout(VkCommandBuffer command_buffer, VkImageLayout old_layout,
+                             VkImageLayout new_layout, VkFormat format, uint32_t mip_levels = 1,
+                             uint32_t layers = 1);
+
   void TransitionDepthImageLayout(const VkImageLayout old_layout, const VkImageLayout new_layout,
                                   [[maybe_unused]] const VkFormat format);
 
   void GenerateMipmaps();
+
+  void GenerateMipmaps(VkCommandBuffer command_buffer);
 
   // void CreateTextureImage(const std::string& image_path);
 

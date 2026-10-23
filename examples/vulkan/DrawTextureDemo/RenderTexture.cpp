@@ -186,14 +186,17 @@ void RenderTexture::CreateTextureImage(const std::string& image_path) {
                                 VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   // Transition image layout and copy buffer to image
-  // TODO: Use a single command buffer for all operations for higher throughput,
+  const vulkan::VulkanCommandBuffer upload =
+      vulkan::VulkanCommandBuffer::BeginOneTimeCommands(context_);
   texture_image_.TransitionImageLayout(
-      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_FORMAT_R8G8B8A8_SRGB);
-  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
+      upload.buffer(), VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+      VK_FORMAT_R8G8B8A8_SRGB);
+  staging_buffer.CopyToImage(upload.buffer(), texture_image_, static_cast<uint32_t>(texture_width),
                              static_cast<uint32_t>(texture_height));
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+  texture_image_.TransitionImageLayout(upload.buffer(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                        VK_FORMAT_R8G8B8A8_SRGB);
+  upload.EndOneTimeCommands();
 }
 
 }  // namespace core

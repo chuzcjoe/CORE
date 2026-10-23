@@ -225,15 +225,17 @@ void RenderModel::CreateTextureImage(const std::string& image_path) {
                                 VK_IMAGE_TILING_OPTIMAL, mip_levels);
 
   // Transition image layout and copy buffer to image
-  // TODO: Use a single command buffer for all operations for higher throughput,
-  texture_image_.TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED,
+  const vulkan::VulkanCommandBuffer upload =
+      vulkan::VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  texture_image_.TransitionImageLayout(upload.buffer(), VK_IMAGE_LAYOUT_UNDEFINED,
                                        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                        VK_FORMAT_R8G8B8A8_SRGB, mip_levels);
-  staging_buffer.CopyToImage(texture_image_, static_cast<uint32_t>(texture_width),
+  staging_buffer.CopyToImage(upload.buffer(), texture_image_, static_cast<uint32_t>(texture_width),
                              static_cast<uint32_t>(texture_height));
 
   // TODO: Implementing resizing in software and loading multiple levels from a file
-  texture_image_.GenerateMipmaps();
+  texture_image_.GenerateMipmaps(upload.buffer());
+  upload.EndOneTimeCommands();
 }
 
 }  // namespace core

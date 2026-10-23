@@ -128,7 +128,14 @@ void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
                                         [[maybe_unused]] const VkFormat format,
                                         const uint32_t mip_levels, const uint32_t layers) {
   VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  TransitionImageLayout(command_buffer.buffer(), old_layout, new_layout, format, mip_levels,
+                        layers);
+  command_buffer.EndOneTimeCommands();
+}
 
+void VulkanImage::TransitionImageLayout(VkCommandBuffer command_buffer, VkImageLayout old_layout,
+                                       VkImageLayout new_layout, [[maybe_unused]] VkFormat format,
+                                       uint32_t mip_levels, uint32_t layers) {
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
   barrier.oldLayout = old_layout;
@@ -183,10 +190,8 @@ void VulkanImage::TransitionImageLayout(const VkImageLayout old_layout,
     throw std::invalid_argument("unsupported layout transition!");
   }
 
-  vkCmdPipelineBarrier(command_buffer.buffer(), source_stage, destination_stage, 0, 0, nullptr, 0,
+  vkCmdPipelineBarrier(command_buffer, source_stage, destination_stage, 0, 0, nullptr, 0,
                        nullptr, 1, &barrier);
-
-  command_buffer.EndOneTimeCommands();
 }
 
 void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
@@ -247,6 +252,12 @@ void VulkanImage::TransitionDepthImageLayout(const VkImageLayout old_layout,
 }
 
 void VulkanImage::GenerateMipmaps() {
+  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
+  GenerateMipmaps(command_buffer.buffer());
+  command_buffer.EndOneTimeCommands();
+}
+
+void VulkanImage::GenerateMipmaps(VkCommandBuffer command_buffer) {
   // Check if image format supports linear blitting
   // VkFormatProperties format_properties;
   // vkGetPhysicalDeviceFormatProperties(context_->physical_device, image_format_,
@@ -254,8 +265,6 @@ void VulkanImage::GenerateMipmaps() {
   //       VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT)) {
   //   throw std::runtime_error("texture image format does not support linear blitting!");
   // }
-
-  VulkanCommandBuffer command_buffer = VulkanCommandBuffer::BeginOneTimeCommands(context_);
 
   VkImageMemoryBarrier barrier{};
   barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -277,27 +286,28 @@ void VulkanImage::GenerateMipmaps() {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
 
-    vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 
     VkImageBlit blit{};
     // src
-    blit.srcOffsets[0] = {0, 0, 0};
-    blit.srcOffsets[1] = {mip_width, mip_height, 1};
+    blit.srcOffsets[0] = {.x = 0, .y = 0, .z = 0};
+    blit.srcOffsets[1] = {.x = mip_width, .y = mip_height, .z = 1};
     blit.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.srcSubresource.mipLevel = i - 1;
     blit.srcSubresource.baseArrayLayer = 0;
     blit.srcSubresource.layerCount = 1;
     // dst
-    blit.dstOffsets[0] = {0, 0, 0};
-    blit.dstOffsets[1] = {mip_width > 1 ? mip_width / 2 : 1, mip_height > 1 ? mip_height / 2 : 1,
-                          1};
+    blit.dstOffsets[0] = {.x = 0, .y = 0, .z = 0};
+    blit.dstOffsets[1] = {.x = mip_width > 1 ? mip_width / 2 : 1,
+                          .y = mip_height > 1 ? mip_height / 2 : 1,
+                          .z = 1};
     blit.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     blit.dstSubresource.mipLevel = i;
     blit.dstSubresource.baseArrayLayer = 0;
     blit.dstSubresource.layerCount = 1;
 
-    vkCmdBlitImage(command_buffer.buffer(), image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image,
+    vkCmdBlitImage(command_buffer, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image,
                    VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
 
     barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
@@ -305,7 +315,7 @@ void VulkanImage::GenerateMipmaps() {
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                          &barrier);
 
@@ -323,11 +333,9 @@ void VulkanImage::GenerateMipmaps() {
   barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
   barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-  vkCmdPipelineBarrier(command_buffer.buffer(), VK_PIPELINE_STAGE_TRANSFER_BIT,
+  vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
                        VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
                        &barrier);
-
-  command_buffer.EndOneTimeCommands();
 }
 
 }  // namespace vulkan
